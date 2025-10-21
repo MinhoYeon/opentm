@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
-type TrademarkType = "word" | "logo" | "combined";
+import { submitTrademarkRequest, type TrademarkType } from "./actions";
 
 type StoredImage = {
   dataUrl: string;
@@ -101,14 +101,12 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(null);
-  const skipPersistence = useRef(false);
+  const [submissionDetails, setSubmissionDetails] = useState<
+    { id: string; link: string } | null
+  >(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
-      return;
-    }
-    if (skipPersistence.current) {
-      skipPersistence.current = false;
       return;
     }
     window.localStorage.setItem(
@@ -155,24 +153,34 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
       setSubmissionMessage(null);
-      const response = await fetch("/api/notify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          submittedAt: new Date().toISOString(),
-        }),
+      setSubmissionDetails(null);
+      const result = await submitTrademarkRequest({
+        brandName: formData.brandName,
+        trademarkType: formData.trademarkType as TrademarkType,
+        productClasses: formData.productClasses,
+        representativeEmail: formData.representativeEmail,
+        additionalNotes: formData.additionalNotes,
+        image: formData.image
+          ? {
+              dataUrl: formData.image.dataUrl,
+              fileName: formData.image.fileName,
+              fileType: formData.image.fileType,
+              size: formData.image.size,
+            }
+          : null,
       });
 
-      if (!response.ok) {
-        throw new Error("신청 접수 중 오류가 발생했습니다.");
+      if (!result.success) {
+        setErrors(result.errors);
+        setSubmissionMessage(result.message);
+        return;
       }
 
-      setSubmissionMessage("신청이 접수되었습니다. 담당 변리사가 곧 연락드릴 예정입니다.");
-      skipPersistence.current = true;
-      window.localStorage.removeItem(storageKey);
+      setErrors([]);
+      setSubmissionDetails({ id: result.requestId, link: result.requestLink });
+      setSubmissionMessage(
+        `신청이 접수되었습니다. 요청 ID: ${result.requestId}`
+      );
       setFormData({
         brandName: "",
         trademarkType: "",
@@ -507,8 +515,19 @@ export default function RegisterPage() {
             )}
 
             {submissionMessage && (
-              <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {submissionMessage}
+              <div className="space-y-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                <p>{submissionMessage}</p>
+                {submissionDetails ? (
+                  <p>
+                    <a
+                      href={submissionDetails.link}
+                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 px-3 py-1 text-xs font-medium text-emerald-100 transition hover:border-white/70 hover:text-white"
+                    >
+                      요청 상세 보기
+                      <span aria-hidden>→</span>
+                    </a>
+                  </p>
+                ) : null}
               </div>
             )}
 
