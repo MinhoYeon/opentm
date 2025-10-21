@@ -10,7 +10,8 @@ type PageSearchParams = {
 };
 
 type PageProps = {
-  searchParams?: PageSearchParams;
+  // Next 15: dynamic APIs like searchParams are async
+  searchParams?: Promise<PageSearchParams> | PageSearchParams;
 };
 
 function toPositiveInteger(value: string | undefined, fallback: number) {
@@ -119,7 +120,10 @@ export default async function MyPage({ searchParams }: PageProps) {
     redirect(`/login?redirect=${encodeURIComponent("/mypage")}`);
   }
 
-  const page = toPositiveInteger(searchParams?.page, 1);
+  const sp = typeof (searchParams as any)?.then === "function"
+    ? await (searchParams as Promise<PageSearchParams>)
+    : ((searchParams as PageSearchParams | undefined) ?? {});
+  const page = toPositiveInteger(sp.page, 1);
   const pageSize = 10;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -191,7 +195,7 @@ export default async function MyPage({ searchParams }: PageProps) {
             : typeof record.lastUpdated === "string"
               ? record.lastUpdated
               : null,
-      classes: toStringArray(record.classes),
+      classes: toStringArray((record as any).product_classes ?? (record as any).classes),
       representative:
         typeof record.representative_name === "string"
           ? record.representative_name
@@ -237,6 +241,7 @@ export default async function MyPage({ searchParams }: PageProps) {
 
   const statusStyles: Record<string, { badge: string; dot: string }> = {
     draft: { badge: "bg-slate-100 text-slate-700", dot: "bg-slate-500" },
+    submitted: { badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
     review: { badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
     waiting: { badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
     filed: { badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
@@ -305,7 +310,7 @@ export default async function MyPage({ searchParams }: PageProps) {
             ) : submissions.length > 0 ? (
               submissions.map((submission) => {
                 const statusMeta = getStatusMeta(submission.status);
-                const styles = statusStyles[submission.status];
+                const styles = statusStyles[submission.status] ?? statusStyles.default;
 
                 return (
                   <article

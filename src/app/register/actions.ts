@@ -3,11 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 
-import {
-  insertTrademarkRequest,
-  invokeNotificationFunction,
-  uploadTrademarkImage,
-} from "@/lib/supabase-admin";
+import { createAdminClient } from "@/lib/supabaseAdminClient";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const TRADEMARK_IMAGE_BUCKET = "trademark-images";
@@ -133,6 +129,7 @@ export async function submitTrademarkRequest(
   }
 
   const requestId = randomUUID();
+  const admin = createAdminClient();
   let imageUrl: string | null = null;
   let imagePath: string | null = null;
 
@@ -155,13 +152,18 @@ export async function submitTrademarkRequest(
       const fileName = `${safeName || "trademark"}${extension}`;
       imagePath = `${requestId}/${Date.now()}-${fileName}`;
 
-      const uploadResult = await uploadTrademarkImage(
-        TRADEMARK_IMAGE_BUCKET,
-        imagePath,
-        buffer,
-        mimeType
-      );
-      imageUrl = uploadResult.publicUrl;
+      const { error: uploadError } = await admin
+        .storage
+        .from(TRADEMARK_IMAGE_BUCKET)
+        .upload(imagePath, buffer, { contentType: mimeType, upsert: false });
+      if (uploadError) {
+        throw uploadError;
+      }
+      const { data: publicUrlData } = admin
+        .storage
+        .from(TRADEMARK_IMAGE_BUCKET)
+        .getPublicUrl(imagePath);
+      imageUrl = publicUrlData.publicUrl;
     } catch (error) {
       const message =
         error instanceof Error
@@ -178,7 +180,9 @@ export async function submitTrademarkRequest(
   const submittedAt = new Date().toISOString();
 
   try {
-    await insertTrademarkRequest({
+    const { error: insertError } = await admin
+      .from("trademark_requests")
+      .insert({
       id: requestId,
       user_id: input.userId ?? null,
       brand_name: input.brandName.trim(),
@@ -192,7 +196,12 @@ export async function submitTrademarkRequest(
       status: "submitted",
       status_detail: "요청이 접수되었습니다.",
       status_updated_at: submittedAt,
-    });
+      })
+      .select()
+      .single();
+    if (insertError) {
+      throw insertError;
+    }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "출원 요청 저장 중 오류가 발생했습니다.";
@@ -207,12 +216,14 @@ export async function submitTrademarkRequest(
   const functionName = process.env.SUPABASE_NOTIFICATION_FUNCTION;
   if (functionName) {
     try {
-      await invokeNotificationFunction(functionName, {
-        requestId,
-        brandName: input.brandName,
-        representativeEmail: input.representativeEmail,
-        submittedAt,
-        imageUrl,
+      await admin.functions.invoke(functionName, {
+        body: {
+          requestId,
+          brandName: input.brandName,
+          representativeEmail: input.representativeEmail,
+          submittedAt,
+          imageUrl,
+        },
       });
     } catch (error) {
       console.error("Failed to invoke notification function", error);
