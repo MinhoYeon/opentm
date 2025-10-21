@@ -12,7 +12,9 @@ import {
 } from "react";
 import type { AuthResponse, Session, User } from "@supabase/supabase-js";
 
-import { createBrowserClient } from "@/lib/supabaseClient";
+// import { createBrowserClient } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@/lib/supabaseBrowserClient";
+
 
 type LoginCredentials = {
   email: string;

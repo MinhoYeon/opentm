@@ -4,24 +4,31 @@ import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 
 import { supabaseAnonKey, supabaseUrl } from "./supabaseConfig";
 
-type CookieStore = ReturnType<typeof cookies>;
+type CookiesLike = {
+  get(name: string): { value?: string } | undefined;
+  set(arg: { name: string; value: string } & CookieOptions): void;
+  delete(arg: { name: string } & CookieOptions): void;
+};
 
-export function createServerClient(cookieStore: CookieStore = cookies()) {
+export function createServerClient() {
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
-        return cookieStore.get(name)?.value;
+        const store = cookies() as unknown as CookiesLike;
+        return store.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
         try {
-          cookieStore.set({ name, value, ...options });
+          const store = cookies() as unknown as CookiesLike;
+          store.set({ name, value, ...options });
         } catch (error) {
           console.error("Failed to set auth cookie", error);
         }
       },
       remove(name: string, options: CookieOptions) {
         try {
-          cookieStore.delete({ name, ...options });
+          const store = cookies() as unknown as CookiesLike;
+          store.delete({ name, ...options });
         } catch (error) {
           console.error("Failed to remove auth cookie", error);
         }

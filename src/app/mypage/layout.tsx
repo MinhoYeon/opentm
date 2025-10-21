@@ -23,4 +23,6 @@ export default async function MyPageLayout({
   }
 
   return <>{children}</>;
+
 }
+
