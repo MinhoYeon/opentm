@@ -97,6 +97,9 @@ export default function LoginPage() {
         <p className="text-xs text-slate-500">
           Supabase 계정으로 로그인해 주세요. 계정이 없다면 관리자에게 접근 권한을 요청하세요.
         </p>
+        <p className="text-xs text-slate-500">
+          아직 계정이 없으신가요? <a href="/signup" className="font-medium text-indigo-600 underline">회원가입</a>
+        </p>
       </form>
     </div>
   );

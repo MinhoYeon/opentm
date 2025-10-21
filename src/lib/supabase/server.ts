@@ -212,12 +212,8 @@ export function createServerClient() {
     const searchParams = new URLSearchParams();
     searchParams.set("select", "*");
 
-    if (query.userId && query.userEmail) {
-      searchParams.set("or", `(user_id.eq.${query.userId},user_email.eq.${query.userEmail})`);
-    } else if (query.userId) {
+    if (query.userId) {
       searchParams.set("user_id", `eq.${query.userId}`);
-    } else if (query.userEmail) {
-      searchParams.set("user_email", `eq.${query.userEmail}`);
     }
 
     if (query.orderBy) {
