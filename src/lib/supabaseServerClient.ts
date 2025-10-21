@@ -13,21 +13,21 @@ type CookiesLike = {
 export function createServerClient() {
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        const store = cookies() as unknown as CookiesLike;
+      async get(name: string) {
+        const store = (await cookies()) as unknown as CookiesLike;
         return store.get(name)?.value;
       },
-      set(name: string, value: string, options: CookieOptions) {
+      async set(name: string, value: string, options: CookieOptions) {
         try {
-          const store = cookies() as unknown as CookiesLike;
+          const store = (await cookies()) as unknown as CookiesLike;
           store.set({ name, value, ...options });
         } catch (error) {
           console.error("Failed to set auth cookie", error);
         }
       },
-      remove(name: string, options: CookieOptions) {
+      async remove(name: string, options: CookieOptions) {
         try {
-          const store = cookies() as unknown as CookiesLike;
+          const store = (await cookies()) as unknown as CookiesLike;
           store.delete({ name, ...options });
         } catch (error) {
           console.error("Failed to remove auth cookie", error);
