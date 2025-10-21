@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { createServerClient } from "@/lib/supabaseServerClient";
 
-export default async function MyPageLayout({
+export default async function RegisterLayout({
   children,
 }: {
   children: ReactNode;
@@ -16,10 +16,9 @@ export default async function MyPageLayout({
   }
 
   if (!data?.user) {
-    redirect(`/login?redirect=${encodeURIComponent("/mypage")}`);
+    redirect(`/login?redirect=${encodeURIComponent("/register")}`);
   }
 
   return <>{children}</>;
-
 }
 

@@ -121,7 +121,7 @@ export default function SearchClient() {
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="예) 진정상표"
+              placeholder="예) 오픈상표"
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-base shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               autoComplete="off"
             />

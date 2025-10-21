@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://jinjung.tm"),
-  title: "진정상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
+  title: "오픈상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
   description:
-    "진정상표는 데이터 기반 상표 검색과 전문가 검수를 통해 브랜드의 진정성을 지키는 한국 시장 특화 상표 등록 파트너입니다.",
+    "오픈상표는 데이터 기반 상표 검색과 전문가 검수를 통해 브랜드의 진정성을 지키는 한국 시장 특화 상표 등록 파트너입니다.",
   alternates: {
     canonical: "/",
     languages: {
@@ -29,11 +29,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "진정상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
+    title: "오픈상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
     description:
-      "브랜드의 이름을 안전하게 지켜내는 진정상표의 데이터 기반 상표 검색과 등록 서비스를 만나보세요.",
+      "브랜드의 이름을 안전하게 지켜내는 오픈상표의 데이터 기반 상표 검색과 등록 서비스를 만나보세요.",
     url: "/",
-    siteName: "진정상표",
+    siteName: "오픈상표",
     locale: "ko_KR",
     type: "website",
     images: [
@@ -41,19 +41,19 @@ export const metadata: Metadata = {
         url: "/jinjung-hero.svg",
         width: 1200,
         height: 630,
-        alt: "진정상표 브랜드 감성을 담은 추상 그래픽",
+        alt: "오픈상표 브랜드 감성을 담은 추상 그래픽",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "진정상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
+    title: "오픈상표 | 브랜드의 진정성을 지키는 상표 등록 파트너",
     description:
-      "상표명 무료 조회부터 등록, 사후 관리까지. 진정상표와 함께라면 브랜드의 모든 순간이 안전해집니다.",
+      "상표명 무료 조회부터 등록, 사후 관리까지. 오픈상표와 함께라면 브랜드의 모든 순간이 안전해집니다.",
     images: [
       {
         url: "/jinjung-hero.svg",
-        alt: "진정상표 브랜드 감성을 담은 추상 그래픽",
+        alt: "오픈상표 브랜드 감성을 담은 추상 그래픽",
       },
     ],
   },
@@ -70,9 +70,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = createServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const [sessionRes, userRes] = await Promise.all([
+    supabase.auth.getSession(),
+    supabase.auth.getUser(),
+  ]);
+
+  const session = sessionRes.data.session && userRes.data.user
+    ? { ...sessionRes.data.session, user: userRes.data.user }
+    : null;
 
   return (
     <html lang="ko">

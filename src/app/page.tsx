@@ -116,7 +116,7 @@ export default function Home() {
       <main className="h-screen overflow-y-auto snap-y snap-mandatory">
         <section
           id="hero"
-          className="relative snap-start min-h-screen px-6 py-24 sm:px-12 lg:px-20 flex items-center"
+          className="relative snap-start min-h-screen px-4 py-24 sm:px-8 lg:px-12 flex items-center"
         >
           <div
             className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(120,119,255,0.35),_rgba(7,8,20,0.95))]"
@@ -135,16 +135,16 @@ export default function Home() {
               <div className="space-y-6">
                 <p className="text-sm uppercase tracking-[0.35em] text-pink-200/80">JINJUNG TRADEMARK LAB</p>
                 <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-6xl">
-                  진정상표와 함께라면 브랜드의 모든 순간이 안전해집니다.
+                  오픈상표와 함께라면 브랜드의 모든 순간이 안전해집니다.
                 </h1>
                 <p className="text-base leading-relaxed text-slate-200 sm:text-lg">
-                  상표명 무료 조회부터 출원, 등록, 사후 관리까지. 진정상표는 데이터와 경험으로 브랜드의 진정성을 지켜내는
+                  상표명 무료 조회부터 출원, 등록, 사후 관리까지. 오픈상표는 데이터와 경험으로 브랜드의 진정성을 지켜내는
                   지식재산 파트너입니다.
                 </p>
               </div>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <a
-                  href="#process"
+                  href="/register"
                   className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-8 py-3 text-base font-medium text-white shadow-lg shadow-purple-500/30 transition-transform hover:-translate-y-0.5"
                 >
                   상표등록 시작하기
@@ -202,15 +202,15 @@ export default function Home() {
         </section>
 
         <section
-          id="진정상표 등록 사례"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          id="오픈상표 등록 사례"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="cases-heading"
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col justify-center">
             <header className="mb-12 space-y-4">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-200">Success Stories</p>
               <h2 id="cases-heading" className="text-3xl font-semibold text-white sm:text-4xl">
-                진정상표 등록 사례
+                오픈상표 등록 사례
               </h2>
               <p className="max-w-2xl text-base text-slate-300">
                 업종과 규모에 상관없이, 진정상표는 브랜드의 본질을 지켜주는 전략적 파트너입니다. 실제 고객의 등록 사례를 통해
@@ -232,15 +232,15 @@ export default function Home() {
         </section>
 
         <section
-          id="진정상표의 장점"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          id="오픈상표의 장점"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="benefits-heading"
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col justify-center">
             <header className="mb-12 space-y-4">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-pink-200">Why Jinjung</p>
               <h2 id="benefits-heading" className="text-3xl font-semibold text-white sm:text-4xl">
-                진정상표의 장점
+                오픈상표의 장점
               </h2>
               <p className="max-w-2xl text-base text-slate-300">
                 첨단 기술과 인사이트, 그리고 사람 중심의 컨설팅이 만나 브랜드가 안심할 수 있는 등록 여정을 만듭니다.
@@ -259,7 +259,7 @@ export default function Home() {
 
         <section
           id="서비스 사용 비용"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="pricing-heading"
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col justify-center">
@@ -294,7 +294,7 @@ export default function Home() {
 
         <section
           id="상표등록 과정"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="process-heading"
         >
           <div className="mx-auto flex h-full max-w-5xl flex-col justify-center">
@@ -322,15 +322,15 @@ export default function Home() {
         </section>
 
         <section
-          id="진정상표 소개"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          id="오픈상표 소개"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="about-heading"
         >
           <div className="mx-auto flex h-full max-w-5xl flex-col justify-center gap-10 lg:flex-row lg:items-center">
             <div className="flex-1 space-y-6">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-200">About Us</p>
               <h2 id="about-heading" className="text-3xl font-semibold text-white sm:text-4xl">
-                진정상표 소개
+                오픈상표 소개
               </h2>
               <p className="text-base leading-relaxed text-slate-300">
                 진정상표는 브랜드의 진정성을 지키는 것을 사명으로 삼은 지식재산 전문 팀입니다. 브랜드 네이밍과 비주얼 아이덴티티,
@@ -358,15 +358,15 @@ export default function Home() {
         </section>
 
         <section
-          id="진정상표 구성원 소개"
-          className="snap-start min-h-screen scroll-mt-24 px-6 py-24 sm:px-12 lg:px-20"
+          id="오픈상표 구성원 소개"
+          className="snap-start min-h-screen scroll-mt-24 px-4 py-24 sm:px-8 lg:px-12"
           aria-labelledby="team-heading"
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col justify-center">
             <header className="mb-12 space-y-4">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-200">Team</p>
               <h2 id="team-heading" className="text-3xl font-semibold text-white sm:text-4xl">
-                진정상표 구성원 소개
+                오픈상표 구성원 소개
               </h2>
               <p className="max-w-2xl text-base text-slate-300">
                 진정상표의 팀은 브랜드와 지식재산을 깊이 이해하는 전문가들로 구성되어 있습니다. 각 분야의 역량을 연결해 신뢰받는

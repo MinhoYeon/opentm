@@ -270,7 +270,7 @@ export default function RegisterPage() {
                     id="brandName"
                     type="text"
                     className="w-full rounded-lg border border-white/10 bg-slate-900/60 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:border-pink-400 focus:outline-none"
-                    placeholder="예: 진정상표"
+                    placeholder="예: 오픈상표"
                     value={formData.brandName}
                     onChange={(event) =>
                       setFormData((data) => ({
@@ -505,7 +505,7 @@ export default function RegisterPage() {
                     }
                   />
                   <span>
-                    입력한 정보가 진정상표 담당자에게 전달되어 상표 진단 및 상담을 진행하는 데 동의합니다.
+                    입력한 정보가 오픈상표 담당자에게 전달되어 상표 진단 및 상담을 진행하는 데 동의합니다.
                   </span>
                 </label>
               </section>
