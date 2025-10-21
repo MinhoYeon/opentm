@@ -56,15 +56,61 @@ function parseAuthCookie(rawCookie: string | undefined): SupabaseAuthTokens | nu
     return null;
   }
 
-  try {
-    const decoded = decodeURIComponent(rawCookie);
-    return JSON.parse(decoded) as SupabaseAuthTokens;
-  } catch {
-    try {
-      return JSON.parse(rawCookie) as SupabaseAuthTokens;
-    } catch {
+  const extractTokens = (value: unknown): SupabaseAuthTokens | null => {
+    if (!value || typeof value !== "object") {
       return null;
     }
+
+    const obj = value as Record<string, unknown>;
+
+    // Top-level fields
+    if (typeof obj.access_token === "string") {
+      return {
+        access_token: obj.access_token,
+        refresh_token: typeof obj.refresh_token === "string" ? (obj.refresh_token as string) : undefined,
+        expires_at: typeof obj.expires_at === "number" ? (obj.expires_at as number) : undefined,
+      };
+    }
+
+    // Nested known shapes (e.g., { currentSession: { ... } } or { session: { ... } })
+    if (obj.currentSession && typeof obj.currentSession === "object") {
+      return extractTokens(obj.currentSession);
+    }
+    if (obj.session && typeof obj.session === "object") {
+      return extractTokens(obj.session);
+    }
+
+    return null;
+  };
+
+  // Case 1: @supabase/ssr uses a base64-encoded JSON cookie prefixed with "base64-"
+  if (rawCookie.startsWith("base64-")) {
+    try {
+      const base64 = rawCookie.slice("base64-".length);
+      const jsonText = Buffer.from(base64, "base64").toString("utf-8");
+      const parsed = JSON.parse(jsonText);
+      return extractTokens(parsed);
+    } catch {
+      // fall through to other parsing strategies
+    }
+  }
+
+  // Case 2: URL-encoded JSON
+  try {
+    const decoded = decodeURIComponent(rawCookie);
+    const parsed = JSON.parse(decoded);
+    const tokens = extractTokens(parsed);
+    if (tokens) return tokens;
+  } catch {
+    // ignore
+  }
+
+  // Case 3: Raw JSON
+  try {
+    const parsed = JSON.parse(rawCookie);
+    return extractTokens(parsed);
+  } catch {
+    return null;
   }
 }
 
