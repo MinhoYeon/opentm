@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../providers/AuthProvider";
 
 import { submitTrademarkRequest, type TrademarkType } from "./actions";
 
@@ -96,6 +97,7 @@ function getInitialState(): TrademarkApplication {
 }
 
 export default function RegisterPage() {
+  const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<TrademarkApplication>(() => getInitialState());
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
@@ -150,6 +152,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!isAuthenticated || !user?.id) {
+      setErrors(["로그인이 필요합니다. 먼저 로그인해 주세요."]);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setSubmissionMessage(null);
@@ -160,6 +167,7 @@ export default function RegisterPage() {
         productClasses: formData.productClasses,
         representativeEmail: formData.representativeEmail,
         additionalNotes: formData.additionalNotes,
+        userId: user.id,
         image: formData.image
           ? {
               dataUrl: formData.image.dataUrl,

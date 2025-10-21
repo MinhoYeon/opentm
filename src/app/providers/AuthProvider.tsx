@@ -40,6 +40,7 @@ type AuthProviderProps = {
 export function AuthProvider({ children, initialSession = null }: AuthProviderProps) {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(initialSession);
+  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
   const [isLoading, setIsLoading] = useState(initialSession ? false : true);
 
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -47,27 +48,34 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!isMounted) {
-          return;
-        }
-        setSession(data.session ?? null);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error("Failed to load Supabase session", error);
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
+    (async () => {
+      try {
+        const [{ data: sessionData }, { data: userData }] = await Promise.all([
+          supabase.auth.getSession(),
+          supabase.auth.getUser(),
+        ]);
+        if (!isMounted) return;
+        setSession(sessionData.session ?? null);
+        setUser(userData.user ?? null);
+      } catch (error) {
+        console.error("Failed to initialize Supabase auth", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    })();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
-      setIsLoading(false);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        setUser(userData.user ?? null);
+      } catch (error) {
+        console.error("Failed to refresh Supabase user", error);
+      } finally {
+        setIsLoading(false);
+      }
     });
 
     return () => {
@@ -86,6 +94,10 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
       if (response.data.session) {
         setSession(response.data.session);
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          setUser(userData.user ?? null);
+        } catch {}
       }
 
       return response;
@@ -99,20 +111,21 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       throw error;
     }
     setSession(null);
+    setUser(null);
     setIsLoading(false);
     router.push("/");
   }, [router, supabase]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      isAuthenticated: Boolean(session?.user),
+      isAuthenticated: Boolean(user),
       isLoading,
       session,
-      user: session?.user ?? null,
+      user,
       login,
       logout,
     }),
-    [session, isLoading, login, logout]
+    [user, session, isLoading, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
