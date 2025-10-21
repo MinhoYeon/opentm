@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { useAuth } from "../providers/AuthProvider";
 
@@ -13,7 +13,6 @@ const baseNavItems = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { isAuthenticated, isLoading, logout, user } = useAuth();
 
   const navItems = baseNavItems.map((item) => {
@@ -31,11 +30,6 @@ export function MainNav() {
         (pathname === item.href || pathname.startsWith(`${item.href}/`)),
     };
   });
-
-  const handleLogout = () => {
-    logout();
-    router.push("/");
-  };
 
   return (
     <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-50">
@@ -67,10 +61,16 @@ export function MainNav() {
           <li className="flex items-center gap-2">
             {!isLoading && isAuthenticated && user ? (
               <>
-                <span className="hidden text-sm text-slate-500 sm:inline">{user.name}</span>
+                <span className="hidden text-sm text-slate-500 sm:inline">
+                  {(user.user_metadata?.full_name as string | undefined) ?? user.email ?? "로그인 사용자"}
+                </span>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => {
+                    void logout().catch((error) => {
+                      console.error("Failed to log out", error);
+                    });
+                  }}
                   className="rounded-full bg-slate-900 px-4 py-2 text-white shadow-sm transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   로그아웃

@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MainNav from "./components/MainNav";
 import { AuthProvider } from "./providers/AuthProvider";
+import { createServerClient } from "@/lib/supabaseServerClient";
+
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,17 +64,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = createServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   return (
     <html lang="ko">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}
       >
-        <AuthProvider>
+        <AuthProvider initialSession={session}>
           <div className="flex min-h-screen flex-col">
             <MainNav />
             <main className="flex-1">
