@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import MyPageClient, { TrademarkRequest } from "./MyPageClient";
 import { createServerClient } from "@/lib/supabase/server";
@@ -208,6 +209,52 @@ export default async function MyPage({ searchParams }: PageProps) {
   });
 
   const totalCount = Number.isFinite(count) && typeof count === "number" ? count : submissions.length;
+
+  // Temporary server-side fallbacks for UI text and helpers.
+  // Note: The client component renders richer UI; these are safe defaults
+  // to prevent runtime reference errors in this server file.
+  const heroDescription = submissions.length
+    ? "최근 제출한 출원들의 진행 상황을 확인하세요."
+    : "아직 제출한 출원 요청이 없습니다.";
+  const isLoading = false;
+  const isAuthenticated = true;
+  const isFetching = false;
+
+  function formatDateTime(value?: string | null) {
+    if (!value) return "-";
+    try {
+      return new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
+    } catch {
+      return value as string;
+    }
+  }
+
+  const statusStyles: Record<string, { badge: string; dot: string }> = {
+    draft: { badge: "bg-slate-100 text-slate-700", dot: "bg-slate-500" },
+    review: { badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
+    waiting: { badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+    filed: { badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+    completed: { badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+    default: { badge: "bg-slate-100 text-slate-700", dot: "bg-slate-500" },
+  };
+
+  function getStatusMeta(status: string) {
+    const map: Record<string, { label: string; description: string }> = {
+      draft: { label: "임시 저장", description: "제출 전 상태입니다." },
+      review: { label: "검토 중", description: "담당 변리사가 검토 중입니다." },
+      waiting: { label: "대기", description: "추가 확인을 기다리고 있습니다." },
+      filed: { label: "출원 완료", description: "특허청에 출원되었습니다." },
+      completed: { label: "완료", description: "검토가 완료되었습니다." },
+      default: { label: status || "알 수 없음", description: "상태 설명이 없습니다." },
+    };
+    return map[status] ?? map.default;
+  }
 
   return (
     <div className="space-y-10">
