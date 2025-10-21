@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 
 const baseNavItems = [
+  { label: "상표명 무료 조회", href: "/search" },
   { label: "마이페이지", href: "/mypage", requiresAuth: true },
   { label: "비용 및 절차 안내", href: "/guide" },
   { label: "Q&A", href: "/qa" },
