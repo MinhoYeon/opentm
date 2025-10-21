@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { useAuth } from "../providers/AuthProvider";
 import {
@@ -35,20 +34,13 @@ function formatDateTime(value: string) {
 }
 
 export default function MyPage() {
-  const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [submissions, setSubmissions] = useState<TrademarkSubmission[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace(`/login?redirect=${encodeURIComponent("/mypage")}`);
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  useEffect(() => {
     let isMounted = true;
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !user?.email) {
       setSubmissions([]);
       setIsFetching(false);
       return () => {
@@ -90,12 +82,6 @@ export default function MyPage() {
       {isLoading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
           접근 권한을 확인하는 중입니다...
-        </div>
-      ) : null}
-
-      {!isLoading && !isAuthenticated ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-600">
-          마이페이지는 로그인한 사용자만 이용할 수 있습니다. 로그인 화면으로 이동합니다.
         </div>
       ) : null}
 
