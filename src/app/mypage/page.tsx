@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import MyPageClient, { TrademarkRequest } from "./MyPageClient";
-import { createServerClient } from "@/lib/supabase/server";
-import type { SupabaseUser } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabaseServerClient";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 type PageSearchParams = {
   page?: string;
@@ -107,16 +107,10 @@ function resolveDisplayName(user: SupabaseUser) {
 
 export default async function MyPage({ searchParams }: PageProps) {
   const supabase = createServerClient();
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getUser();
 
-  if (error) {
-    throw error;
-  }
-
-  if (!session?.user) {
+  // Treat missing/invalid session as unauthenticated and redirect gracefully.
+  if (error || !data?.user) {
     redirect(`/login?redirect=${encodeURIComponent("/mypage")}`);
   }
 
@@ -128,20 +122,18 @@ export default async function MyPage({ searchParams }: PageProps) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, count, error: listError } = await supabase.trademarkRequests.list({
-    from,
-    to,
-    userId: session.user.id,
-    userEmail: session.user.email,
-    orderBy: "submitted_at",
-    ascending: false,
-  });
+  const { data: rows, count, error: listError } = await supabase
+    .from("trademark_requests")
+    .select("*", { count: "exact" })
+    .eq("user_id", data.user.id)
+    .order("submitted_at", { ascending: false })
+    .range(from, to);
 
   if (listError) {
     throw listError;
   }
 
-  const submissions: TrademarkRequest[] = (data ?? []).map((item) => {
+  const submissions: TrademarkRequest[] = (rows ?? []).map((item) => {
     const record = item as Record<string, unknown>;
 
     const statusDescription =
@@ -214,6 +206,55 @@ export default async function MyPage({ searchParams }: PageProps) {
 
   const totalCount = Number.isFinite(count) && typeof count === "number" ? count : submissions.length;
 
+  // 회원정보 카드에 표시할 사용자 기본 정보
+  const displayName = resolveDisplayName(data.user);
+  const userEmail = data.user.email ?? "-";
+
+  // 출원 과정 안내 단계 텍스트
+  const processSteps = [
+    "입금대기(가상계좌)",
+    "결제완료",
+    "출원인 정보 입력완료",
+    "출원완료",
+    "심사 진행중",
+    "등록료 납부대기",
+    "등록완료",
+  ];
+
+  // 최근 출원인 정보 조회 (있으면 표시)
+  let applicant: null | {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    businessType?: string | null;
+    businessNo?: string | null;
+    requestId?: string | null;
+  } = null;
+  try {
+    const { data: applicantRows } = await supabase
+      .from("trademark_request_applicants")
+      .select("*")
+      .eq("user_id", data.user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (applicantRows && applicantRows.length > 0) {
+      const a = applicantRows[0] as Record<string, unknown>;
+      applicant = {
+        name: typeof a.name === "string" ? a.name : null,
+        email: typeof a.email === "string" ? a.email : null,
+        phone: typeof a.phone === "string" ? a.phone : null,
+        address: typeof a.address === "string" ? a.address : null,
+        businessType: typeof a.business_type === "string" ? (a.business_type as string) : null,
+        businessNo: typeof a.business_no === "string" ? (a.business_no as string) : null,
+        requestId: typeof a.request_id === "string" ? (a.request_id as string) : null,
+      };
+    }
+  } catch {
+    // If table doesn't exist or query fails, hide the section gracefully
+    applicant = null;
+  }
+
   // Temporary server-side fallbacks for UI text and helpers.
   // Note: The client component renders richer UI; these are safe defaults
   // to prevent runtime reference errors in this server file.
@@ -282,7 +323,67 @@ export default async function MyPage({ searchParams }: PageProps) {
       ) : null}
 
       {isAuthenticated ? (
-        <section className="space-y-6">
+        <>
+          {/* 회원정보 */}
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-slate-900">회원정보</h2>
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="space-y-1">
+                <p className="text-base font-medium text-slate-900">{displayName ?? "-"}</p>
+                <p className="text-sm text-slate-500">{userEmail}</p>
+              </div>
+              <Link
+                href="/mypage/profile"
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-400 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              >
+                회원 정보 수정
+              </Link>
+            </div>
+          </section>
+
+          {/* 출원인 정보 */}
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-slate-900">출원인 정보</h2>
+            {applicant ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="flex gap-2"><dt className="w-24 shrink-0 text-slate-500">이름</dt><dd className="text-slate-800">{applicant.name ?? '-'}</dd></div>
+                  <div className="flex gap-2"><dt className="w-24 shrink-0 text-slate-500">이메일</dt><dd className="text-slate-800">{applicant.email ?? '-'}</dd></div>
+                  <div className="flex gap-2"><dt className="w-24 shrink-0 text-slate-500">전화</dt><dd className="text-slate-800">{applicant.phone ?? '-'}</dd></div>
+                  <div className="flex gap-2 sm:col-span-2"><dt className="w-24 shrink-0 text-slate-500">주소</dt><dd className="text-slate-800">{applicant.address ?? '-'}</dd></div>
+                  <div className="flex gap-2"><dt className="w-24 shrink-0 text-slate-500">구분</dt><dd className="text-slate-800">{applicant.businessType ?? '-'}</dd></div>
+                  <div className="flex gap-2"><dt className="w-24 shrink-0 text-slate-500">사업자번호</dt><dd className="text-slate-800">{applicant.businessNo ?? '-'}</dd></div>
+                </dl>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p className="text-sm text-slate-600">결제 완료 후 출원인 정보를 입력해 주세요.</p>
+                {submissions.length ? (
+                  <Link href={`/mypage/requests/${submissions[0].id}/applicant`} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-600">출원인 정보 입력</Link>
+                ) : null}
+              </div>
+            )}
+          </section>
+
+          {/* 출원 과정 안내 */}
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold text-slate-900">출원 과정 안내</h2>
+            <div className="rounded-2xl bg-indigo-50 p-4">
+              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
+                {processSteps.map((step, idx) => (
+                  <span key={`${step}-${idx}`} className="flex items-center gap-3">
+                    <span>{step}</span>
+                    {idx < processSteps.length - 1 ? (
+                      <span className="text-slate-400">▶</span>
+                    ) : null}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* 상표 출원 요청 */}
+          <section className="space-y-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <h2 className="text-xl font-semibold text-slate-900">상표 출원 요청</h2>
@@ -365,7 +466,8 @@ export default async function MyPage({ searchParams }: PageProps) {
               </div>
             )}
           </div>
-        </section>
+          </section>
+        </>
       ) : null}
     </div>
   );

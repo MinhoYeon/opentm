@@ -4,10 +4,13 @@ type NormalizedTrademark = {
   markName: string;
   applicationNumber?: string;
   applicationDate?: string;
+  registrationNumber?: string;
+  registrationDate?: string;
   status?: string;
   applicantName?: string;
   classes?: string[];
   similarMarks?: string[];
+  imageUrl?: string;
 };
 
 type SearchPayload = {
@@ -16,7 +19,7 @@ type SearchPayload = {
 };
 
 const DEFAULT_API_ENDPOINT =
-  "https://plus.kipris.or.kr/openapi/rest/TrademarkAdvancedSearchService/trademarkAdvancedSearchInfo";
+  "http://plus.kipris.or.kr/kipo-api/kipi/trademarkInfoSearchService/getAdvancedSearch";
 
 function decodeHtmlEntities(value: string) {
   return value
@@ -77,6 +80,7 @@ function valueToStringArray(value: unknown): string[] | undefined {
 
 function normalizeJsonItem(item: Record<string, unknown>): NormalizedTrademark {
   const markName =
+    valueToString(item.title) ||
     valueToString(item.trademarkName) ||
     valueToString(item.applicantName) ||
     valueToString(item.applicationName) ||
@@ -101,13 +105,17 @@ function normalizeJsonItem(item: Record<string, unknown>): NormalizedTrademark {
       valueToString(item.applicationDate) ||
       valueToString(item.applDate) ||
       valueToString(item.regPublicationDate),
+    registrationNumber: valueToString(item.registrationNumber),
+    registrationDate: valueToString(item.registrationDate),
     status:
+      valueToString(item.applicationStatus) ||
       valueToString(item.registrationStatus) ||
       valueToString(item.registerStatus) ||
       valueToString(item.status),
     applicantName: valueToString(item.applicantName) || valueToString(item.ownerName),
     classes,
     similarMarks,
+    imageUrl: valueToString(item.drawing) || valueToString(item.bigDrawing),
   } satisfies NormalizedTrademark;
 }
 
@@ -122,6 +130,7 @@ async function parseKiprisResponse(bodyText: string): Promise<NormalizedTrademar
     const itemSource = itemMatch[1];
     return {
       markName:
+        extractTagValue(itemSource, "title") ||
         extractTagValue(itemSource, "trademarkName") ||
         extractTagValue(itemSource, "applicantName") ||
         extractTagValue(itemSource, "applicationName") ||
@@ -132,16 +141,21 @@ async function parseKiprisResponse(bodyText: string): Promise<NormalizedTrademar
       applicationDate:
         extractTagValue(itemSource, "applicationDate") ||
         extractTagValue(itemSource, "applDate"),
+      registrationNumber: extractTagValue(itemSource, "registrationNumber"),
+      registrationDate: extractTagValue(itemSource, "registrationDate"),
       status:
+        extractTagValue(itemSource, "applicationStatus") ||
         extractTagValue(itemSource, "registrationStatus") ||
         extractTagValue(itemSource, "registerStatus") ||
         extractTagValue(itemSource, "status"),
       applicantName: extractTagValue(itemSource, "applicantName"),
       classes: extractMultipleTagValues(itemSource, "viennaCode")
         .concat(extractMultipleTagValues(itemSource, "classification"))
-        .concat(extractMultipleTagValues(itemSource, "intlClass")),
+        .concat(extractMultipleTagValues(itemSource, "intlClass"))
+        .concat(extractMultipleTagValues(itemSource, "classificationCode")),
       similarMarks: extractMultipleTagValues(itemSource, "similarGroup")
         .concat(extractMultipleTagValues(itemSource, "similarMark")),
+      imageUrl: extractTagValue(itemSource, "drawing") || extractTagValue(itemSource, "bigDrawing"),
     } satisfies NormalizedTrademark;
   });
 }
@@ -196,10 +210,48 @@ export async function POST(request: NextRequest) {
 
   const url = new URL(apiEndpoint);
   url.searchParams.set("ServiceKey", serviceKey);
-  url.searchParams.set("searchString", query);
+  // Build getAdvancedSearch query
+  url.searchParams.set("trademarkName", query);
+  const on = (key: string) => url.searchParams.set(key, "true");
+  [
+    "application",
+    "registration",
+    "refused",
+    "expiration",
+    "withdrawal",
+    "publication",
+    "cancel",
+    "abandonment",
+    "trademark",
+    "serviceMark",
+    "trademarkServiceMark",
+    "businessEmblem",
+    "collectiveMark",
+    "geoOrgMark",
+    "internationalMark",
+    "certMark",
+    "geoCertMark",
+    "character",
+    "figure",
+    "compositionCharacter",
+    "figureComposition",
+    "sound",
+    "fragrance",
+    "color",
+    "dimension",
+    "colorMixed",
+    "hologram",
+    "motion",
+    "visual",
+    "invisible",
+  ].forEach(on);
+
   if (payload.classifications?.length) {
     url.searchParams.set("classification", payload.classifications.join(","));
   }
+  url.searchParams.set("pageNo", "1");
+  url.searchParams.set("numOfRows", "30");
+  url.searchParams.set("descSort", "true");
 
   try {
     const response = await fetch(url.toString(), {

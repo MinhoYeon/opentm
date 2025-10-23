@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 
 const baseNavItems = [
+  { label: "상표등록 시작하기", href: "/register", requiresAuth: true },
   { label: "상표명 무료 조회", href: "/search" },
   { label: "마이페이지", href: "/mypage", requiresAuth: true },
-  { label: "비용 및 절차 안내", href: "/guide" },
-  { label: "Q&A", href: "/qa" },
+  // { label: "비용 및 절차 안내", href: "/guide" },
+  // { label: "Q&A", href: "/qa" },
 ];
 
 export function MainNav() {
@@ -36,7 +37,7 @@ export function MainNav() {
     <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-50">
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:py-4">
         <Link href="/" className="text-lg font-semibold text-slate-900">
-          OpenTM
+          오픈 상표
         </Link>
         <ul className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:gap-4 text-sm sm:text-base">
           {navItems.map(({ label, targetHref, isActive, isRestricted }) => {

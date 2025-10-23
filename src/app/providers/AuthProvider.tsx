@@ -106,14 +106,33 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
   );
 
   const logout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
+    // Best-effort: clear client session, then server cookie. Ignore "Auth session missing".
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error && !(error as any)?.message?.toLowerCase?.().includes("auth session missing")) {
+        // Non-benign error: still continue but log for debugging
+        console.warn("supabase.auth.signOut returned error", error);
+      }
+    } catch (err) {
+      // Ignore; proceed to clear server cookie
+      console.warn("Client signOut threw", err);
     }
+
+    try {
+      await fetch("/api/auth/signout", { method: "POST" });
+    } catch (err) {
+      console.warn("Server signout failed", err);
+    }
+
     setSession(null);
     setUser(null);
     setIsLoading(false);
-    router.push("/");
+    // Perform a hard navigation to avoid RSC race conditions
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+      return;
+    }
+    router.replace("/login");
   }, [router, supabase]);
 
   const value = useMemo<AuthContextValue>(
