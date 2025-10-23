@@ -141,32 +141,37 @@ create trigger set_timestamp_trademark_applications
 alter table public.trademark_applications enable row level security;
 alter table public.trademark_status_logs enable row level security;
 
--- Policies for applicants
-create policy if not exists "Users can manage their own applications"
+-- Application policies
+drop policy if exists "Users can manage their own applications" on public.trademark_applications;
+create policy "Users can manage their own applications"
   on public.trademark_applications
   for select
   using (auth.uid() = user_id);
 
-create policy if not exists "Users can insert their own applications"
+drop policy if exists "Users can insert their own applications" on public.trademark_applications;
+create policy "Users can insert their own applications"
   on public.trademark_applications
   for insert
   with check (auth.uid() = user_id);
 
-create policy if not exists "Users can update their own draft applications"
+drop policy if exists "Users can update their own draft applications" on public.trademark_applications;
+create policy "Users can update their own draft applications"
   on public.trademark_applications
   for update
   using (auth.uid() = user_id and status = 'draft')
   with check (auth.uid() = user_id and status = 'draft');
 
 -- Admin/service policies
-create policy if not exists "Admins can access all applications"
+drop policy if exists "Admins can access all applications" on public.trademark_applications;
+create policy "Admins can access all applications"
   on public.trademark_applications
   for all
   using (public.is_admin_context())
   with check (public.is_admin_context());
 
 -- Log policies
-create policy if not exists "Users can view logs for their applications"
+drop policy if exists "Users can view logs for their applications" on public.trademark_status_logs;
+create policy "Users can view logs for their applications"
   on public.trademark_status_logs
   for select
   using (
@@ -177,7 +182,8 @@ create policy if not exists "Users can view logs for their applications"
     )
   );
 
-create policy if not exists "Admins can manage status logs"
+drop policy if exists "Admins can manage status logs" on public.trademark_status_logs;
+create policy "Admins can manage status logs"
   on public.trademark_status_logs
   for all
   using (public.is_admin_context())
@@ -198,9 +204,12 @@ begin
 end;
 $$;
 
-alter bucket "trademark-images" set (public = false);
+update storage.buckets
+  set public = false
+  where id = 'trademark-images';
 
-create policy if not exists "Users can upload their trademark images"
+drop policy if exists "Users can upload their trademark images" on storage.objects;
+create policy "Users can upload their trademark images"
   on storage.objects
   for insert
   with check (
@@ -208,7 +217,8 @@ create policy if not exists "Users can upload their trademark images"
     auth.uid() = owner
   );
 
-create policy if not exists "Users can read their trademark images"
+drop policy if exists "Users can read their trademark images" on storage.objects;
+create policy "Users can read their trademark images"
   on storage.objects
   for select
   using (
@@ -216,7 +226,8 @@ create policy if not exists "Users can read their trademark images"
     (owner = auth.uid() or public.is_admin_context())
   );
 
-create policy if not exists "Users can delete their trademark images"
+drop policy if exists "Users can delete their trademark images" on storage.objects;
+create policy "Users can delete their trademark images"
   on storage.objects
   for delete
   using (
@@ -224,7 +235,8 @@ create policy if not exists "Users can delete their trademark images"
     auth.uid() = owner
   );
 
-create policy if not exists "Admins can manage all trademark images"
+drop policy if exists "Admins can manage all trademark images" on storage.objects;
+create policy "Admins can manage all trademark images"
   on storage.objects
   for all
   using (
