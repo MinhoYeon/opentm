@@ -1,4 +1,11 @@
 {
   "chatgpt.openOnStartup": true,
-  "chatgpt.commentCodeLensEnabled": true
+  "chatgpt.commentCodeLensEnabled": true,
+
+  // Force UTF-8 encoding for all files in this workspace
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+
+  // Normalize line endings (helps avoid mixed EOL issues)
+  "files.eol": "\n"
 }
