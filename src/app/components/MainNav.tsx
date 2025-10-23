@@ -9,8 +9,8 @@ const baseNavItems = [
   { label: "상표등록 시작하기", href: "/register", requiresAuth: true },
   { label: "상표명 무료 조회", href: "/search" },
   { label: "마이페이지", href: "/mypage", requiresAuth: true },
-  { label: "비용 및 절차 안내", href: "/guide" },
-  { label: "Q&A", href: "/qa" },
+  // { label: "비용 및 절차 안내", href: "/guide" },
+  // { label: "Q&A", href: "/qa" },
 ];
 
 export function MainNav() {
