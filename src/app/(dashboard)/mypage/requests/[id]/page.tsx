@@ -65,7 +65,18 @@ function getStatusMeta(status: string) {
   return map[status] ?? map.default;
 }
 
-export default async function RequestDetail({ params }: { params: Promise<{ id: string }> }) {
+type RequestParams = { id: string };
+
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+export default async function RequestDetail({ params }: { params: Promise<RequestParams> | RequestParams }) {
   const supabase = createServerClient();
 
   const { data: auth } = await supabase.auth.getUser();
@@ -74,7 +85,8 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
     notFound();
   }
 
-  const { id } = await params;
+  const resolvedParams = isPromise<RequestParams>(params) ? await params : params;
+  const { id } = resolvedParams;
 
   const { data: row, error } = await supabase
     .from("trademark_requests")
@@ -87,22 +99,75 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
     notFound();
   }
 
-  const record = row as Record<string, any>;
+  const record = row as Record<string, unknown>;
 
-  const brandName: string = record.brand_name ?? record.brandName ?? "-";
-  const trademarkType: string = record.trademark_type ?? record.trademarkType ?? "-";
-  const productClasses: string[] = toStringArray(record.product_classes ?? record.classes);
-  const representativeEmail: string = record.representative_email ?? record.representative ?? "-";
-  const additionalNotes: string | null = record.additional_notes ?? record.notes ?? null;
-  const imageUrl: string | null = record.image_url ?? null;
-  const submittedAt: string | null = record.submitted_at ?? record.submittedAt ?? record.created_at ?? null;
-  const lastUpdated: string | null = record.updated_at ?? record.status_updated_at ?? record.lastUpdated ?? null;
-  const status: string = record.status ?? "unknown";
-  const statusLabel: string | null = record.status_label ?? record.statusLabel ?? null;
-  const statusDescription: string | null = record.status_description ?? record.status_detail ?? null;
-  const referenceCode: string | null = record.reference_code ?? record.id ?? null;
-  const transitions: StatusTransition[] = Array.isArray(record.status_transitions)
-    ? (record.status_transitions as StatusTransition[])
+  const brandName =
+    typeof record.brand_name === "string"
+      ? record.brand_name
+      : typeof record.brandName === "string"
+        ? (record.brandName as string)
+        : "-";
+  const trademarkType =
+    typeof record.trademark_type === "string"
+      ? record.trademark_type
+      : typeof record.trademarkType === "string"
+        ? (record.trademarkType as string)
+        : "-";
+  const productClasses = toStringArray(
+    (record.product_classes as unknown) ?? (record.classes as unknown)
+  );
+  const representativeEmail =
+    typeof record.representative_email === "string"
+      ? record.representative_email
+      : typeof record.representative === "string"
+        ? (record.representative as string)
+        : "-";
+  const additionalNotes =
+    typeof record.additional_notes === "string"
+      ? record.additional_notes
+      : typeof record.notes === "string"
+        ? (record.notes as string)
+        : null;
+  const imageUrl = typeof record.image_url === "string" ? record.image_url : null;
+  const submittedAt =
+    typeof record.submitted_at === "string"
+      ? record.submitted_at
+      : typeof record.submittedAt === "string"
+        ? (record.submittedAt as string)
+        : typeof record.created_at === "string"
+          ? (record.created_at as string)
+          : null;
+  const lastUpdated =
+    typeof record.updated_at === "string"
+      ? record.updated_at
+      : typeof record.status_updated_at === "string"
+        ? (record.status_updated_at as string)
+        : typeof record.lastUpdated === "string"
+          ? (record.lastUpdated as string)
+          : null;
+  const status = typeof record.status === "string" ? record.status : "unknown";
+  const statusLabel =
+    typeof record.status_label === "string"
+      ? record.status_label
+      : typeof record.statusLabel === "string"
+        ? (record.statusLabel as string)
+        : null;
+  const statusDescription =
+    typeof record.status_description === "string"
+      ? record.status_description
+      : typeof record.status_detail === "string"
+        ? (record.status_detail as string)
+        : null;
+  const referenceCode =
+    typeof record.reference_code === "string"
+      ? record.reference_code
+      : typeof record.id === "string"
+        ? (record.id as string)
+        : null;
+  const transitionsValue =
+    record.status_transitions ?? (record as Record<string, unknown>).statusTransitions;
+  const transitions: StatusTransition[] = Array.isArray(transitionsValue)
+    ? (transitionsValue as StatusTransition[])
     : [];
 
   const statusMeta = getStatusMeta(status);
@@ -117,14 +182,14 @@ export default async function RequestDetail({ params }: { params: Promise<{ id: 
       .eq("user_id", userId)
       .limit(1);
     if (arows && arows.length) {
-      const a = arows[0] as Record<string, any>;
+      const a = arows[0] as Record<string, unknown>;
       applicant = {
-        name: a.name ?? undefined,
-        email: a.email ?? undefined,
-        phone: a.phone ?? undefined,
-        address: a.address ?? undefined,
-        businessType: a.business_type ?? undefined,
-        businessNo: a.business_no ?? undefined,
+        name: typeof a.name === "string" ? a.name : undefined,
+        email: typeof a.email === "string" ? a.email : undefined,
+        phone: typeof a.phone === "string" ? a.phone : undefined,
+        address: typeof a.address === "string" ? a.address : undefined,
+        businessType: typeof a.business_type === "string" ? (a.business_type as string) : undefined,
+        businessNo: typeof a.business_no === "string" ? (a.business_no as string) : undefined,
       };
     }
   } catch {}

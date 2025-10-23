@@ -4,8 +4,29 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabaseServerClient";
 import ApplicantFormClient from "./ApplicantFormClient";
 
-export default async function ApplicantPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+type ApplicantParams = { id: string };
+
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+type ApplicantPreset = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  businessType: string;
+  businessNo: string;
+};
+
+export default async function ApplicantPage({ params }: { params: Promise<ApplicantParams> | ApplicantParams }) {
+  const resolvedParams = isPromise<ApplicantParams>(params) ? await params : params;
+  const { id } = resolvedParams;
   const supabase = createServerClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) {
@@ -13,7 +34,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
   }
 
   // Preload existing value if any
-  let preset: any = null;
+  let preset: ApplicantPreset | null = null;
   try {
     const { data: rows } = await supabase
       .from("trademark_request_applicants")
@@ -22,14 +43,14 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
       .eq("user_id", data.user.id)
       .limit(1);
     if (rows && rows.length) {
-      const a = rows[0] as Record<string, any>;
+      const a = rows[0] as Record<string, unknown>;
       preset = {
-        name: a.name ?? "",
-        email: a.email ?? "",
-        phone: a.phone ?? "",
-        address: a.address ?? "",
-        businessType: a.business_type ?? "",
-        businessNo: a.business_no ?? "",
+        name: typeof a.name === "string" ? a.name : "",
+        email: typeof a.email === "string" ? a.email : "",
+        phone: typeof a.phone === "string" ? a.phone : "",
+        address: typeof a.address === "string" ? a.address : "",
+        businessType: typeof a.business_type === "string" ? (a.business_type as string) : "",
+        businessNo: typeof a.business_no === "string" ? (a.business_no as string) : "",
       };
     }
   } catch {
