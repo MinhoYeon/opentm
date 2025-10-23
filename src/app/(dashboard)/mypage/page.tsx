@@ -1,0 +1,134 @@
+import { redirect } from "next/navigation";
+
+import MyPageClient from "./MyPageClient";
+import type { ApplicantSummary, TrademarkRequest } from "./types";
+import { normalizeTrademarkRequest } from "./utils/normalizeTrademarkRequest";
+import { createServerClient } from "@/lib/supabaseServerClient";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+
+type PageSearchParams = {
+  page?: string;
+};
+
+type PageProps = {
+  // Next 15: dynamic APIs like searchParams are async
+  searchParams?: Promise<PageSearchParams> | PageSearchParams;
+};
+
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+function toPositiveInteger(value: string | undefined, fallback: number) {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function resolveDisplayName(user: SupabaseUser) {
+  if (user.user_metadata) {
+    const { name, full_name: fullName } = user.user_metadata as Record<string, unknown>;
+    if (typeof name === "string" && name.trim()) {
+      return name.trim();
+    }
+    if (typeof fullName === "string" && fullName.trim()) {
+      return fullName.trim();
+    }
+  }
+  return user.email ?? null;
+}
+
+export default async function MyPage({ searchParams }: PageProps) {
+  const supabase = createServerClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data?.user) {
+    redirect(`/login?redirect=${encodeURIComponent("/mypage")}`);
+  }
+
+  const sp = isPromise<PageSearchParams>(searchParams)
+    ? await searchParams
+    : ((searchParams as PageSearchParams | undefined) ?? {});
+  const page = toPositiveInteger(sp.page, 1);
+  const pageSize = 10;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: rows, count, error: listError } = await supabase
+    .from("trademark_requests")
+    .select("*", { count: "exact" })
+    .eq("user_id", data.user.id)
+    .order("submitted_at", { ascending: false })
+    .range(from, to);
+
+  if (listError) {
+    throw listError;
+  }
+
+  const submissions: TrademarkRequest[] = (rows ?? []).map((item) =>
+    normalizeTrademarkRequest(item as Record<string, unknown>)
+  );
+
+  const totalCount = Number.isFinite(count) && typeof count === "number" ? count : submissions.length;
+
+  const displayName = resolveDisplayName(data.user);
+
+  const processSteps = [
+    "입금대기(가상계좌)",
+    "결제완료",
+    "출원인 정보 입력완료",
+    "출원완료",
+    "심사 진행중",
+    "등록료 납부대기",
+    "등록완료",
+  ];
+
+  let applicant: ApplicantSummary | null = null;
+  try {
+    const { data: applicantRows } = await supabase
+      .from("trademark_request_applicants")
+      .select("*")
+      .eq("user_id", data.user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (applicantRows && applicantRows.length > 0) {
+      const a = applicantRows[0] as Record<string, unknown>;
+      applicant = {
+        name: typeof a.name === "string" ? a.name : null,
+        email: typeof a.email === "string" ? a.email : null,
+        phone: typeof a.phone === "string" ? a.phone : null,
+        address: typeof a.address === "string" ? a.address : null,
+        businessType: typeof a.business_type === "string" ? (a.business_type as string) : null,
+        businessNo: typeof a.business_no === "string" ? (a.business_no as string) : null,
+        requestId: typeof a.request_id === "string" ? (a.request_id as string) : null,
+      };
+    }
+  } catch {
+    applicant = null;
+  }
+
+  const userInfo = {
+    id: data.user.id,
+    email: data.user.email ?? null,
+    name: displayName,
+  };
+
+  return (
+    <MyPageClient
+      user={userInfo}
+      submissions={submissions}
+      pagination={{ page, pageSize, totalCount }}
+      processSteps={processSteps}
+      applicant={applicant}
+    />
+  );
+}

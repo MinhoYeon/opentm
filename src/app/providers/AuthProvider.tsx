@@ -109,7 +109,8 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     // Best-effort: clear client session, then server cookie. Ignore "Auth session missing".
     try {
       const { error } = await supabase.auth.signOut();
-      if (error && !(error as any)?.message?.toLowerCase?.().includes("auth session missing")) {
+      const lowerMessage = error?.message?.toLowerCase?.() ?? "";
+      if (error && !lowerMessage.includes("auth session missing")) {
         // Non-benign error: still continue but log for debugging
         console.warn("supabase.auth.signOut returned error", error);
       }

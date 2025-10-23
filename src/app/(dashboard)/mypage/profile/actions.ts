@@ -1,7 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { createServerClient } from "@/lib/supabaseServerClient";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
 
