@@ -43,8 +43,201 @@ create table if not exists public.applicants (
 );
 
 comment on table public.applicants is 'Reusable applicant profiles owned by an auth user.';
-comment on column public.applicants.phone_secret is 'AES-GCM encrypted phone number payload.';
-comment on column public.applicants.business_number_secret is 'AES-GCM encrypted business registration number payload.';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'phone_secret'
+  ) then
+    execute 'alter table public.applicants add column phone_secret jsonb';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'phone_masked'
+  ) then
+    execute 'alter table public.applicants add column phone_masked text';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'address_secret'
+  ) then
+    execute 'alter table public.applicants add column address_secret jsonb';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'address_masked'
+  ) then
+    execute 'alter table public.applicants add column address_masked text';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'business_type'
+  ) then
+    execute 'alter table public.applicants add column business_type text';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'business_number_secret'
+  ) then
+    execute 'alter table public.applicants add column business_number_secret jsonb';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'business_number_masked'
+  ) then
+    execute 'alter table public.applicants add column business_number_masked text';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'metadata'
+  ) then
+    execute 'alter table public.applicants add column metadata jsonb not null default ''{}''::jsonb';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'is_favorite'
+  ) then
+    execute 'alter table public.applicants add column is_favorite boolean not null default false';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'last_used_at'
+  ) then
+    execute 'alter table public.applicants add column last_used_at timestamptz';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'created_at'
+  ) then
+    execute 'alter table public.applicants add column created_at timestamptz not null default now()';
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'updated_at'
+  ) then
+    execute 'alter table public.applicants add column updated_at timestamptz not null default now()';
+  end if;
+end $$;
+
+do $$
+declare
+  target_column text;
+begin
+  select column_name
+    into target_column
+  from information_schema.columns
+  where table_schema = 'public'
+    and table_name = 'applicants'
+    and column_name in ('phone_secret', 'phone_ciphertext')
+  order by case column_name when 'phone_secret' then 0 else 1 end
+  limit 1;
+
+  if target_column is not null then
+    execute format(
+      'comment on column public.applicants.%I is %L',
+      target_column,
+      'AES-GCM encrypted phone number payload.'
+    );
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'applicants'
+      and column_name = 'business_number_secret'
+  ) then
+    execute format(
+      'comment on column public.applicants.%I is %L',
+      'business_number_secret',
+      'AES-GCM encrypted business registration number payload.'
+    );
+  end if;
+end $$;
 
 create index if not exists applicants_user_id_idx on public.applicants (user_id, is_favorite desc, last_used_at desc nulls last, updated_at desc);
 create index if not exists applicants_email_idx on public.applicants (email);
