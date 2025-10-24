@@ -2,14 +2,23 @@
 
 create extension if not exists pgcrypto;
 
--- Ensure timestamp trigger exists
-create or replace function public.set_current_timestamp()
+create or replace function public.set_updated_at_timestamp()
 returns trigger
 language plpgsql
 as $$
 begin
   new.updated_at = now();
   return new;
+end;
+$$;
+
+-- Backwards-compatible wrapper for legacy triggers referencing the old helper name.
+create or replace function public.set_current_timestamp()
+returns trigger
+language plpgsql
+as $$
+begin
+  return public.set_updated_at_timestamp();
 end;
 $$;
 
@@ -39,11 +48,14 @@ comment on column public.applicants.business_number_secret is 'AES-GCM encrypted
 
 create index if not exists applicants_user_id_idx on public.applicants (user_id, is_favorite desc, last_used_at desc nulls last, updated_at desc);
 create index if not exists applicants_email_idx on public.applicants (email);
+create index if not exists applicants_email_lower_idx on public.applicants (lower(email));
+
+drop trigger if exists set_timestamp_applicants on public.applicants;
 
 create trigger set_timestamp_applicants
   before update on public.applicants
   for each row
-  execute function public.set_current_timestamp();
+  execute function public.set_updated_at_timestamp();
 
 alter table public.applicants enable row level security;
 
@@ -51,43 +63,46 @@ drop policy if exists "Users select their applicants" on public.applicants;
 create policy "Users select their applicants"
   on public.applicants
   for select
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users insert their applicants" on public.applicants;
 create policy "Users insert their applicants"
   on public.applicants
   for insert
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users update their applicants" on public.applicants;
 create policy "Users update their applicants"
   on public.applicants
   for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users delete their applicants" on public.applicants;
 create policy "Users delete their applicants"
   on public.applicants
   for delete
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 create table if not exists public.trademark_request_applicants (
-  request_id uuid primary key references public.trademark_requests(id) on delete cascade,
+  request_id uuid not null references public.trademark_requests(id) on delete cascade,
   applicant_id uuid not null references public.applicants(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   role text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  primary key (request_id, applicant_id)
 );
 
 comment on table public.trademark_request_applicants is 'Associates a saved applicant with a trademark onboarding request.';
 
+drop trigger if exists set_timestamp_trademark_request_applicants on public.trademark_request_applicants;
+
 create trigger set_timestamp_trademark_request_applicants
   before update on public.trademark_request_applicants
   for each row
-  execute function public.set_current_timestamp();
+  execute function public.set_updated_at_timestamp();
 
 alter table public.trademark_request_applicants enable row level security;
 
@@ -95,8 +110,17 @@ drop policy if exists "Users manage their request applicants" on public.trademar
 create policy "Users manage their request applicants"
   on public.trademark_request_applicants
   for all
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+alter table public.trademark_request_applicants
+  drop constraint if exists trademark_request_applicants_pkey;
+
+alter table public.trademark_request_applicants
+  add constraint trademark_request_applicants_pkey primary key (request_id, applicant_id);
+
+create index if not exists trademark_request_applicants_applicant_id_idx on public.trademark_request_applicants (applicant_id);
+create index if not exists trademark_request_applicants_user_id_idx on public.trademark_request_applicants (user_id);
 
 create table if not exists public.trademark_applicants (
   application_id uuid not null references public.trademark_applications(id) on delete cascade,
@@ -110,10 +134,12 @@ create table if not exists public.trademark_applicants (
 
 comment on table public.trademark_applicants is 'Join table between trademark applications and applicant profiles.';
 
+drop trigger if exists set_timestamp_trademark_applicants on public.trademark_applicants;
+
 create trigger set_timestamp_trademark_applicants
   before update on public.trademark_applicants
   for each row
-  execute function public.set_current_timestamp();
+  execute function public.set_updated_at_timestamp();
 
 alter table public.trademark_applicants enable row level security;
 
@@ -122,12 +148,14 @@ create policy "Users manage their application applicants"
   on public.trademark_applicants
   for all
   using (
-    auth.uid() = (
+    (select auth.uid()) = (
       select user_id from public.trademark_applications where id = application_id
     )
   )
   with check (
-    auth.uid() = (
+    (select auth.uid()) = (
       select user_id from public.trademark_applications where id = application_id
     )
   );
+
+create index if not exists trademark_applicants_applicant_id_idx on public.trademark_applicants (applicant_id);
