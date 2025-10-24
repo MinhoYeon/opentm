@@ -241,9 +241,6 @@ end $$;
 
 create index if not exists applicants_user_id_idx on public.applicants (user_id, is_favorite desc, last_used_at desc nulls last, updated_at desc);
 create index if not exists applicants_email_idx on public.applicants (email);
-create index if not exists applicants_email_lower_idx on public.applicants (lower(email));
-
-drop trigger if exists set_timestamp_applicants on public.applicants;
 
 create trigger set_timestamp_applicants
   before update on public.applicants
