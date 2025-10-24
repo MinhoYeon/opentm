@@ -240,7 +240,38 @@ begin
 end $$;
 
 create index if not exists applicants_user_id_idx on public.applicants (user_id, is_favorite desc, last_used_at desc nulls last, updated_at desc);
-create index if not exists applicants_email_idx on public.applicants (email);
+do $$
+declare
+  has_email boolean;
+  has_email_hash boolean;
+begin
+  select exists (
+           select 1
+           from information_schema.columns
+           where table_schema = 'public'
+             and table_name = 'applicants'
+             and column_name = 'email'
+         )
+    into has_email;
+
+  select exists (
+           select 1
+           from information_schema.columns
+           where table_schema = 'public'
+             and table_name = 'applicants'
+             and column_name = 'email_hash'
+         )
+    into has_email_hash;
+
+  if has_email then
+    execute 'create index if not exists applicants_email_idx on public.applicants (email)';
+    execute 'create index if not exists applicants_email_lower_idx on public.applicants (lower(email))';
+  elsif has_email_hash then
+    execute 'create index if not exists applicants_email_hash_idx on public.applicants (email_hash)';
+  end if;
+end $$;
+
+drop trigger if exists set_timestamp_applicants on public.applicants;
 
 create trigger set_timestamp_applicants
   before update on public.applicants
