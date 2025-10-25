@@ -25,6 +25,7 @@ const customConfig = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup/jest-dom.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^next-test-api-route-handler$': '<rootDir>/tests/utils/next-test-api-route-handler.ts',
   },
   testPathIgnorePatterns: ['<rootDir>/tests/status-transition.test.mjs'],
 };
