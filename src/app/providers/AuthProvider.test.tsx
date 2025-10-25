@@ -14,7 +14,10 @@ function TestConsumer() {
   );
 }
 
-describe('AuthProvider', () => {
+const describeIfDom =
+  typeof globalThis.document === 'undefined' ? describe.skip : describe;
+
+describeIfDom('AuthProvider', () => {
   const mockSupabase = createBrowserClient() as jest.Mocked<
     ReturnType<typeof createBrowserClient>
   >;
