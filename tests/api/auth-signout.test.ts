@@ -9,10 +9,7 @@ import {
   getSupabaseAuthCookieNames,
 } from '@/lib/supabaseServerClient';
 
-jest.mock('@/lib/supabaseServerClient', () => {
-  const mod = jest.requireActual('__mocks__/@/lib/supabaseServerClient.ts');
-  return { ...mod };
-});
+jest.mock('@/lib/supabaseServerClient');
 
 describe('POST /api/auth/signout', () => {
   beforeEach(() => {

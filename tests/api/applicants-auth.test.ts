@@ -8,10 +8,7 @@ import {
   supabaseServerClientMock,
 } from '@/lib/supabaseServerClient';
 
-jest.mock('@/lib/supabaseServerClient', () => {
-  const mod = jest.requireActual('__mocks__/@/lib/supabaseServerClient.ts');
-  return { ...mod };
-});
+jest.mock('@/lib/supabaseServerClient');
 
 jest.mock('@/server/db/applicants', () => ({
   listApplicants: jest.fn(),
