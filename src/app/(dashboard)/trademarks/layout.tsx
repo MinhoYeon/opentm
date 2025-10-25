@@ -7,7 +7,7 @@ export default async function TrademarksLayout({ children }: { children: ReactNo
   const supabase = createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
-  if (error) {
+  if (error && error.status !== 400) {
     console.error("Failed to verify Supabase user on server", error);
   }
 

@@ -160,7 +160,9 @@ async function parseKiprisResponse(bodyText: string): Promise<NormalizedTrademar
   });
 }
 
-async function normalizeResponse(rawResponse: Response): Promise<NormalizedTrademark[]> {
+export async function normalizeResponse(
+  rawResponse: Response,
+): Promise<NormalizedTrademark[]> {
   const contentType = rawResponse.headers.get("content-type");
 
   if (contentType?.includes("application/json")) {

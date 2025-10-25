@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminContext, requireAuthenticatedSession } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
-import { createServerClient } from "@/lib/supabase/server";
+import { resolveAdminContext } from "@/lib/admin/roles";
 import {
   TrademarkStatus,
   isTrademarkStatus,
@@ -64,28 +65,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isAdminUser(user: { app_metadata?: Record<string, unknown> | null } | null): boolean {
-  if (!user) {
-    return false;
-  }
-
-  const appMetadata = (user.app_metadata ?? {}) as Record<string, unknown>;
-  if (appMetadata.role === "admin") {
-    return true;
-  }
-
-  const roles = appMetadata.roles;
-  if (Array.isArray(roles) && roles.includes("admin")) {
-    return true;
-  }
-
-  if (appMetadata.is_admin === true) {
-    return true;
-  }
-
-  return false;
-}
-
 type CreateTrademarkPayload = {
   requestId?: string | null;
   brandName?: string;
@@ -106,26 +85,53 @@ type CreateTrademarkPayload = {
 type ListQuery = {
   limit: number;
   page: number;
-  status?: TrademarkStatus;
+  statuses?: TrademarkStatus[];
   managementNumber?: string;
+  search?: string | null;
   userId?: string;
+  assignedTo?: string | null;
 };
+
+function parseStatuses(values: string[]): TrademarkStatus[] | undefined {
+  const unique = new Set<TrademarkStatus>();
+
+  for (const raw of values) {
+    const tokens = raw
+      .split(/[;,]/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    for (const token of tokens) {
+      if (isTrademarkStatus(token)) {
+        unique.add(token);
+      }
+    }
+  }
+
+  return unique.size > 0 ? Array.from(unique) : undefined;
+}
 
 function parseListQuery(request: NextRequest, isAdmin: boolean, userId: string): ListQuery {
   const params = request.nextUrl.searchParams;
   const limit = Math.min(Number.parseInt(params.get("limit") ?? "20", 10) || 20, 100);
   const page = Math.max(Number.parseInt(params.get("page") ?? "1", 10) || 1, 1);
 
-  let status: TrademarkStatus | undefined;
-  const statusParam = params.get("status");
-  if (isTrademarkStatus(statusParam)) {
-    status = statusParam;
+  const statusValues = params.getAll("status");
+  if (statusValues.length === 0) {
+    const statusParam = params.get("statuses");
+    if (statusParam) {
+      statusValues.push(statusParam);
+    }
   }
 
-  const managementNumber = params.get("managementNumber") ?? undefined;
-  const searchUserId = isAdmin ? params.get("userId") ?? undefined : userId;
+  const statuses = parseStatuses(statusValues);
 
-  return { limit, page, status, managementNumber, userId: searchUserId };
+  const managementNumber = params.get("managementNumber") ?? undefined;
+  const search = parseOptionalString(params.get("search"));
+  const searchUserId = isAdmin ? params.get("userId") ?? undefined : userId;
+  const assignedTo = parseOptionalString(params.get("assignedTo"));
+
+  return { limit, page, statuses, managementNumber, userId: searchUserId, search, assignedTo };
 }
 
 function normalizeBrandName(brandName: string): string {
@@ -133,22 +139,16 @@ function normalizeBrandName(brandName: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const serverClient = createServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await serverClient.auth.getSession();
-
-  if (sessionError) {
-    return NextResponse.json({ error: sessionError.message }, { status: 500 });
-  }
-
-  if (!session) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  let session = await requireAuthenticatedSession();
+  let adminContext = resolveAdminContext(session.user);
+  if (adminContext) {
+    const adminResult = await requireAdminContext();
+    session = adminResult.session;
+    adminContext = adminResult.context;
   }
 
   const adminClient = createAdminClient();
-  const admin = isAdminUser(session.user);
+  const admin = Boolean(adminContext);
   const query = parseListQuery(request, admin, session.user.id);
 
   let supabaseQuery = adminClient
@@ -157,18 +157,29 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .range((query.page - 1) * query.limit, query.page * query.limit - 1);
 
-  if (query.status) {
-    supabaseQuery = supabaseQuery.eq("status", query.status);
+  if (query.statuses?.length) {
+    supabaseQuery = supabaseQuery.in("status", query.statuses);
   }
 
   if (query.managementNumber) {
     supabaseQuery = supabaseQuery.eq("management_number", query.managementNumber);
   }
 
+  if (query.search) {
+    const like = `%${query.search.replace(/%/g, "").replace(/_/g, "")}%`;
+    supabaseQuery = supabaseQuery.or(
+      `brand_name.ilike.${like},management_number.ilike.${like}`
+    );
+  }
+
   if (!admin) {
     supabaseQuery = supabaseQuery.eq("user_id", session.user.id);
   } else if (query.userId) {
     supabaseQuery = supabaseQuery.eq("user_id", query.userId);
+  }
+
+  if (admin && query.assignedTo) {
+    supabaseQuery = supabaseQuery.eq("assigned_to", query.assignedTo);
   }
 
   const { data, error, count } = await supabaseQuery;
@@ -186,18 +197,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const serverClient = createServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await serverClient.auth.getSession();
-
-  if (sessionError) {
-    return NextResponse.json({ error: sessionError.message }, { status: 500 });
-  }
-
-  if (!session) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  let session = await requireAuthenticatedSession();
+  let adminContext = resolveAdminContext(session.user);
+  if (adminContext) {
+    const adminResult = await requireAdminContext();
+    session = adminResult.session;
+    adminContext = adminResult.context;
   }
 
   let payload: CreateTrademarkPayload;
@@ -236,7 +241,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "연결된 신청서를 찾을 수 없습니다." }, { status: 400 });
     }
 
-    if (requestRecord.user_id && requestRecord.user_id !== session.user.id && !isAdminUser(session.user)) {
+    if (requestRecord.user_id && requestRecord.user_id !== session.user.id && !adminContext) {
       return NextResponse.json({ error: "신청서에 접근 권한이 없습니다." }, { status: 403 });
     }
   }

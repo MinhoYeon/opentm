@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { StatusTimeline } from "@/components/mypage/StatusTimeline";
 import { createServerClient } from "@/lib/supabaseServerClient";
 
 type StatusTransition = {
@@ -257,20 +258,15 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
             )}
           </section>
 
-          {transitions.length ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-semibold text-slate-900">상태 이력</h2>
-              <ol className="mt-4 space-y-3 text-sm text-slate-700">
-                {transitions.map((t, i) => (
-                  <li key={i} className="flex flex-col">
-                    <span className="font-medium">{t.label ?? t.status}</span>
-                    {t.description ? <span>{t.description}</span> : null}
-                    <span className="text-xs text-slate-500">{formatDateTime(t.changedAt ?? t.changed_at ?? null)}</span>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
+              <span className="text-xs font-medium text-slate-500">
+                {transitions.length ? `${transitions.length}건` : "기록 없음"}
+              </span>
+            </div>
+            <StatusTimeline status={status} statusLogs={transitions} className="mt-6" />
+          </section>
         </div>
 
         <aside className="space-y-6">

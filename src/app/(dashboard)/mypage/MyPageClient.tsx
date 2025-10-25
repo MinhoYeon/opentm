@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 
 import type {
@@ -9,7 +9,9 @@ import type {
   PaginationInfo,
   TrademarkRequest,
 } from "./types";
+import { StatusFilter } from "./components/StatusFilter";
 import { TrademarkRequestList } from "./components/TrademarkRequestList";
+import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTrademarkRequests } from "./hooks/useTrademarkRequests";
 
 type MyPageClientProps = {
@@ -36,10 +38,24 @@ export default function MyPageClient({
   processSteps,
   applicant,
 }: MyPageClientProps) {
-  const { requests, refresh, updateStatus, isMutating, error } = useTrademarkRequests({
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm, 350);
+
+  const { requests, refresh, updateStatus, isMutating, isLoading, error } = useTrademarkRequests({
     initialRequests: submissions,
     userId: user.id,
+    statusFilter,
+    searchTerm: debouncedSearch,
   });
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refresh();
+    } catch (err) {
+      console.error("Failed to refresh trademark requests", err);
+    }
+  }, [refresh]);
 
   const heroDescription = useMemo(() => {
     if (!requests.length) {
@@ -49,7 +65,8 @@ export default function MyPageClient({
     return "담당 변리사와의 협업 현황을 한눈에 확인할 수 있습니다.";
   }, [requests.length]);
 
-  const computedTotal = Math.max(pagination.totalCount, requests.length);
+  const computedTotal = Math.max(pagination.totalCount, submissions.length, requests.length);
+  const visibleCount = requests.length;
   const totalPages = Math.max(Math.ceil(computedTotal / pagination.pageSize), 1);
   const hasPreviousPage = pagination.page > 1;
   const hasNextPage = pagination.page < totalPages;
@@ -147,7 +164,7 @@ export default function MyPageClient({
             <h2 className="text-xl font-semibold text-slate-900">상표 출원 요청</h2>
             <p className="text-sm text-slate-500">{userName} 님의 신청 현황입니다.</p>
             <p className="text-sm text-slate-600">
-              제출된 브랜드 {computedTotal}건의 진행 상태와 담당 변리사 메모를 확인하세요.
+              제출된 브랜드 {computedTotal}건 중 현재 조건에 맞는 {visibleCount}건의 진행 상태를 살펴보세요.
             </p>
           </div>
           <Link
@@ -158,11 +175,20 @@ export default function MyPageClient({
           </Link>
         </div>
 
+        <StatusFilter
+          value={statusFilter}
+          onChange={setStatusFilter}
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          isBusy={isLoading || isMutating}
+          onRefresh={handleRefresh}
+        />
+
         <TrademarkRequestList
           requests={requests}
           error={error}
           isMutating={isMutating}
-          onRefresh={refresh}
+          isLoading={isLoading}
           onStatusChange={updateStatus}
         />
 

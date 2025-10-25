@@ -573,7 +573,11 @@ export default function RegisterPage() {
   );
 }
 
-function validateStep(step: number, data: TrademarkApplication, isFinalCheck = false) {
+export function validateStep(
+  step: number,
+  data: TrademarkApplication,
+  isFinalCheck = false,
+) {
   const stepErrors: string[] = [];
 
   if (step === 0) {

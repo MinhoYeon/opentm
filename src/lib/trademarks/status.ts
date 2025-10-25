@@ -1,28 +1,23 @@
-export const TRADEMARK_STATUSES = [
-  "draft",
-  "awaiting_payment",
-  "payment_received",
-  "preparing_filing",
-  "filed",
-  "office_action",
-  "rejected",
-  "completed",
-  "cancelled",
-] as const;
+import { TRADEMARK_STATUS_VALUES } from "../../types/status";
+import type { TrademarkStatus } from "../../types/status";
 
-export type TrademarkStatus = (typeof TRADEMARK_STATUSES)[number];
+export const TRADEMARK_STATUSES = TRADEMARK_STATUS_VALUES;
 
 type TransitionMap = Record<TrademarkStatus, TrademarkStatus[]>;
 
 export const TRADEMARK_STATUS_TRANSITIONS: TransitionMap = {
-  draft: ["awaiting_payment", "preparing_filing", "cancelled"],
-  awaiting_payment: ["payment_received", "preparing_filing", "cancelled"],
-  payment_received: ["preparing_filing", "cancelled"],
-  preparing_filing: ["filed", "cancelled"],
-  filed: ["office_action", "completed", "rejected"],
-  office_action: ["preparing_filing", "completed", "rejected", "cancelled"],
-  rejected: ["preparing_filing", "cancelled"],
+  draft: ["awaiting_payment", "awaiting_documents", "preparing_filing", "cancelled"],
+  awaiting_payment: ["payment_received", "awaiting_documents", "preparing_filing", "cancelled"],
+  payment_received: ["awaiting_documents", "preparing_filing", "cancelled"],
+  awaiting_documents: ["preparing_filing", "awaiting_client_signature", "cancelled"],
+  preparing_filing: ["awaiting_client_signature", "filed", "cancelled"],
+  awaiting_client_signature: ["filed", "cancelled"],
+  filed: ["office_action", "awaiting_registration_fee", "completed", "rejected"],
+  office_action: ["awaiting_client_response", "preparing_filing", "completed", "rejected", "cancelled"],
+  awaiting_client_response: ["preparing_filing", "office_action", "cancelled"],
+  awaiting_registration_fee: ["completed", "cancelled"],
   completed: [],
+  rejected: ["awaiting_documents", "preparing_filing", "cancelled"],
   cancelled: [],
 };
 
@@ -51,14 +46,14 @@ export function resolveInitialStatus(options: {
   skipPaymentGate?: boolean;
 }): TrademarkStatus {
   if (options.skipPaymentGate) {
-    return "preparing_filing";
+    return "awaiting_documents";
   }
 
   if (typeof options.paymentAmount === "number" && options.paymentAmount > 0) {
     return "awaiting_payment";
   }
 
-  return "preparing_filing";
+  return "awaiting_documents";
 }
 
 export function shouldSetPaymentReceivedAt(status: TrademarkStatus): boolean {

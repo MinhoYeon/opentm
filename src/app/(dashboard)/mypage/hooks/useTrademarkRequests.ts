@@ -11,31 +11,52 @@ import { normalizeTrademarkRequest } from "../utils/normalizeTrademarkRequest";
 type UseTrademarkRequestsOptions = {
   initialRequests: TrademarkRequest[];
   userId: string;
+  statusFilter?: string;
+  searchTerm?: string;
 };
 
 type StatusUpdateResult = PostgrestSingleResponse<Record<string, unknown>>;
 
-export function useTrademarkRequests({ initialRequests, userId }: UseTrademarkRequestsOptions) {
+export function useTrademarkRequests({
+  initialRequests,
+  userId,
+  statusFilter = "all",
+  searchTerm = "",
+}: UseTrademarkRequestsOptions) {
   const supabase = useMemo(() => createBrowserClient(), []);
   const [requests, setRequests] = useState<TrademarkRequest[]>(initialRequests);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const previousRef = useRef<TrademarkRequest[]>(initialRequests);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     setRequests(initialRequests);
     previousRef.current = initialRequests;
   }, [initialRequests]);
 
-  const refresh = useCallback(async () => {
-    setIsMutating(true);
+  const fetchRequests = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
     try {
-      const { data, error: queryError } = await supabase
+      let query = supabase
         .from("trademark_requests")
         .select("*")
         .eq("user_id", userId)
         .order("submitted_at", { ascending: false });
+
+      if (statusFilter && statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      const trimmedSearch = searchTerm.trim();
+      if (trimmedSearch) {
+        const escaped = trimmedSearch.replace(/[%_]/g, "\\$&");
+        query = query.ilike("brand_name", `%${escaped}%`);
+      }
+
+      const { data, error: queryError } = await query;
 
       if (queryError) {
         throw queryError;
@@ -52,9 +73,27 @@ export function useTrademarkRequests({ initialRequests, userId }: UseTrademarkRe
       setError(message);
       throw err;
     } finally {
-      setIsMutating(false);
+      setIsLoading(false);
     }
-  }, [supabase, userId]);
+  }, [supabase, userId, statusFilter, searchTerm]);
+
+  const refresh = useCallback(async () => {
+    return fetchRequests();
+  }, [fetchRequests]);
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      const isDefaultFilter = statusFilter === "all" && !searchTerm.trim();
+      if (isDefaultFilter) {
+        return;
+      }
+    }
+
+    fetchRequests().catch((err) => {
+      console.error("Failed to fetch trademark requests", err);
+    });
+  }, [fetchRequests, searchTerm, statusFilter]);
 
   const updateStatus = useCallback(
     async (requestId: string, nextStatus: string) => {
@@ -117,6 +156,7 @@ export function useTrademarkRequests({ initialRequests, userId }: UseTrademarkRe
     refresh,
     updateStatus,
     isMutating,
+    isLoading,
     error,
   };
 }

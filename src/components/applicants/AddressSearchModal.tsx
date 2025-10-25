@@ -25,6 +25,18 @@ type SearchState = {
 
 let loaderPromise: Promise<void> | null = null;
 
+async function logAddressEvent(event: "search" | "select", payload: Record<string, unknown>) {
+  try {
+    await fetch("/api/naver-map/log", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ event, ...payload }),
+    });
+  } catch (error) {
+    console.debug("Failed to log address search", error);
+  }
+}
+
 function loadNaverMap(): Promise<void> {
   if (typeof window === "undefined") {
     return Promise.resolve();
@@ -118,6 +130,7 @@ export function AddressSearchModal({ open, onClose, onSelect, initialQuery }: Ad
   async function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!state.query.trim()) return;
+    void logAddressEvent("search", { query: state.query.trim() });
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     const geocoder = window.naver?.maps?.Service ? new window.naver.maps.Service.Geocoder() : null;
@@ -201,7 +214,18 @@ export function AddressSearchModal({ open, onClose, onSelect, initialQuery }: Ad
                   <button
                     type="button"
                     className="mt-2 rounded-full border border-indigo-500 px-3 py-1 text-xs font-medium text-indigo-600"
-                    onClick={() => onSelect(item)}
+                    onClick={() => {
+                      void logAddressEvent("select", {
+                        query: state.query,
+                        roadAddress: item.roadAddress ?? null,
+                        jibunAddress: item.address ?? null,
+                        coordinates:
+                          item.x != null && item.y != null
+                            ? { lat: item.y, lng: item.x }
+                            : null,
+                      });
+                      onSelect(item);
+                    }}
                   >
                     이 주소 사용
                   </button>

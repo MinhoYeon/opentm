@@ -24,13 +24,22 @@ function isPromise<T>(value: unknown): value is Promise<T> {
   );
 }
 
-function toPositiveInteger(value: string | undefined, fallback: number) {
+export function toPositiveInteger(value: string | undefined, fallback: number) {
   if (!value) {
     return fallback;
   }
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+export function getPaginationRange(page: number, pageSize: number) {
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+  const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 1;
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  return { from, to };
 }
 
 function resolveDisplayName(user: SupabaseUser) {
@@ -59,8 +68,7 @@ export default async function MyPage({ searchParams }: PageProps) {
     : ((searchParams as PageSearchParams | undefined) ?? {});
   const page = toPositiveInteger(sp.page, 1);
   const pageSize = 10;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const { from, to } = getPaginationRange(page, pageSize);
 
   const { data: rows, count, error: listError } = await supabase
     .from("trademark_requests")

@@ -1,0 +1,119 @@
+import { NextResponse } from "next/server";
+import type { Session } from "@supabase/supabase-js";
+
+import {
+  createServerClient,
+  getSupabaseAuthCookieNames,
+} from "@/lib/supabaseServerClient";
+
+function encodeSessionCookie(session: Session) {
+  const payload = {
+    currentSession: {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at ?? null,
+    },
+    expiresAt: session.expires_at ?? null,
+  };
+  return `base64-${Buffer.from(JSON.stringify(payload)).toString("base64")}`;
+}
+
+function resolveMaxAge(expiresAt: number | null | undefined) {
+  if (!expiresAt) {
+    return undefined;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const delta = expiresAt - now;
+  return delta > 0 ? delta : 0;
+}
+
+type AuthWebhookPayload = {
+  event?: string;
+  session?: Session | null;
+};
+
+function applySessionCookies(response: NextResponse, session: Session) {
+  const [baseCookie, refreshCookie] = getSupabaseAuthCookieNames();
+  const maxAge = resolveMaxAge(session.expires_at);
+  response.cookies.set({
+    name: baseCookie,
+    value: encodeSessionCookie(session),
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge,
+  });
+  response.cookies.set({
+    name: refreshCookie,
+    value: session.access_token,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge,
+  });
+}
+
+function clearSessionCookies(response: NextResponse) {
+  for (const name of getSupabaseAuthCookieNames()) {
+    response.cookies.set({
+      name,
+      value: "",
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+    });
+  }
+}
+
+export async function POST(request: Request) {
+  let payload: AuthWebhookPayload;
+  try {
+    payload = (await request.json()) as AuthWebhookPayload;
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: "잘못된 JSON 본문입니다." }, { status: 400 });
+  }
+
+  if (!payload.event) {
+    return NextResponse.json({ ok: false, error: "event 값이 필요합니다." }, { status: 400 });
+  }
+
+  const supabase = createServerClient();
+
+  switch (payload.event) {
+    case "SIGNED_IN":
+    case "TOKEN_REFRESHED": {
+      if (!payload.session) {
+        return NextResponse.json({ ok: false, error: "세션 정보가 필요합니다." }, { status: 400 });
+      }
+      const { error } = await supabase.auth.setSession(payload.session);
+      if (error) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      const response = NextResponse.json(
+        { ok: true, session: { user: payload.session.user } },
+        { status: 200 }
+      );
+      applySessionCookies(response, payload.session);
+      return response;
+    }
+    case "SIGNED_OUT": {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      }
+      const response = NextResponse.json({ ok: true }, { status: 200 });
+      clearSessionCookies(response);
+      return response;
+    }
+    default: {
+      return NextResponse.json(
+        { ok: false, error: `지원하지 않는 이벤트입니다: ${payload.event}` },
+        { status: 400 }
+      );
+    }
+  }
+}
