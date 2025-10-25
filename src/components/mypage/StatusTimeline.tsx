@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
+import { getStatusMetadata } from "@/lib/status";
+
 import styles from "./StatusTimeline.module.css";
 
 type TimelineStatusLog = {
@@ -24,13 +26,13 @@ type IconProps = {
   className?: string;
 };
 
-type StatusMeta = {
+type ViewStatusMeta = {
   label: string;
   description: string;
   accentColor: string;
   iconBackground: string;
   iconColor: string;
-  tone?: "default" | "success" | "warning" | "danger";
+  tone: "neutral" | "info" | "success" | "warning" | "danger";
   Icon: (props: IconProps) => JSX.Element;
 };
 
@@ -112,14 +114,6 @@ const ShieldIcon = createSvg(
   </>
 );
 
-const XIcon = createSvg(
-  <>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="m9.5 9.5 5 5" />
-    <path d="m14.5 9.5-5 5" />
-  </>
-);
-
 const BanIcon = createSvg(
   <>
     <circle cx="12" cy="12" r="8.5" />
@@ -127,102 +121,58 @@ const BanIcon = createSvg(
   </>
 );
 
-const DEFAULT_META: StatusMeta = {
-  label: "진행 중",
-  description: "진행 상황을 확인하고 있습니다.",
-  accentColor: "#cbd5f5",
-  iconBackground: "#e2e8f0",
-  iconColor: "#334155",
-  Icon: DocumentIcon,
+const AlertIcon = createSvg(
+  <>
+    <path d="M12 3 3 19h18z" />
+    <path d="M12 9v4" />
+    <path d="M12 17h.01" />
+  </>
+);
+
+const ContractIcon = createSvg(
+  <>
+    <path d="M8 4h8a2 2 0 0 1 2 2v14l-4-2-4 2-4-2V6a2 2 0 0 1 2-2z" />
+    <path d="M9 9h6" />
+    <path d="M9 13h4" />
+  </>
+);
+
+const HandshakeIcon = createSvg(
+  <>
+    <path d="m4 15 2.5-2.5a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 0 2.8 0l1.7-1.7a2 2 0 0 1 2.8 0L20 14" />
+    <path d="m5 10 2-2a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 0 2.8 0L15 8" />
+    <path d="M7 18 5.5 16.5" />
+    <path d="M17 18l1.5-1.5" />
+  </>
+);
+
+const ICON_REGISTRY: Record<string, (props: IconProps) => JSX.Element> = {
+  document: DocumentIcon,
+  payment: PaymentIcon,
+  check: CheckIcon,
+  clipboard: ClipboardIcon,
+  plane: PlaneIcon,
+  search: SearchIcon,
+  shield: ShieldIcon,
+  alert: AlertIcon,
+  ban: BanIcon,
+  contract: ContractIcon,
+  handshake: HandshakeIcon,
 };
 
-const STATUS_META: Record<string, StatusMeta> = {
-  draft: {
-    label: "임시 저장",
-    description: "제출 전 임시 저장 상태입니다.",
-    accentColor: "#94a3b8",
-    iconBackground: "#f1f5f9",
-    iconColor: "#1e293b",
-    Icon: DocumentIcon,
-  },
-  awaiting_payment: {
-    label: "입금 대기",
-    description: "가상계좌 입금이 확인되면 다음 단계로 진행됩니다.",
-    accentColor: "#fbbf24",
-    iconBackground: "#fef3c7",
-    iconColor: "#b45309",
-    tone: "warning",
-    Icon: PaymentIcon,
-  },
-  payment_received: {
-    label: "결제 완료",
-    description: "결제가 완료되었습니다. 담당 변리사가 서류를 준비하고 있어요.",
-    accentColor: "#34d399",
-    iconBackground: "#d1fae5",
-    iconColor: "#047857",
-    tone: "success",
-    Icon: CheckIcon,
-  },
-  preparing_filing: {
-    label: "출원 준비",
-    description: "제출 서류를 검토하고 있습니다.",
-    accentColor: "#818cf8",
-    iconBackground: "#eef2ff",
-    iconColor: "#4338ca",
-    Icon: ClipboardIcon,
-  },
-  filed: {
-    label: "출원 완료",
-    description: "특허청에 출원이 접수되었습니다.",
-    accentColor: "#60a5fa",
-    iconBackground: "#dbeafe",
-    iconColor: "#1d4ed8",
-    Icon: PlaneIcon,
-  },
-  office_action: {
-    label: "심사 진행중",
-    description: "특허청의 검토가 진행 중입니다.",
-    accentColor: "#fbbf24",
-    iconBackground: "#fef3c7",
-    iconColor: "#b45309",
-    tone: "warning",
-    Icon: SearchIcon,
-  },
-  completed: {
-    label: "등록 완료",
-    description: "상표 등록이 완료되었습니다.",
-    accentColor: "#34d399",
-    iconBackground: "#d1fae5",
-    iconColor: "#047857",
-    tone: "success",
-    Icon: ShieldIcon,
-  },
-  rejected: {
-    label: "거절",
-    description: "심사 결과 거절되었습니다.",
-    accentColor: "#f87171",
-    iconBackground: "#fee2e2",
-    iconColor: "#b91c1c",
-    tone: "danger",
-    Icon: XIcon,
-  },
-  cancelled: {
-    label: "취소됨",
-    description: "요청이 취소되었습니다.",
-    accentColor: "#cbd5f5",
-    iconBackground: "#f1f5f9",
-    iconColor: "#475569",
-    Icon: BanIcon,
-  },
-};
+function resolveMeta(statusKey: string | null | undefined): ViewStatusMeta {
+  const metadata = getStatusMetadata(statusKey);
+  const Icon = ICON_REGISTRY[metadata.timeline.icon] ?? DocumentIcon;
 
-function resolveMeta(statusKey: string | null | undefined) {
-  if (!statusKey) {
-    return DEFAULT_META;
-  }
-
-  const normalized = statusKey.trim().toLowerCase();
-  return STATUS_META[normalized] ?? DEFAULT_META;
+  return {
+    label: metadata.label,
+    description: metadata.helpText,
+    accentColor: metadata.timeline.accentColor,
+    iconBackground: metadata.timeline.iconBackground,
+    iconColor: metadata.timeline.iconColor,
+    tone: metadata.tone,
+    Icon,
+  } satisfies ViewStatusMeta;
 }
 
 function formatDateTime(value?: string | null) {
@@ -250,7 +200,7 @@ type TimelineEntry = {
   description: string;
   changedAt?: string;
   timestamp?: number;
-  meta: StatusMeta;
+  meta: ViewStatusMeta;
   note?: string | null;
   actor?: string | null;
 };

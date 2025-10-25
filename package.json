@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:status-transitions": "node --test tests/status-transition.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.0",

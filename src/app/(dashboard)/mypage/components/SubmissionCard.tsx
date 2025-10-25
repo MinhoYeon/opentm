@@ -3,78 +3,9 @@
 import Link from "next/link";
 
 import { StatusTimeline } from "@/components/mypage/StatusTimeline";
+import { getStatusMetadata } from "@/lib/status";
 
 import type { TrademarkRequest } from "../types";
-
-type StatusPresentation = {
-  label: string;
-  helpText: string;
-  badgeClass: string;
-  dotClass: string;
-};
-
-const STATUS_PRESENTATION: Record<string, StatusPresentation> = {
-  draft: {
-    label: "임시 저장",
-    helpText: "제출 전 임시 저장 상태입니다.",
-    badgeClass: "bg-slate-100 text-slate-700",
-    dotClass: "bg-slate-500",
-  },
-  awaiting_payment: {
-    label: "입금 대기",
-    helpText: "가상계좌 입금이 확인되면 다음 단계로 진행됩니다.",
-    badgeClass: "bg-amber-100 text-amber-700",
-    dotClass: "bg-amber-500",
-  },
-  payment_received: {
-    label: "결제 완료",
-    helpText: "결제가 완료되었습니다. 담당 변리사가 서류를 준비하고 있어요.",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    dotClass: "bg-emerald-500",
-  },
-  preparing_filing: {
-    label: "출원 준비",
-    helpText: "제출 서류를 검토하고 있습니다. 추가 요청이 있을 수 있어요.",
-    badgeClass: "bg-indigo-100 text-indigo-700",
-    dotClass: "bg-indigo-500",
-  },
-  filed: {
-    label: "출원 완료",
-    helpText: "특허청에 출원이 접수되었습니다. 심사 결과를 기다리고 있습니다.",
-    badgeClass: "bg-blue-100 text-blue-700",
-    dotClass: "bg-blue-500",
-  },
-  office_action: {
-    label: "심사 진행중",
-    helpText: "특허청의 검토가 진행 중입니다. 필요한 대응을 안내드릴 예정입니다.",
-    badgeClass: "bg-amber-100 text-amber-700",
-    dotClass: "bg-amber-500",
-  },
-  completed: {
-    label: "등록 완료",
-    helpText: "상표 등록이 완료되었습니다. 등록증 수령 안내를 확인해 주세요.",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    dotClass: "bg-emerald-500",
-  },
-  rejected: {
-    label: "거절",
-    helpText: "심사 결과 거절되었습니다. 대응 가능 여부를 담당자와 상의해 주세요.",
-    badgeClass: "bg-rose-100 text-rose-700",
-    dotClass: "bg-rose-500",
-  },
-  cancelled: {
-    label: "취소됨",
-    helpText: "요청이 취소되었습니다. 필요 시 새 출원 요청을 생성하세요.",
-    badgeClass: "bg-slate-100 text-slate-600",
-    dotClass: "bg-slate-400",
-  },
-  default: {
-    label: "확인 필요",
-    helpText: "상태 정보를 확인 중입니다. 진행 상황은 담당자를 통해 안내해 드립니다.",
-    badgeClass: "bg-slate-100 text-slate-700",
-    dotClass: "bg-slate-500",
-  },
-};
 
 type SubmissionCardProps = {
   request: TrademarkRequest;
@@ -105,11 +36,11 @@ function formatDateTime(value?: string | null) {
 }
 
 function resolveStatus(request: TrademarkRequest) {
-  const base = STATUS_PRESENTATION[request.status] ?? STATUS_PRESENTATION.default;
-  const label = request.statusLabel?.trim() || base.label;
-  const description = request.statusDescription?.trim() || base.helpText;
-  const badgeClass = request.statusBadgeClass?.trim() || base.badgeClass;
-  const dotClass = request.statusDotClass?.trim() || base.dotClass;
+  const metadata = getStatusMetadata(request.status);
+  const label = request.statusLabel?.trim() || metadata.label;
+  const description = request.statusDescription?.trim() || metadata.helpText;
+  const badgeClass = request.statusBadgeClass?.trim() || metadata.badge.backgroundClass;
+  const dotClass = request.statusDotClass?.trim() || metadata.badge.dotClass;
 
   return { label, description, badgeClass, dotClass };
 }
@@ -129,9 +60,27 @@ function buildActions(request: TrademarkRequest): CtaAction[] {
       return [
         { type: "link", href: applicantHref, label: "출원인 정보 수정", variant: "outline" },
       ];
+    case "awaiting_documents":
+      return [
+        { type: "link", href: detailHref, label: "요청 사항 확인", variant: "primary" },
+        { type: "link", href: applicantHref, label: "출원인 정보 입력/수정", variant: "outline" },
+      ];
     case "preparing_filing":
       return [
         { type: "link", href: applicantHref, label: "출원인 정보 입력/수정", variant: "outline" },
+      ];
+    case "awaiting_client_signature":
+      return [
+        { type: "link", href: detailHref, label: "전자서명 하기", variant: "primary" },
+        { type: "link", href: applicantHref, label: "출원인 정보 확인", variant: "outline" },
+      ];
+    case "awaiting_client_response":
+      return [
+        { type: "link", href: detailHref, label: "의견서 안내 확인", variant: "primary" },
+      ];
+    case "awaiting_registration_fee":
+      return [
+        { type: "link", href: detailHref, label: "등록료 납부 안내", variant: "primary" },
       ];
     default:
       return [];
