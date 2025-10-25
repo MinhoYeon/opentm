@@ -1,16 +1,31 @@
-import { jest } from '@jest/globals';
+type MockFn = ((...args: unknown[]) => unknown) & {
+  mockClear: () => MockFn;
+  mockImplementation: (implementation: (...args: unknown[]) => unknown) => MockFn;
+  mockRejectedValue: (reason?: unknown) => MockFn;
+  mockResolvedValue: (value: unknown) => MockFn;
+  mockReset: () => MockFn;
+  mockReturnValue: (value: unknown) => MockFn;
+};
+
+type JestLike = {
+  fn: <Args extends unknown[], Return>(
+    implementation?: (...args: Args) => Return
+  ) => MockFn & ((...args: Args) => Return);
+};
+
+declare const jest: JestLike;
 
 type Subscription = {
-  unsubscribe: jest.Mock;
+  unsubscribe: MockFn;
 };
 
 type SupabaseClientMock = {
   auth: {
-    getSession: jest.Mock;
-    getUser: jest.Mock;
-    onAuthStateChange: jest.Mock;
-    signInWithPassword: jest.Mock;
-    signOut: jest.Mock;
+    getSession: MockFn;
+    getUser: MockFn;
+    onAuthStateChange: MockFn;
+    signInWithPassword: MockFn;
+    signOut: MockFn;
   };
 };
 
