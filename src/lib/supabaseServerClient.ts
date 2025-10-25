@@ -10,6 +10,26 @@ type CookiesLike = {
   delete(arg: { name: string } & CookieOptions): void;
 };
 
+export function getSupabaseProjectRef(url: string = supabaseUrl): string | undefined {
+  try {
+    const parsed = new URL(url);
+    const [projectRef] = parsed.hostname.split(".");
+    return projectRef;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getSupabaseAuthCookieBaseName(): string {
+  const projectRef = getSupabaseProjectRef();
+  return projectRef ? `sb-${projectRef}-auth-token` : "sb-auth-token";
+}
+
+export function getSupabaseAuthCookieNames(): [string, string] {
+  const base = getSupabaseAuthCookieBaseName();
+  return [base, `${base}.0`];
+}
+
 export function createServerClient() {
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
