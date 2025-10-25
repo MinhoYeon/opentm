@@ -68,11 +68,22 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
+
+      if (!nextSession) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        setUser(userData.user ?? null);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError && userError.status !== 400) {
+          console.error("Failed to refresh Supabase user", userError);
+        }
+        setUser(userData?.user ?? nextSession.user ?? null);
       } catch (error) {
         console.error("Failed to refresh Supabase user", error);
+        setUser(nextSession.user ?? null);
       } finally {
         setIsLoading(false);
       }
@@ -107,6 +118,10 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
   const logout = useCallback(async () => {
     // Best-effort: clear client session, then server cookie. Ignore "Auth session missing".
+    setSession(null);
+    setUser(null);
+    setIsLoading(false);
+
     try {
       const { error } = await supabase.auth.signOut();
       const lowerMessage = error?.message?.toLowerCase?.() ?? "";
@@ -120,20 +135,17 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     }
 
     try {
-      await fetch("/api/auth/signout", { method: "POST" });
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
     } catch (err) {
       console.warn("Server signout failed", err);
     }
 
-    setSession(null);
-    setUser(null);
-    setIsLoading(false);
-    // Perform a hard navigation to avoid RSC race conditions
-    if (typeof window !== "undefined") {
-      window.location.replace("/login");
-      return;
-    }
     router.replace("/login");
+    router.refresh();
   }, [router, supabase]);
 
   const value = useMemo<AuthContextValue>(
