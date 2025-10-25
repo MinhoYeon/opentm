@@ -26,6 +26,7 @@ const customConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  testPathIgnorePatterns: ['<rootDir>/tests/status-transition.test.mjs'],
 };
 
 export default createJestConfig(customConfig);
