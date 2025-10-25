@@ -7,7 +7,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test:status-transitions": "node --test tests/status-transition.test.mjs", 
+    "test:status-transitions": "node --test tests/status-transition.test.mjs",
     "test": "jest",
     "test:watch": "jest --watch"
   },
