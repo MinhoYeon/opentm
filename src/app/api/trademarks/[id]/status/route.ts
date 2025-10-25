@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabaseAdminClient";
 import { createServerClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/admin/roles";
 import {
   TrademarkStatus,
   canTransitionStatus,
@@ -31,23 +32,6 @@ function parseDate(value: unknown): string | null {
     return null;
   }
   return parsed.toISOString();
-}
-
-function isAdminUser(user: { app_metadata?: Record<string, unknown> | null } | null): boolean {
-  if (!user) {
-    return false;
-  }
-  const appMetadata = (user.app_metadata ?? {}) as Record<string, unknown>;
-  if (appMetadata.role === "admin") {
-    return true;
-  }
-  if (Array.isArray(appMetadata.roles) && appMetadata.roles.includes("admin")) {
-    return true;
-  }
-  if (appMetadata.is_admin === true) {
-    return true;
-  }
-  return false;
 }
 
 type UpdateStatusPayload = {
