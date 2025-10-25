@@ -47,7 +47,7 @@ function createStatusSummary(applications: AdminTrademarkApplication[]): StatusS
   return Array.from(counts.entries()).map(([status, count]) => ({ status: status as StatusSummary["status"], count }));
 }
 
-function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
+export function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
   if (!value || typeof value !== "object") {
     return null;
   }
@@ -85,7 +85,7 @@ function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
   };
 }
 
-function resolveStatusOptions() {
+export function resolveStatusOptions(statuses: readonly string[] = TRADEMARK_STATUSES) {
   const LABELS: Record<string, string> = {
     draft: "임시",
     awaiting_payment: "입금 대기",
@@ -101,7 +101,7 @@ function resolveStatusOptions() {
     completed: "등록 완료",
     cancelled: "취소",
   };
-  return TRADEMARK_STATUSES.map((status) => ({
+  return statuses.map((status) => ({
     value: status,
     label: LABELS[status] ?? status,
   }));

@@ -406,14 +406,20 @@ export async function updateBankTransferReview(params: UpdateBankTransferParams)
     memo: params.memo ?? null,
   };
 
-  const { error: confirmationError } = await adminClient
+  const { data: confirmationRow, error: confirmationError } = await adminClient
     .from("bank_transfer_confirmations")
     .update(updates)
     .eq("id", params.confirmationId)
-    .eq("intent_id", params.paymentId);
+    .eq("intent_id", params.paymentId)
+    .select("id")
+    .maybeSingle();
 
   if (confirmationError) {
     throw new ApiError("입금 확인 요청을 갱신하지 못했습니다.", { status: 500, details: confirmationError.message });
+  }
+
+  if (!confirmationRow) {
+    return null;
   }
 
   const intentUpdates: Record<string, unknown> = {
