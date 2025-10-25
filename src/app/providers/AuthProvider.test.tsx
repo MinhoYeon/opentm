@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from '@/app/providers/AuthProvider';
 import {
@@ -6,7 +7,10 @@ import {
   __resetSupabaseBrowserClientMocks,
 } from '@/lib/supabaseBrowserClient';
 
-jest.mock('@/lib/supabaseBrowserClient');
+jest.mock('@/lib/supabaseBrowserClient', () => {
+  const mod = jest.requireActual('__mocks__/@/lib/supabaseBrowserClient.ts');
+  return { ...mod };
+});
 
 function TestConsumer() {
   const { isLoading, user } = useAuth();

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from '@jest/globals';
+import { describe, expect, it, beforeEach, jest } from '@jest/globals';
 
 import { POST } from '@/app/api/auth/session/route';
 import {
@@ -8,7 +8,10 @@ import {
   getSupabaseAuthCookieNames,
 } from '@/lib/supabaseServerClient';
 
-jest.mock('@/lib/supabaseServerClient');
+jest.mock('@/lib/supabaseServerClient', () => {
+  const mod = jest.requireActual('__mocks__/@/lib/supabaseServerClient.ts');
+  return { ...mod };
+});
 
 describe('POST /api/auth/session', () => {
   beforeEach(() => {

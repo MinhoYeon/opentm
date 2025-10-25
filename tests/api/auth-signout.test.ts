@@ -6,13 +6,13 @@ import {
   __resetSupabaseServerClientMocks,
   createServerClient as createServerClientMock,
   supabaseServerClientMock,
-<<<<<<< ours
-=======
   getSupabaseAuthCookieNames,
->>>>>>> theirs
 } from '@/lib/supabaseServerClient';
 
-jest.mock('@/lib/supabaseServerClient');
+jest.mock('@/lib/supabaseServerClient', () => {
+  const mod = jest.requireActual('__mocks__/@/lib/supabaseServerClient.ts');
+  return { ...mod };
+});
 
 describe('POST /api/auth/signout', () => {
   beforeEach(() => {
@@ -44,14 +44,11 @@ describe('POST /api/auth/signout', () => {
 
     expect(createServerClientMock).toHaveBeenCalledTimes(1);
     expect(supabaseServerClientMock.auth.signOut).toHaveBeenCalledTimes(1);
-<<<<<<< ours
-=======
 
     const [authCookieName] = getSupabaseAuthCookieNames();
     expect(response.headers.get('set-cookie')).toContain(`${authCookieName}=`);
     const combined = response.headers.get('x-middleware-set-cookie') ?? '';
     expect(combined).toContain('Max-Age=0');
->>>>>>> theirs
   });
 
   it('propagates Supabase errors as a 500 response', async () => {
@@ -66,9 +63,6 @@ describe('POST /api/auth/signout', () => {
 
     expect(createServerClientMock).toHaveBeenCalledTimes(1);
     expect(supabaseServerClientMock.auth.signOut).toHaveBeenCalledTimes(1);
-<<<<<<< ours
-=======
     expect(response.headers.get('set-cookie')).toBeNull();
->>>>>>> theirs
   });
 });
