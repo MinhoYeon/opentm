@@ -153,3 +153,11 @@ create index if not exists bank_transfer_confirmations_status_idx
 create index if not exists bank_transfer_confirmations_processed_by_idx
   on public.bank_transfer_confirmations(processed_by);
 
+create table if not exists public.payment_intents (
+  id uuid primary key default gen_random_uuid(),
+  amount numeric,
+  currency text,
+  status text not null default 'requires_payment_method',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
