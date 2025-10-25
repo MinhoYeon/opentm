@@ -15,6 +15,7 @@ import {
 import { useAdminTrademarkApplications } from "./hooks/useAdminTrademarkApplications";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
+import { TRADEMARK_STATUS_VALUES } from "@/types/status";
 
 const DEFAULT_FILTERS: AdminDashboardFilters = {
   statuses: [],
@@ -756,6 +757,12 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState(true);
 
+  const requiresMemo = useMemo(() => {
+    const currentIndex = TRADEMARK_STATUS_VALUES.indexOf(application.status);
+    const nextIndex = TRADEMARK_STATUS_VALUES.indexOf(status as (typeof TRADEMARK_STATUS_VALUES)[number]);
+    return currentIndex >= 0 && nextIndex >= 0 && nextIndex < currentIndex;
+  }, [application.status, status]);
+
   useEffect(() => {
     setStatus(application.status);
     setDetail(application.statusDetail ?? "");
@@ -766,6 +773,10 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
       event.preventDefault();
       if (!capabilities.canManageStatuses) {
         setError("상태 변경 권한이 없습니다.");
+        return;
+      }
+      if (requiresMemo && !detail.trim()) {
+        setError("상태를 되돌릴 때는 상세 메모를 남겨야 합니다.");
         return;
       }
       setIsSubmitting(true);
@@ -803,7 +814,7 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
         setIsSubmitting(false);
       }
     },
-    [application, capabilities.canManageStatuses, detail, notification, onUpdated, status]
+    [application, capabilities.canManageStatuses, detail, notification, onUpdated, requiresMemo, status]
   );
 
   return (
@@ -832,6 +843,9 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
           placeholder="변경 사유나 후속 조치를 입력하세요"
         />
+        {requiresMemo ? (
+          <p className="mt-1 text-xs text-amber-600">이전 단계로 되돌릴 때는 메모를 반드시 작성해야 합니다.</p>
+        ) : null}
       </div>
       <label className="flex items-center gap-2 text-xs text-slate-600">
         <input

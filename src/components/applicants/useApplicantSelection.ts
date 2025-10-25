@@ -17,6 +17,7 @@ type ApplicantResponse = {
   lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  metadata: Record<string, unknown>;
 };
 
 export type Applicant = ApplicantResponse;
@@ -29,6 +30,7 @@ export type ApplicantFormInput = {
   businessType?: string | null;
   businessNumber?: string | null;
   isFavorite?: boolean;
+  metadata?: Record<string, unknown>;
 };
 
 type ApiError = { error?: string };
@@ -69,6 +71,7 @@ function parseApplicant(payload: ApplicantResponse): Applicant {
     address: payload.address ?? null,
     businessType: payload.businessType ?? null,
     businessNumber: payload.businessNumber ?? null,
+    metadata: payload.metadata ?? {},
   };
 }
 

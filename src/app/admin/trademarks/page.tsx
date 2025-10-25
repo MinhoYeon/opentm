@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import AdminTrademarkDashboardClient from "./AdminTrademarkDashboardClient";
 import {
   type AdminActivityLog,
@@ -10,8 +8,8 @@ import {
   type AdminUserSummary,
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
+import { requireAdminContext } from "@/lib/api/auth";
 import { createServerClient } from "@/lib/supabaseServerClient";
-import { resolveAdminContext } from "@/lib/admin/roles";
 import { TRADEMARK_STATUSES, isTrademarkStatus } from "@/lib/trademarks/status";
 
 function isPromise<T>(value: unknown): value is Promise<T> {
@@ -142,21 +140,8 @@ type PageProps = {
 };
 
 export default async function AdminTrademarksPage({ searchParams }: PageProps) {
+  const { context: adminContext, session } = await requireAdminContext();
   const supabase = createServerClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) {
-    console.error("Failed to load Supabase admin user", error);
-  }
-
-  if (!data?.user) {
-    redirect(`/login?redirect=${encodeURIComponent("/admin/trademarks")}`);
-  }
-
-  const adminContext = resolveAdminContext(data.user);
-  if (!adminContext) {
-    redirect("/");
-  }
 
   const sp = isPromise<PageSearchParams>(searchParams)
     ? await searchParams
@@ -259,8 +244,8 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   }
 
   const savedFilterSource =
-    (data.user.user_metadata?.admin_saved_filters as unknown) ??
-    (data.user.user_metadata?.saved_filters as unknown);
+    (session.user.user_metadata?.admin_saved_filters as unknown) ??
+    (session.user.user_metadata?.saved_filters as unknown);
   const savedFilters = extractSavedFilters(savedFilterSource);
 
   const totalCount = typeof count === "number" ? count : applications.length;
@@ -268,12 +253,12 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   const statusOptions = resolveStatusOptions();
 
   const adminUser: AdminUserSummary = {
-    id: data.user.id,
-    email: data.user.email ?? null,
+    id: session.user.id,
+    email: session.user.email ?? null,
     name:
-      (typeof data.user.user_metadata?.name === "string" && data.user.user_metadata.name) ||
-      (typeof data.user.user_metadata?.full_name === "string" && data.user.user_metadata.full_name) ||
-      data.user.email ?? null,
+      (typeof session.user.user_metadata?.name === "string" && session.user.user_metadata.name) ||
+      (typeof session.user.user_metadata?.full_name === "string" && session.user.user_metadata.full_name) ||
+      session.user.email ?? null,
     role: adminContext.role,
     capabilities: adminContext.capabilities,
   };

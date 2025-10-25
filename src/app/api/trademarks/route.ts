@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminContext, requireAuthenticatedSession } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
-import { createServerClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/admin/roles";
+import { resolveAdminContext } from "@/lib/admin/roles";
 import {
   TrademarkStatus,
   isTrademarkStatus,
@@ -139,22 +139,16 @@ function normalizeBrandName(brandName: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const serverClient = createServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await serverClient.auth.getSession();
-
-  if (sessionError) {
-    return NextResponse.json({ error: sessionError.message }, { status: 500 });
-  }
-
-  if (!session) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  let session = await requireAuthenticatedSession();
+  let adminContext = resolveAdminContext(session.user);
+  if (adminContext) {
+    const adminResult = await requireAdminContext();
+    session = adminResult.session;
+    adminContext = adminResult.context;
   }
 
   const adminClient = createAdminClient();
-  const admin = isAdminUser(session.user);
+  const admin = Boolean(adminContext);
   const query = parseListQuery(request, admin, session.user.id);
 
   let supabaseQuery = adminClient
@@ -203,18 +197,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const serverClient = createServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await serverClient.auth.getSession();
-
-  if (sessionError) {
-    return NextResponse.json({ error: sessionError.message }, { status: 500 });
-  }
-
-  if (!session) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  let session = await requireAuthenticatedSession();
+  let adminContext = resolveAdminContext(session.user);
+  if (adminContext) {
+    const adminResult = await requireAdminContext();
+    session = adminResult.session;
+    adminContext = adminResult.context;
   }
 
   let payload: CreateTrademarkPayload;
@@ -253,7 +241,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "연결된 신청서를 찾을 수 없습니다." }, { status: 400 });
     }
 
-    if (requestRecord.user_id && requestRecord.user_id !== session.user.id && !isAdminUser(session.user)) {
+    if (requestRecord.user_id && requestRecord.user_id !== session.user.id && !adminContext) {
       return NextResponse.json({ error: "신청서에 접근 권한이 없습니다." }, { status: 403 });
     }
   }
