@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { StatusTimeline } from "@/components/mypage/StatusTimeline";
+
 import type { TrademarkRequest } from "../types";
 
 type StatusPresentation = {
@@ -195,22 +197,19 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
           <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{request.statusDescription}</p>
         ) : null}
 
-        {request.transitions.length ? (
-          <div className="rounded-xl bg-slate-50 p-4">
+        <div className="rounded-xl bg-slate-50 p-4">
+          <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-semibold text-slate-700">최근 상태 이력</h4>
-            <ol className="mt-2 space-y-2 text-sm text-slate-600">
-              {request.transitions.map((transition, index) => (
-                <li key={`${transition.status}-${index}`} className="flex flex-col gap-0.5">
-                  <span className="font-medium text-slate-700">{transition.label ?? transition.status}</span>
-                  {transition.description ? <span>{transition.description}</span> : null}
-                  {transition.changedAt ? (
-                    <span className="text-xs text-slate-500">{formatDateTime(transition.changedAt)}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
+            <span className="text-xs font-medium text-slate-500">
+              {request.transitions.length ? `${request.transitions.length}건` : "기록 없음"}
+            </span>
           </div>
-        ) : null}
+          <StatusTimeline
+            status={request.status}
+            statusLogs={request.transitions}
+            className="mt-4"
+          />
+        </div>
       </div>
 
       <footer className="mt-6 flex flex-col gap-2">
