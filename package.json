@@ -7,12 +7,13 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test:status-transitions": "node --test tests/status-transition.test.mjs"
+    "test:status-transitions": "node --test tests/status-transition.test.mjs", 
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.48.0",
-
     "next": "15.5.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -21,13 +22,20 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/styled-components": "^5.1.34",
     "eslint": "^9",
     "eslint-config-next": "15.5.6",
+    "jest": "^30.2.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-jest": "^29.4.5",
+    "typescript": "^5",
+    "whatwg-fetch": "^3.6.20"
   }
 }
