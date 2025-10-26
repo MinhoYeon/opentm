@@ -101,10 +101,15 @@ export async function POST(request: Request) {
   }
 
   switch (payload.event) {
+    case "INITIAL_SESSION":
     case "SIGNED_IN":
-    case "TOKEN_REFRESHED": {
+    case "TOKEN_REFRESHED":
+    case "USER_UPDATED":
+    case "MFA_CHALLENGE_VERIFIED": {
       if (!payload.session) {
-        return NextResponse.json({ ok: false, error: "세션 정보가 필요합니다." }, { status: 400 });
+        // For these events, if there's no session, just acknowledge without error
+        // This can happen during certain auth flows
+        return NextResponse.json({ ok: true }, { status: 200 });
       }
       const response = NextResponse.json(
         { ok: true, session: { user: payload.session.user } },
@@ -118,11 +123,11 @@ export async function POST(request: Request) {
       clearSessionCookies(response, request);
       return response;
     }
+    case "PASSWORD_RECOVERY":
     default: {
-      return NextResponse.json(
-        { ok: false, error: `지원하지 않는 이벤트입니다: ${payload.event}` },
-        { status: 400 }
-      );
+      // For PASSWORD_RECOVERY and any other events, just acknowledge without error
+      // These events may not require session synchronization
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
   }
 }
