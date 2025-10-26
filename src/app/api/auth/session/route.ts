@@ -29,6 +29,10 @@ type AuthWebhookPayload = {
   session?: Session | null;
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const isProduction = process.env.NODE_ENV === "production";
+
 function isSecureCookieContext(request: Request): boolean {
   const forwardedProto = request.headers.get("x-forwarded-proto");
   if (forwardedProto) {
@@ -56,7 +60,7 @@ function applySessionCookies(response: NextResponse, session: Session, request: 
     value: encodeSessionCookie(session),
     httpOnly: true,
     sameSite: "lax",
-    secure,
+    secure: isProduction,
     path: "/",
     maxAge,
   });
@@ -65,7 +69,7 @@ function applySessionCookies(response: NextResponse, session: Session, request: 
     value: session.access_token,
     httpOnly: true,
     sameSite: "lax",
-    secure,
+    secure: isProduction,
     path: "/",
     maxAge,
   });
@@ -80,7 +84,7 @@ function clearSessionCookies(response: NextResponse, request: Request) {
       maxAge: 0,
       httpOnly: true,
       sameSite: "lax",
-      secure,
+      secure: isProduction,
       path: "/",
     });
   }
