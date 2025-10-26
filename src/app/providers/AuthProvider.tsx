@@ -164,20 +164,23 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       console.log("[AuthProvider] Login successful, session received");
 
       if (response.data.session && response.data.user) {
-        // Persist the new session and user to local state when authentication succeeds.
-        // Use the user from the response directly instead of calling getUser again
-        setSession(response.data.session);
-        setUser(response.data.user);
-        console.log("[AuthProvider] Session and user state updated");
-
         try {
-          // Inform the server about the new session so HTTP-only cookies stay in sync.
+          // IMPORTANT: Sync session with server BEFORE updating local state
+          // This ensures server-side cookies are set before any navigation occurs
+          console.log("[AuthProvider] Syncing session with server...");
           await syncSessionWithServer("SIGNED_IN", response.data.session);
           console.log("[AuthProvider] Session synced with server");
         } catch (error) {
           console.error("[AuthProvider] Failed to sync session after login", error);
-          // Don't throw here - auth state is already set, cookie sync is secondary
+          // If cookie sync fails, throw to prevent navigation with incomplete auth state
+          throw new Error("세션 동기화에 실패했습니다. 다시 시도해 주세요.");
         }
+
+        // Only update local state after server cookies are successfully set
+        // This prevents race conditions where navigation happens before cookies are ready
+        setSession(response.data.session);
+        setUser(response.data.user);
+        console.log("[AuthProvider] Session and user state updated");
       }
 
       return response;

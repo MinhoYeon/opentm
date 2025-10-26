@@ -59,7 +59,14 @@ export default async function MyPage({ searchParams }: PageProps) {
   const supabase = createServerClient();
   const { data, error } = await supabase.auth.getUser();
 
+  console.log("[MyPage] Server component - getUser result:", {
+    hasUser: !!data?.user,
+    userId: data?.user?.id,
+    error: error?.message
+  });
+
   if (error || !data?.user) {
+    console.log("[MyPage] No user found, redirecting to login");
     redirect(`/login?redirect=${encodeURIComponent("/mypage")}`);
   }
 
