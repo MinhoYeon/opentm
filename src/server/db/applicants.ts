@@ -380,6 +380,13 @@ export async function listApplicants(
 }
 
 export function handlePostgrestError(error: PostgrestError): Error {
+  // Check for unique constraint violations
+  if (error.code === "23505") {
+    if (error.message.includes("applicants_email_hash_unique")) {
+      return new Error("이미 등록된 이메일 주소입니다. 다른 이메일을 사용해 주세요.");
+    }
+  }
+
   const message = error.details || error.message || "Supabase error";
   return new Error(message);
 }
