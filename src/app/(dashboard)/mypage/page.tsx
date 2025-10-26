@@ -4,6 +4,7 @@ import MyPageClient from "./MyPageClient";
 import type { ApplicantSummary, TrademarkRequest } from "./types";
 import { normalizeTrademarkRequest } from "./utils/normalizeTrademarkRequest";
 import { createServerClient } from "@/lib/supabaseServerClient";
+import { listApplicants } from "@/server/db/applicants";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 type PageSearchParams = {
@@ -106,6 +107,23 @@ export default async function MyPage({ searchParams }: PageProps) {
     "등록완료",
   ];
 
+  // Fetch all applicants for the user
+  let applicants: Array<{ id: string; name: string; email: string }> = [];
+  try {
+    const allApplicants = await listApplicants(supabase, data.user.id, {
+      limit: 50,
+      sort: "recent",
+    });
+    applicants = allApplicants.map((app) => ({
+      id: app.id,
+      name: app.nameKorean || app.name || "-",
+      email: app.email,
+    }));
+  } catch {
+    applicants = [];
+  }
+
+  // Keep legacy applicant for backward compatibility (most recent from trademark_request_applicants)
   let applicant: ApplicantSummary | null = null;
   try {
     const { data: applicantRows } = await supabase
@@ -144,6 +162,7 @@ export default async function MyPage({ searchParams }: PageProps) {
       pagination={{ page, pageSize, totalCount }}
       processSteps={processSteps}
       applicant={applicant}
+      applicants={applicants}
     />
   );
 }

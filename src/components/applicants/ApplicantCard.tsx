@@ -49,17 +49,13 @@ export function ApplicantCard({
 }: ApplicantCardProps) {
   return (
     <div
-      className={`rounded-xl border px-4 py-3 transition ${
-        selected ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-white"
+      className={`rounded-xl border px-4 py-4 transition cursor-pointer ${
+        selected ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"
       }`}
+      onClick={onSelect}
     >
       <div className="flex items-start justify-between gap-4">
-        <button
-          type="button"
-          className="flex-1 text-left"
-          onClick={onSelect}
-          disabled={disabled}
-        >
+        <div className="flex-1 space-y-3">
           <div className="flex items-center gap-2">
             <span
               className={`text-xl ${applicant.isFavorite ? "text-amber-500" : "text-slate-300"}`}
@@ -67,20 +63,105 @@ export function ApplicantCard({
             >
               ★
             </span>
-            <p className="text-lg font-semibold text-slate-900">{applicant.name}</p>
+            <p className="text-lg font-semibold text-slate-900">
+              {applicant.nameKorean || applicant.name || "-"}
+            </p>
+            {selected && (
+              <span className="rounded-full bg-indigo-600 px-2 py-1 text-xs font-medium text-white">
+                선택됨
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-sm text-slate-600">{applicant.email}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-            {applicant.phoneMasked ? <span>연락처 {applicant.phoneMasked}</span> : null}
-            {applicant.addressMasked ? <span>주소 {applicant.addressMasked}</span> : null}
-            {applicant.businessType ? <span>구분 {applicant.businessType}</span> : null}
-            {applicant.businessNumberMasked ? (
-              <span>사업자번호 {applicant.businessNumberMasked}</span>
-            ) : null}
+
+          <div className="grid gap-2 text-sm">
+            {applicant.applicantType && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">출원인 구분</span>
+                <span className="text-slate-900">
+                  {applicant.applicantType === "domestic_individual"
+                    ? "국내 자연인"
+                    : applicant.applicantType === "domestic_corporation"
+                      ? "국내 법인"
+                      : applicant.applicantType}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <span className="w-32 shrink-0 font-medium text-slate-600">이메일</span>
+              <span className="text-slate-900">{applicant.email}</span>
+            </div>
+            {applicant.nameEnglish && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">성명(영문)</span>
+                <span className="text-slate-900">{applicant.nameEnglish}</span>
+              </div>
+            )}
+            {applicant.nationality && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">국적</span>
+                <span className="text-slate-900">{applicant.nationality}</span>
+              </div>
+            )}
+            {applicant.phoneMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">전화번호</span>
+                <span className="text-slate-900">{applicant.phoneMasked}</span>
+              </div>
+            )}
+            {applicant.mobilePhoneMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">휴대전화</span>
+                <span className="text-slate-900">{applicant.mobilePhoneMasked}</span>
+              </div>
+            )}
+            {applicant.residentRegistrationNumberMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">주민등록번호</span>
+                <span className="text-slate-900">{applicant.residentRegistrationNumberMasked}</span>
+              </div>
+            )}
+            {applicant.corporationRegistrationNumberMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">법인등록번호</span>
+                <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked}</span>
+              </div>
+            )}
+            {applicant.businessRegistrationNumberMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">사업자등록번호</span>
+                <span className="text-slate-900">{applicant.businessRegistrationNumberMasked}</span>
+              </div>
+            )}
+            {applicant.addressMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">주소</span>
+                <span className="text-slate-900">{applicant.addressMasked}</span>
+              </div>
+            )}
+            {applicant.postalCode && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">우편번호</span>
+                <span className="text-slate-900">{applicant.postalCode}</span>
+              </div>
+            )}
+            {applicant.deliveryAddressMasked && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">배송지 주소</span>
+                <span className="text-slate-900">{applicant.deliveryAddressMasked}</span>
+              </div>
+            )}
+            {applicant.patentCustomerNumber && (
+              <div className="flex gap-2">
+                <span className="w-32 shrink-0 font-medium text-slate-600">특허고객번호</span>
+                <span className="text-slate-900">{applicant.patentCustomerNumber}</span>
+              </div>
+            )}
           </div>
-          <p className="mt-2 text-xs text-slate-400">{formatLastUsed(applicant.lastUsedAt)}</p>
-        </button>
-        <div className="flex flex-col items-end gap-2">
+
+          <p className="text-xs text-slate-400">{formatLastUsed(applicant.lastUsedAt)}</p>
+        </div>
+
+        <div className="flex flex-col items-end gap-2" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={onToggleFavorite}
@@ -107,16 +188,6 @@ export function ApplicantCard({
               삭제
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onSelect}
-            className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
-              selected ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-700"
-            }`}
-            disabled={disabled}
-          >
-            {selected ? "선택됨" : "선택"}
-          </button>
         </div>
       </div>
     </div>
