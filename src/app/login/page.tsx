@@ -38,15 +38,15 @@ export default function LoginPage() {
         email: email.trim(),
         password,
       });
-      // Redirect to the requested page when login succeeds.
-      router.replace(redirectPath);
+      // Refresh server components to ensure they have the latest session cookies
+      // The useEffect hook will handle the redirect once isAuthenticated is updated
+      router.refresh();
     } catch (authError) {
       const message =
         authError instanceof Error
           ? authError.message
           : "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
       setError(message);
-    } finally {
       setIsSubmitting(false);
     }
   };

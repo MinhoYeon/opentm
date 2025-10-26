@@ -58,7 +58,7 @@ function applySessionCookies(response: NextResponse, session: Session, request: 
     value: encodeSessionCookie(session),
     httpOnly: true,
     sameSite: "lax",
-    secure: isProduction,
+    secure,
     path: "/",
     maxAge,
   });
@@ -67,7 +67,7 @@ function applySessionCookies(response: NextResponse, session: Session, request: 
     value: session.access_token,
     httpOnly: true,
     sameSite: "lax",
-    secure: isProduction,
+    secure,
     path: "/",
     maxAge,
   });
@@ -82,7 +82,7 @@ function clearSessionCookies(response: NextResponse, request: Request) {
       maxAge: 0,
       httpOnly: true,
       sameSite: "lax",
-      secure: isProduction,
+      secure,
       path: "/",
     });
   }
