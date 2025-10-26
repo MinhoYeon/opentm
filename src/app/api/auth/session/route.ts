@@ -31,8 +31,6 @@ type AuthWebhookPayload = {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-const isProduction = process.env.NODE_ENV === "production";
-
 function isSecureCookieContext(request: Request): boolean {
   const forwardedProto = request.headers.get("x-forwarded-proto");
   if (forwardedProto) {
