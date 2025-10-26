@@ -31,7 +31,7 @@ type ApplicantResponse = {
   businessRegistrationNumberMasked: string | null;
   mobilePhone: string | null;
   mobilePhoneMasked: string | null;
-  priorityNumber: string | null;
+  postalCode: string | null;
   deliveryPostalCode: string | null;
   deliveryAddress: string | null;
   deliveryAddressMasked: string | null;
@@ -58,7 +58,7 @@ export type ApplicantFormInput = {
   corporationRegistrationNumber?: string | null;
   businessRegistrationNumber?: string | null;
   mobilePhone?: string | null;
-  priorityNumber?: string | null;
+  postalCode?: string | null;
   deliveryPostalCode?: string | null;
   deliveryAddress?: string | null;
   patentCustomerNumber?: string | null;
