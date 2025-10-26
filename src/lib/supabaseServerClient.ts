@@ -77,7 +77,7 @@ export function createServerClient(mode: CookieAccessMode = "readOnly") {
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       async get(name: string) {
-        const store = (await cookies()) as unknown as CookiesLike;
+        const store = (await cookies()) as unknown as { get(name: string): { value?: string } | undefined };
         return store.get(name)?.value;
       },
       async set(name: string, value: string, options: CookieOptions) {
