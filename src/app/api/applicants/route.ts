@@ -81,7 +81,7 @@ function okResponse(data: unknown, init?: ResponseInit) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const {
     data: { user },
     error: userError,
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const {
     data: { user },
     error: userError,

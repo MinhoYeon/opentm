@@ -32,7 +32,7 @@ const classificationOptions = [
   { code: "41", label: "41류 - 교육/엔터테인먼트" },
 ];
 
-function toggleSelection(current: string[], code: string): string[] {
+export function toggleSelection(current: string[], code: string): string[] {
   return current.includes(code)
     ? current.filter((value) => value !== code)
     : [...current, code];

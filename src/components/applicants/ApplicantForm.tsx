@@ -21,6 +21,7 @@ type FormState = {
   businessType: string;
   businessNumber: string;
   isFavorite: boolean;
+  metadata: Record<string, unknown>;
 };
 
 function normalizeInitialValue(initialValue?: Partial<Applicant>): FormState {
@@ -32,6 +33,7 @@ function normalizeInitialValue(initialValue?: Partial<Applicant>): FormState {
     businessType: initialValue?.businessType ?? "",
     businessNumber: initialValue?.businessNumber ?? "",
     isFavorite: Boolean(initialValue?.isFavorite),
+    metadata: initialValue?.metadata ?? {},
   };
 }
 
@@ -66,6 +68,7 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
         businessType: formState.businessType.trim() || null,
         businessNumber: formState.businessNumber.trim() || null,
         isFavorite: formState.isFavorite,
+        metadata: formState.metadata,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장에 실패했습니다.");
@@ -185,7 +188,24 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
         onClose={() => setShowModal(false)}
         initialQuery={formState.address}
         onSelect={(result) => {
-          setFormState((prev) => ({ ...prev, address: result.address }));
+          setFormState((prev) => {
+            const addressMetadata = {
+              ...(typeof prev.metadata.address === "object" && prev.metadata.address !== null
+                ? (prev.metadata.address as Record<string, unknown>)
+                : {}),
+              roadAddress: result.roadAddress ?? result.address ?? null,
+              jibunAddress: result.address ?? null,
+              coordinates:
+                typeof result.x === "number" && typeof result.y === "number"
+                  ? { lat: result.y, lng: result.x }
+                  : null,
+            };
+            return {
+              ...prev,
+              address: result.roadAddress ?? result.address ?? prev.address,
+              metadata: { ...prev.metadata, address: addressMetadata },
+            };
+          });
           setShowModal(false);
         }}
       />

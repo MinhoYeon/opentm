@@ -4,6 +4,7 @@ import "./globals.css";
 import MainNav from "./components/MainNav";
 import { AuthProvider } from "./providers/AuthProvider";
 import { createServerClient } from "@/lib/supabaseServerClient";
+import type { Session } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
@@ -75,16 +76,29 @@ export default async function RootLayout({
     supabase.auth.getUser(),
   ]);
 
-  const session = sessionRes.data.session && userRes.data.user
-    ? { ...sessionRes.data.session, user: userRes.data.user }
-    : null;
+  const rawSession = sessionRes.data.session;
+  const safeUser = userRes.data.user;
+
+  const initialSession: Session | null =
+    rawSession && safeUser
+      ? {
+          access_token: rawSession.access_token,
+          refresh_token: rawSession.refresh_token,
+          expires_at: rawSession.expires_at,
+          expires_in: rawSession.expires_in,
+          token_type: rawSession.token_type,
+          provider_token: rawSession.provider_token,
+          provider_refresh_token: rawSession.provider_refresh_token,
+          user: safeUser,
+        }
+      : null;
 
   return (
     <html lang="ko">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}
       >
-        <AuthProvider initialSession={session}>
+        <AuthProvider initialSession={initialSession}>
           <div className="flex min-h-screen flex-col">
             <MainNav />
             <main className="flex-1">

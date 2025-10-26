@@ -10,7 +10,12 @@ import {
   createContext,
   type ReactNode,
 } from "react";
-import type { AuthResponse, Session, User } from "@supabase/supabase-js";
+import type {
+  AuthChangeEvent,
+  AuthResponse,
+  Session,
+  User,
+} from "@supabase/supabase-js";
 
 // import { createBrowserClient } from "@/lib/supabaseClient";
 import { createBrowserClient } from "@/lib/supabaseBrowserClient";
@@ -45,6 +50,30 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
   const supabase = useMemo(() => createBrowserClient(), []);
 
+  const syncSessionWithServer = useCallback(
+    async (event: AuthChangeEvent, nextSession: Session | null) => {
+      try {
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "same-origin",
+          cache: "no-store",
+          body: JSON.stringify({ event, session: nextSession }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to sync session: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Failed to sync auth session with server", error);
+        throw error;
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     let isMounted = true;
 
@@ -66,13 +95,40 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
       setSession(nextSession);
+
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        setUser(userData.user ?? null);
+        await syncSessionWithServer(event, nextSession);
+      } catch (error) {
+        if (event === "SIGNED_OUT") {
+          try {
+            await fetch("/api/auth/signout", {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+            });
+          } catch (fallbackError) {
+            console.warn("Server signout fallback failed", fallbackError);
+          }
+        }
+      }
+
+      if (event === "SIGNED_OUT" || !nextSession) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError && userError.status !== 400) {
+          console.error("Failed to refresh Supabase user", userError);
+        }
+        setUser(userData?.user ?? null);
       } catch (error) {
         console.error("Failed to refresh Supabase user", error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -82,11 +138,14 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, syncSessionWithServer]);
 
   const login = useCallback(
     async ({ email, password }: LoginCredentials) => {
-      const response = await supabase.auth.signInWithPassword({ email, password });
+      const response = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (response.error) {
         throw response.error;
@@ -98,15 +157,25 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
           const { data: userData } = await supabase.auth.getUser();
           setUser(userData.user ?? null);
         } catch {}
+
+        try {
+          await syncSessionWithServer("SIGNED_IN", response.data.session);
+        } catch (error) {
+          console.error("Failed to sync session after login", error);
+        }
       }
 
       return response;
     },
-    [supabase]
+    [supabase, syncSessionWithServer]
   );
 
   const logout = useCallback(async () => {
     // Best-effort: clear client session, then server cookie. Ignore "Auth session missing".
+    setSession(null);
+    setUser(null);
+    setIsLoading(false);
+
     try {
       const { error } = await supabase.auth.signOut();
       const lowerMessage = error?.message?.toLowerCase?.() ?? "";
@@ -119,21 +188,8 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       console.warn("Client signOut threw", err);
     }
 
-    try {
-      await fetch("/api/auth/signout", { method: "POST" });
-    } catch (err) {
-      console.warn("Server signout failed", err);
-    }
-
-    setSession(null);
-    setUser(null);
-    setIsLoading(false);
-    // Perform a hard navigation to avoid RSC race conditions
-    if (typeof window !== "undefined") {
-      window.location.replace("/login");
-      return;
-    }
     router.replace("/login");
+    router.refresh();
   }, [router, supabase]);
 
   const value = useMemo<AuthContextValue>(

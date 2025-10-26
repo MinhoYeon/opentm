@@ -11,7 +11,7 @@ Key columns:
 
 | Column | Description |
 | --- | --- |
-| `status` | Enum `trademark_application_status` (`draft`, `awaiting_payment`, `payment_received`, `preparing_filing`, `filed`, `office_action`, `rejected`, `completed`, `cancelled`). |
+| `status` | Enum `trademark_application_status` (`draft`, `awaiting_payment`, `payment_received`, `awaiting_documents`, `preparing_filing`, `awaiting_client_signature`, `filed`, `office_action`, `awaiting_client_response`, `awaiting_registration_fee`, `rejected`, `completed`, `cancelled`). |
 | `payment_*` | Records the payment quotation, reference, due date, and confirmation timestamp. |
 | `filing_*` | Stores the official receipt metadata once the application is filed with the authority. |
 | `normalized_brand_name` | Generated column that lowercases and normalises whitespace to power duplicate detection queries. |
@@ -38,13 +38,17 @@ All routes rely on the Supabase service client **after** validating the caller�
 The status helper in `src/lib/trademarks/status.ts` documents the canonical workflow. Allowed transitions:
 
 ```
-draft → awaiting_payment | preparing_filing | cancelled
-awaiting_payment → payment_received | preparing_filing | cancelled
-payment_received → preparing_filing | cancelled
-preparing_filing → filed | cancelled
-filed → office_action | completed | rejected
-office_action → preparing_filing | completed | rejected | cancelled
-rejected → preparing_filing | cancelled
+draft → awaiting_payment | awaiting_documents | preparing_filing | cancelled
+awaiting_payment → payment_received | awaiting_documents | preparing_filing | cancelled
+payment_received → awaiting_documents | preparing_filing | cancelled
+awaiting_documents → preparing_filing | awaiting_client_signature | cancelled
+preparing_filing → awaiting_client_signature | filed | cancelled
+awaiting_client_signature → filed | cancelled
+filed → office_action | awaiting_registration_fee | completed | rejected
+office_action → awaiting_client_response | preparing_filing | completed | rejected | cancelled
+awaiting_client_response → preparing_filing | office_action | cancelled
+awaiting_registration_fee → completed | cancelled
+rejected → awaiting_documents | preparing_filing | cancelled
 completed → (terminal)
 cancelled → (terminal)
 ```

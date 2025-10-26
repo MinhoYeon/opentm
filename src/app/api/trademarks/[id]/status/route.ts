@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireAdminContext } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
-import { createServerClient } from "@/lib/supabase/server";
 import {
   TrademarkStatus,
   canTransitionStatus,
@@ -9,6 +9,7 @@ import {
   shouldSetFiledAt,
   shouldSetPaymentReceivedAt,
 } from "@/lib/trademarks/status";
+import { TRADEMARK_STATUS_VALUES } from "@/types/status";
 
 function parseOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -33,23 +34,6 @@ function parseDate(value: unknown): string | null {
   return parsed.toISOString();
 }
 
-function isAdminUser(user: { app_metadata?: Record<string, unknown> | null } | null): boolean {
-  if (!user) {
-    return false;
-  }
-  const appMetadata = (user.app_metadata ?? {}) as Record<string, unknown>;
-  if (appMetadata.role === "admin") {
-    return true;
-  }
-  if (Array.isArray(appMetadata.roles) && appMetadata.roles.includes("admin")) {
-    return true;
-  }
-  if (appMetadata.is_admin === true) {
-    return true;
-  }
-  return false;
-}
-
 type UpdateStatusPayload = {
   status?: string;
   note?: string | null;
@@ -71,23 +55,7 @@ export async function PATCH(
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
-  const serverClient = createServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await serverClient.auth.getSession();
-
-  if (sessionError) {
-    return NextResponse.json({ error: sessionError.message }, { status: 500 });
-  }
-
-  if (!session) {
-    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
-  }
-
-  if (!isAdminUser(session.user)) {
-    return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
-  }
+  const { session } = await requireAdminContext({ allowedRoles: ["super_admin", "operations_admin"] });
 
   let payload: UpdateStatusPayload;
   try {
@@ -119,6 +87,13 @@ export async function PATCH(
   const currentStatus = current.status as TrademarkStatus;
   const nextStatus = nextStatusRaw as TrademarkStatus;
 
+  const statusDetail = parseOptionalString(payload.statusDetail);
+  const isRegression =
+    TRADEMARK_STATUS_VALUES.indexOf(nextStatus) < TRADEMARK_STATUS_VALUES.indexOf(currentStatus);
+  if (isRegression && !statusDetail) {
+    return NextResponse.json({ error: "상태를 되돌릴 때는 상세 메모를 남겨야 합니다." }, { status: 422 });
+  }
+
   if (!canTransitionStatus(currentStatus, nextStatus)) {
     return NextResponse.json({ error: "허용되지 않은 상태 전이입니다." }, { status: 422 });
   }
@@ -128,7 +103,6 @@ export async function PATCH(
     status_updated_at: new Date().toISOString(),
   };
 
-  const statusDetail = parseOptionalString(payload.statusDetail);
   if (payload.statusDetail !== undefined) {
     updateFields.status_detail = statusDetail;
   }

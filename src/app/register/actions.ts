@@ -116,6 +116,8 @@ function validateInput(input: SubmitTrademarkRequestInput): string[] {
   return problems;
 }
 
+export { sanitizeFileName, extractDataUrl, validateInput };
+
 export async function submitTrademarkRequest(
   input: SubmitTrademarkRequestInput
 ): Promise<SubmitTrademarkRequestResult> {

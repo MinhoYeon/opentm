@@ -72,7 +72,7 @@ function parseUpdateBody(body: UpdateBody): Partial<ApplicantPayload> & { markAs
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const {
     data: { user },
     error: userError,
@@ -158,7 +158,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const {
     data: { user },
     error: userError,
