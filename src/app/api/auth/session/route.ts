@@ -29,15 +29,36 @@ type AuthWebhookPayload = {
   session?: Session | null;
 };
 
-function applySessionCookies(response: NextResponse, session: Session) {
+const isProduction = process.env.NODE_ENV === "production";
+
+function isSecureCookieContext(request: Request): boolean {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",").some((proto) => proto.trim() === "https");
+  }
+
+  try {
+    const { protocol } = new URL(request.url);
+    if (protocol === "https:") {
+      return true;
+    }
+  } catch {
+    // ignore malformed URLs and fall back to environment
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function applySessionCookies(response: NextResponse, session: Session, request: Request) {
   const [baseCookie, refreshCookie] = getSupabaseAuthCookieNames();
   const maxAge = resolveMaxAge(session.expires_at);
+  const secure = isSecureCookieContext(request);
   response.cookies.set({
     name: baseCookie,
     value: encodeSessionCookie(session),
     httpOnly: true,
     sameSite: "lax",
-    secure: true,
+    secure: isProduction,
     path: "/",
     maxAge,
   });
@@ -46,13 +67,14 @@ function applySessionCookies(response: NextResponse, session: Session) {
     value: session.access_token,
     httpOnly: true,
     sameSite: "lax",
-    secure: true,
+    secure: isProduction,
     path: "/",
     maxAge,
   });
 }
 
-function clearSessionCookies(response: NextResponse) {
+function clearSessionCookies(response: NextResponse, request: Request) {
+  const secure = isSecureCookieContext(request);
   for (const name of getSupabaseAuthCookieNames()) {
     response.cookies.set({
       name,
@@ -60,7 +82,7 @@ function clearSessionCookies(response: NextResponse) {
       maxAge: 0,
       httpOnly: true,
       sameSite: "lax",
-      secure: true,
+      secure: isProduction,
       path: "/",
     });
   }
@@ -70,7 +92,7 @@ export async function POST(request: Request) {
   let payload: AuthWebhookPayload;
   try {
     payload = (await request.json()) as AuthWebhookPayload;
-  } catch (_error) {
+  } catch (error) {
     return NextResponse.json({ ok: false, error: "잘못된 JSON 본문입니다." }, { status: 400 });
   }
 
@@ -88,12 +110,12 @@ export async function POST(request: Request) {
         { ok: true, session: { user: payload.session.user } },
         { status: 200 }
       );
-      applySessionCookies(response, payload.session);
+      applySessionCookies(response, payload.session, request);
       return response;
     }
     case "SIGNED_OUT": {
       const response = NextResponse.json({ ok: true }, { status: 200 });
-      clearSessionCookies(response);
+      clearSessionCookies(response, request);
       return response;
     }
     default: {

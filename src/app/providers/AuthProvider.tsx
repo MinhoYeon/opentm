@@ -142,16 +142,19 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
   const login = useCallback(
     async ({ email, password }: LoginCredentials) => {
+      // Attempt to authenticate the user with the provided credentials using Supabase.
       const response = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (response.error) {
+        // Propagate the error so that the caller can handle the failure state.
         throw response.error;
       }
 
       if (response.data.session) {
+        // Persist the new session and user to local state when authentication succeeds.
         setSession(response.data.session);
         try {
           const { data: userData } = await supabase.auth.getUser();
@@ -159,6 +162,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
         } catch {}
 
         try {
+          // Inform the server about the new session so HTTP-only cookies stay in sync.
           await syncSessionWithServer("SIGNED_IN", response.data.session);
         } catch (error) {
           console.error("Failed to sync session after login", error);
@@ -171,12 +175,13 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
   );
 
   const logout = useCallback(async () => {
-    // Best-effort: clear client session, then server cookie. Ignore "Auth session missing".
+    // Immediately clear the local auth state so the UI reflects the logged-out status.
     setSession(null);
     setUser(null);
     setIsLoading(false);
 
     try {
+      // Ask Supabase to invalidate the session; ignore benign "missing session" errors.
       const { error } = await supabase.auth.signOut();
       const lowerMessage = error?.message?.toLowerCase?.() ?? "";
       if (error && !lowerMessage.includes("auth session missing")) {
@@ -188,6 +193,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       console.warn("Client signOut threw", err);
     }
 
+    // Route the user back to the login page and trigger a refresh to ensure stale data is cleared.
     router.replace("/login");
     router.refresh();
   }, [router, supabase]);

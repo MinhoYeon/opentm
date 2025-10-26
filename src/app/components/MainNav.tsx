@@ -69,6 +69,7 @@ export function MainNav() {
                 <button
                   type="button"
                   onClick={() => {
+                    // Trigger a logout when the user clicks the button; log unexpected failures.
                     void logout().catch((error) => {
                       console.error("Failed to log out", error);
                     });

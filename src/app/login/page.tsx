@@ -17,6 +17,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      // If the user is already authenticated, skip the login form and go to the destination page.
       router.replace(redirectPath);
     }
   }, [isAuthenticated, isLoading, redirectPath, router]);
@@ -32,10 +33,12 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
+      // Attempt to log the user in with the provided credentials.
       await login({
         email: email.trim(),
         password,
       });
+      // Redirect to the requested page when login succeeds.
       router.replace(redirectPath);
     } catch (authError) {
       const message =
