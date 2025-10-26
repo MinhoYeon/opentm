@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createBrowserClient } from "@/lib/supabaseBrowserClient";
 import { deleteAccount } from "./actions";
@@ -10,11 +10,22 @@ import { deleteAccount } from "./actions";
 export default function ProfileClient() {
   const supabase = useMemo(() => createBrowserClient(), []);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [pwBusy, setPwBusy] = useState(false);
+
+  // URL 파라미터에서 성공 메시지 확인
+  useEffect(() => {
+    if (searchParams.get("success") === "password-changed") {
+      setPwMsg("비밀번호가 변경되었습니다.");
+      // URL에서 파라미터 제거
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [searchParams]);
 
   const [dangerBusy, setDangerBusy] = useState(false);
   const [dangerMsg, setDangerMsg] = useState<string | null>(null);
@@ -32,14 +43,15 @@ export default function ProfileClient() {
     }
     setPwBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      const { data, error } = await supabase.auth.updateUser({ password: pw1 });
       if (error) throw error;
+
+      // 성공 시 URL 파라미터와 함께 리다이렉트
       setPw1("");
       setPw2("");
-      setPwMsg("비밀번호가 변경되었습니다.");
+      router.push("/mypage/profile?success=password-changed");
     } catch (err) {
       setPwMsg(err instanceof Error ? err.message : "비밀번호 변경 중 오류가 발생했습니다.");
-    } finally {
       setPwBusy(false);
     }
   }
