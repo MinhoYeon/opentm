@@ -24,10 +24,11 @@ type FormState = {
   phone: string;
   mobilePhone: string;
   email: string;
-  priorityNumber: string;
+  postalCode: string;
   address: string;
   deliveryPostalCode: string;
   deliveryAddress: string;
+  sameAsResidentialAddress: boolean;
   patentCustomerNumber: string;
   isFavorite: boolean;
   metadata: Record<string, unknown>;
@@ -45,10 +46,11 @@ function normalizeInitialValue(initialValue?: Partial<Applicant>): FormState {
     phone: initialValue?.phone ?? "",
     mobilePhone: initialValue?.mobilePhone ?? "",
     email: initialValue?.email ?? "",
-    priorityNumber: initialValue?.priorityNumber ?? "",
+    postalCode: initialValue?.postalCode ?? "",
     address: initialValue?.address ?? "",
     deliveryPostalCode: initialValue?.deliveryPostalCode ?? "",
     deliveryAddress: initialValue?.deliveryAddress ?? "",
+    sameAsResidentialAddress: false,
     patentCustomerNumber: initialValue?.patentCustomerNumber ?? "",
     isFavorite: Boolean(initialValue?.isFavorite),
     metadata: initialValue?.metadata ?? {},
@@ -73,6 +75,16 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
     if (!formState.email.trim()) return false;
     return true;
   }, [formState.applicantType, formState.nameKorean, formState.email]);
+
+  // Handle "same as residential address" checkbox
+  const handleSameAsResidentialChange = (checked: boolean) => {
+    setFormState((prev) => ({
+      ...prev,
+      sameAsResidentialAddress: checked,
+      deliveryPostalCode: checked ? prev.postalCode : prev.deliveryPostalCode,
+      deliveryAddress: checked ? prev.address : prev.deliveryAddress,
+    }));
+  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,7 +111,7 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
         corporationRegistrationNumber: formState.corporationRegistrationNumber.trim() || null,
         businessRegistrationNumber: formState.businessRegistrationNumber.trim() || null,
         mobilePhone: formState.mobilePhone.trim() || null,
-        priorityNumber: formState.priorityNumber.trim() || null,
+        postalCode: formState.postalCode.trim() || null,
         deliveryPostalCode: formState.deliveryPostalCode.trim() || null,
         deliveryAddress: formState.deliveryAddress.trim() || null,
         patentCustomerNumber: formState.patentCustomerNumber.trim() || null,
@@ -139,10 +151,10 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
 
         {formState.applicantType && (
           <>
-            {/* 성명/명칭 */}
+            {/* 성명/명칭 (국문) */}
             <div>
               <label className="text-sm font-medium text-slate-700">
-                {formState.applicantType === "domestic_individual" ? "성명" : "명칭"} *
+                {formState.applicantType === "domestic_individual" ? "성명(국문)" : "명칭(국문)"} *
               </label>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
@@ -152,7 +164,7 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               />
             </div>
 
-            {/* 성명(영문)/명칭(영문) */}
+            {/* 성명/명칭 (영문) */}
             <div>
               <label className="text-sm font-medium text-slate-700">
                 {formState.applicantType === "domestic_individual" ? "성명(영문)" : "명칭(영문)"}
@@ -220,9 +232,9 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               />
             </div>
 
-            {/* 휴대전화번호 */}
+            {/* 휴대폰번호 */}
             <div>
-              <label className="text-sm font-medium text-slate-700">휴대전화번호</label>
+              <label className="text-sm font-medium text-slate-700">휴대폰번호</label>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
                 value={formState.mobilePhone}
@@ -231,9 +243,9 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               />
             </div>
 
-            {/* 전자우편주소 */}
+            {/* 이메일 */}
             <div>
-              <label className="text-sm font-medium text-slate-700">전자우편주소 *</label>
+              <label className="text-sm font-medium text-slate-700">이메일 *</label>
               <input
                 type="email"
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
@@ -243,76 +255,103 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               />
             </div>
 
-            {/* 우선번호 */}
+            {/* 우편번호(주민등록상) */}
             <div>
-              <label className="text-sm font-medium text-slate-700">우선번호</label>
+              <label className="text-sm font-medium text-slate-700">우편번호(주민등록상)</label>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-                value={formState.priorityNumber}
-                onChange={(event) => setFormState((prev) => ({ ...prev, priorityNumber: event.target.value }))}
-                placeholder="우선번호를 입력하세요"
+                value={formState.postalCode}
+                onChange={(event) => {
+                  const newPostalCode = event.target.value;
+                  setFormState((prev) => ({
+                    ...prev,
+                    postalCode: newPostalCode,
+                    deliveryPostalCode: prev.sameAsResidentialAddress ? newPostalCode : prev.deliveryPostalCode,
+                  }));
+                }}
+                placeholder="00000"
               />
             </div>
 
-            {/* 주소 */}
+            {/* 주소(주민등록상) */}
             <div>
-              <label className="text-sm font-medium text-slate-700">주소</label>
+              <label className="text-sm font-medium text-slate-700">주소(주민등록상)</label>
               <div className="mt-1 flex gap-2">
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
                   value={formState.address}
-                  onChange={(event) => setFormState((prev) => ({ ...prev, address: event.target.value }))}
+                  onChange={(event) => {
+                    const newAddress = event.target.value;
+                    setFormState((prev) => ({
+                      ...prev,
+                      address: newAddress,
+                      deliveryAddress: prev.sameAsResidentialAddress ? newAddress : prev.deliveryAddress,
+                    }));
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowAddressModal(true)}
-                  className="rounded-full border border-indigo-500 px-3 py-2 text-sm font-medium text-indigo-600"
+                  className="whitespace-nowrap rounded-full border border-indigo-500 px-3 py-2 text-sm font-medium text-indigo-600"
                 >
                   주소 검색
                 </button>
               </div>
             </div>
 
-            {/* 송달장의 우편번호 */}
+            {/* 우편번호(송달장소) */}
             <div>
-              <label className="text-sm font-medium text-slate-700">송달장의 우편번호</label>
+              <label className="text-sm font-medium text-slate-700">우편번호(송달장소)</label>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
                 value={formState.deliveryPostalCode}
                 onChange={(event) => setFormState((prev) => ({ ...prev, deliveryPostalCode: event.target.value }))}
                 placeholder="00000"
+                disabled={formState.sameAsResidentialAddress}
               />
             </div>
 
-            {/* 송달장소의 주소 */}
+            {/* 주소(송달장소) */}
             <div>
-              <label className="text-sm font-medium text-slate-700">송달장소의 주소</label>
+              <label className="text-sm font-medium text-slate-700">주소(송달장소)</label>
               <div className="mt-1 flex gap-2">
                 <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:bg-slate-50"
                   value={formState.deliveryAddress}
                   onChange={(event) => setFormState((prev) => ({ ...prev, deliveryAddress: event.target.value }))}
+                  disabled={formState.sameAsResidentialAddress}
                 />
                 <button
                   type="button"
                   onClick={() => setShowDeliveryAddressModal(true)}
-                  className="rounded-full border border-indigo-500 px-3 py-2 text-sm font-medium text-indigo-600"
+                  className="whitespace-nowrap rounded-full border border-indigo-500 px-3 py-2 text-sm font-medium text-indigo-600 disabled:opacity-50"
+                  disabled={formState.sameAsResidentialAddress}
                 >
                   주소 검색
                 </button>
               </div>
+              <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={formState.sameAsResidentialAddress}
+                  onChange={(event) => handleSameAsResidentialChange(event.target.checked)}
+                />
+                위 주민등록상 주소와 동일
+              </label>
             </div>
 
-            {/* 특허고객번호 */}
-            <div>
-              <label className="text-sm font-medium text-slate-700">특허고객번호(있는 경우)</label>
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-                value={formState.patentCustomerNumber}
-                onChange={(event) => setFormState((prev) => ({ ...prev, patentCustomerNumber: event.target.value }))}
-                placeholder="특허고객번호를 입력하세요"
-              />
-            </div>
+            {/* 특허고객번호 (자연인만 표시) */}
+            {formState.applicantType === "domestic_individual" && (
+              <div>
+                <label className="text-sm font-medium text-slate-700">특허고객번호(있는 경우)</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  value={formState.patentCustomerNumber}
+                  onChange={(event) => setFormState((prev) => ({ ...prev, patentCustomerNumber: event.target.value }))}
+                  placeholder="특허고객번호를 입력하세요"
+                />
+              </div>
+            )}
 
             <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -363,9 +402,11 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
                   ? { lat: result.y, lng: result.x }
                   : null,
             };
+            const newAddress = result.roadAddress ?? result.address ?? prev.address;
             return {
               ...prev,
-              address: result.roadAddress ?? result.address ?? prev.address,
+              address: newAddress,
+              deliveryAddress: prev.sameAsResidentialAddress ? newAddress : prev.deliveryAddress,
               metadata: { ...prev.metadata, address: addressMetadata },
             };
           });

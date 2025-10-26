@@ -50,7 +50,7 @@ type CreateApplicantBody = {
   corporationRegistrationNumber?: unknown;
   businessRegistrationNumber?: unknown;
   mobilePhone?: unknown;
-  priorityNumber?: unknown;
+  postalCode?: unknown;
   deliveryPostalCode?: unknown;
   deliveryAddress?: unknown;
   patentCustomerNumber?: unknown;
@@ -103,7 +103,7 @@ function parseCreateBody(body: CreateApplicantBody) {
   if (mobilePhone && /[^0-9\s+\-.]/.test(mobilePhone)) {
     throw new Error("휴대전화번호는 숫자와 -, ., 공백만 사용할 수 있습니다.");
   }
-  const priorityNumber = typeof body.priorityNumber === "string" ? body.priorityNumber : null;
+  const postalCode = typeof body.postalCode === "string" ? body.postalCode : null;
   const deliveryPostalCode = typeof body.deliveryPostalCode === "string" ? body.deliveryPostalCode : null;
   const deliveryAddress = typeof body.deliveryAddress === "string" ? body.deliveryAddress : null;
   const patentCustomerNumber = typeof body.patentCustomerNumber === "string" ? body.patentCustomerNumber : null;
@@ -125,7 +125,7 @@ function parseCreateBody(body: CreateApplicantBody) {
     corporationRegistrationNumber,
     businessRegistrationNumber,
     mobilePhone,
-    priorityNumber,
+    postalCode,
     deliveryPostalCode,
     deliveryAddress,
     patentCustomerNumber,

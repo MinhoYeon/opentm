@@ -43,7 +43,7 @@ export type ApplicantRow = {
   business_registration_number_masked: string | null;
   mobile_phone_secret: EncryptedField | null;
   mobile_phone_masked: string | null;
-  priority_number: string | null;
+  postal_code: string | null;
   delivery_postal_code: string | null;
   delivery_address_secret: EncryptedField | null;
   delivery_address_masked: string | null;
@@ -68,7 +68,7 @@ export type ApplicantPayload = {
   corporationRegistrationNumber?: string | null;
   businessRegistrationNumber?: string | null;
   mobilePhone?: string | null;
-  priorityNumber?: string | null;
+  postalCode?: string | null;
   deliveryPostalCode?: string | null;
   deliveryAddress?: string | null;
   patentCustomerNumber?: string | null;
@@ -104,7 +104,7 @@ export type ApplicantDTO = {
   businessRegistrationNumberMasked: string | null;
   mobilePhone: string | null;
   mobilePhoneMasked: string | null;
-  priorityNumber: string | null;
+  postalCode: string | null;
   deliveryPostalCode: string | null;
   deliveryAddress: string | null;
   deliveryAddressMasked: string | null;
@@ -151,7 +151,7 @@ export function toApplicantDto(row: ApplicantRow): ApplicantDTO {
     businessRegistrationNumberMasked: row.business_registration_number_masked ?? maskBusinessNumber(businessRegistrationNumber),
     mobilePhone,
     mobilePhoneMasked: row.mobile_phone_masked ?? maskPhone(mobilePhone),
-    priorityNumber: row.priority_number,
+    postalCode: row.postal_code,
     deliveryPostalCode: row.delivery_postal_code,
     deliveryAddress,
     deliveryAddressMasked: row.delivery_address_masked ?? maskAddress(deliveryAddress),
@@ -209,7 +209,7 @@ export function buildInsertPayload(userId: string, input: ApplicantPayload) {
     business_registration_number_masked: maskBusinessNumber(businessRegistrationNumber),
     mobile_phone_secret: encryptField(mobilePhone),
     mobile_phone_masked: maskPhone(mobilePhone),
-    priority_number: cleanString(input.priorityNumber) || null,
+    postal_code: cleanString(input.postalCode) || null,
     delivery_postal_code: cleanString(input.deliveryPostalCode) || null,
     delivery_address_secret: encryptField(deliveryAddress || null),
     delivery_address_masked: maskAddress(deliveryAddress),
@@ -282,8 +282,8 @@ export function buildUpdatePayload(input: Partial<ApplicantPayload> & { markAsUs
     updates.mobile_phone_secret = encryptField(mobilePhone);
     updates.mobile_phone_masked = maskPhone(mobilePhone);
   }
-  if ("priorityNumber" in input) {
-    updates.priority_number = cleanString(input.priorityNumber) || null;
+  if ("postalCode" in input) {
+    updates.postal_code = cleanString(input.postalCode) || null;
   }
   if ("deliveryPostalCode" in input) {
     updates.delivery_postal_code = cleanString(input.deliveryPostalCode) || null;
