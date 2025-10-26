@@ -137,4 +137,24 @@ export function maskAddress(value: string | null | undefined): string | null {
   return `${slice} …`;
 }
 
+export function maskResidentRegistrationNumber(value: string | null | undefined): string | null {
+  const digits = normaliseDigits(value);
+  if (!digits) return null;
+  if (digits.length <= 7) {
+    return digits.slice(0, 6) + (digits.length > 6 ? "-" + "*" : "");
+  }
+  // Format: YYMMDD-*******
+  return digits.slice(0, 6) + "-" + "*".repeat(7);
+}
+
+export function maskCorporationRegistrationNumber(value: string | null | undefined): string | null {
+  const digits = normaliseDigits(value);
+  if (!digits) return null;
+  if (digits.length <= 4) {
+    return "*".repeat(digits.length);
+  }
+  // Show last 4 digits
+  return "*".repeat(digits.length - 4) + digits.slice(-4);
+}
+
 export type { EncryptedField };
