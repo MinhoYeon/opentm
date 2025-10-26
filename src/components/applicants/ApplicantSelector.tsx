@@ -110,7 +110,7 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
           </div>
         </div>
         <p className="text-sm text-slate-600">
-          저장된 출원인을 선택하거나 새로 등록할 수 있습니다. 즐겨찾기한 출원인이 상단에 노출됩니다.
+          저장된 출원인을 선택하거나 새로 등록할 수 있습니다.
         </p>
       </div>
 
@@ -158,7 +158,10 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
               <p className="text-sm font-medium text-slate-700">현재 선택된 출원인</p>
               <p className="text-sm text-slate-500">
                 {selectedId
-                  ? rawApplicants.find((item) => item.id === selectedId)?.name ?? "선택됨"
+                  ? (() => {
+                      const selected = rawApplicants.find((item) => item.id === selectedId);
+                      return selected?.nameKorean || selected?.name || "선택됨";
+                    })()
                   : "출원인을 선택해 주세요."}
               </p>
             </div>
@@ -168,7 +171,7 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
               disabled={!selectedId || isSubmitting}
               className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {isSubmitting ? "처리 중..." : selectedId ? "출원인 선택 완료" : "출원인 선택"}
+              {isSubmitting ? "처리 중..." : selectedId ? "출원인 선택" : "출원인 선택"}
             </button>
           </div>
         </div>

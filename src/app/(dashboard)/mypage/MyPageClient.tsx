@@ -20,6 +20,7 @@ type MyPageClientProps = {
   pagination: PaginationInfo;
   processSteps: string[];
   applicant: ApplicantSummary | null;
+  applicants: Array<{ id: string; name: string; email: string }>;
 };
 
 function createPageHref(page: number) {
@@ -37,6 +38,7 @@ export default function MyPageClient({
   pagination,
   processSteps,
   applicant,
+  applicants,
 }: MyPageClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,47 +101,42 @@ export default function MyPageClient({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-900">출원인 정보</h2>
-        {applicant ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <div className="flex gap-2">
-                <dt className="w-24 shrink-0 text-slate-500">이름</dt>
-                <dd className="text-slate-800">{applicant.name ?? "-"}</dd>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">출원인 정보</h2>
+          <Link
+            href="/mypage/applicants/new"
+            className="rounded-full border border-indigo-500 bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            새 출원인 등록
+          </Link>
+        </div>
+        {applicants.length > 0 ? (
+          <div className="space-y-2">
+            {applicants.map((app) => (
+              <div
+                key={app.id}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-900">{app.name}</p>
+                    <p className="text-sm text-slate-500">{app.email}</p>
+                  </div>
+                  <Link
+                    href={`/mypage/applicants/${app.id}`}
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    상세보기
+                  </Link>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <dt className="w-24 shrink-0 text-slate-500">이메일</dt>
-                <dd className="text-slate-800">{applicant.email ?? "-"}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-24 shrink-0 text-slate-500">전화</dt>
-                <dd className="text-slate-800">{applicant.phone ?? "-"}</dd>
-              </div>
-              <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-24 shrink-0 text-slate-500">주소</dt>
-                <dd className="text-slate-800">{applicant.address ?? "-"}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-24 shrink-0 text-slate-500">구분</dt>
-                <dd className="text-slate-800">{applicant.businessType ?? "-"}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-24 shrink-0 text-slate-500">사업자번호</dt>
-                <dd className="text-slate-800">{applicant.businessNo ?? "-"}</dd>
-              </div>
-            </dl>
+            ))}
           </div>
         ) : (
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-600">결제 완료 후 출원인 정보를 입력해 주세요.</p>
-            {latestRequestId ? (
-              <Link
-                href={`/mypage/requests/${latestRequestId}/applicant`}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-400 hover:text-indigo-600"
-              >
-                출원인 정보 입력
-              </Link>
-            ) : null}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-center text-sm text-slate-600">
+              등록된 출원인이 없습니다. &quot;새 출원인 등록&quot; 버튼을 눌러 출원인을 추가해 주세요.
+            </p>
           </div>
         )}
       </section>

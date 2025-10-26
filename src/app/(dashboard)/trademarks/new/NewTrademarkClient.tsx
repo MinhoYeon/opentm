@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { UploadedImage } from "./components/TrademarkImageUploader";
 import { TrademarkImageUploader } from "./components/TrademarkImageUploader";
 import { useCreateTrademarkRequest } from "./useCreateTrademarkRequest";
+import type { Applicant } from "@/components/applicants/useApplicantSelection";
 
 const TRADEMARK_TYPES = [
   { value: "word", label: "워드 상표" },
@@ -40,6 +41,7 @@ type FormState = {
   representativeEmail: string;
   additionalNotes: string;
   image: UploadedImage | null;
+  selectedApplicantIds: string[];
 };
 
 const initialFormState = (userEmail?: string | null): FormState => ({
@@ -49,6 +51,7 @@ const initialFormState = (userEmail?: string | null): FormState => ({
   representativeEmail: userEmail ?? "",
   additionalNotes: "",
   image: null,
+  selectedApplicantIds: [],
 });
 
 export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProps) {
@@ -56,7 +59,26 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
   const [form, setForm] = useState<FormState>(() => initialFormState(userEmail));
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [successLink, setSuccessLink] = useState<string | null>(null);
+  const [showApplicantModal, setShowApplicantModal] = useState(false);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
   const { isSubmitting, error, submit, reset } = useCreateTrademarkRequest();
+
+  // Fetch applicants when modal opens
+  useEffect(() => {
+    if (showApplicantModal && applicants.length === 0) {
+      setIsLoadingApplicants(true);
+      fetch("/api/applicants?limit=50")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.items) {
+            setApplicants(data.items);
+          }
+        })
+        .catch((err) => console.error("Failed to fetch applicants:", err))
+        .finally(() => setIsLoadingApplicants(false));
+    }
+  }, [showApplicantModal, applicants.length]);
 
   const isFormValid = useMemo(() => {
     return Boolean(form.brandName.trim() && form.trademarkType && form.representativeEmail.trim());
@@ -73,6 +95,22 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
       };
     });
   };
+
+  const toggleApplicant = (applicantId: string) => {
+    setForm((prev) => {
+      const exists = prev.selectedApplicantIds.includes(applicantId);
+      return {
+        ...prev,
+        selectedApplicantIds: exists
+          ? prev.selectedApplicantIds.filter((id) => id !== applicantId)
+          : [...prev.selectedApplicantIds, applicantId],
+      };
+    });
+  };
+
+  const selectedApplicants = useMemo(() => {
+    return applicants.filter((app) => form.selectedApplicantIds.includes(app.id));
+  }, [applicants, form.selectedApplicantIds]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -194,6 +232,54 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
       </section>
 
       <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">출원인 정보</h2>
+          <button
+            type="button"
+            onClick={() => setShowApplicantModal(true)}
+            className="rounded-full border border-indigo-500 bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+          >
+            출원인 선택
+          </button>
+        </div>
+        <p className="text-sm text-slate-600">
+          상표를 출원할 출원인을 선택해 주세요. 여러 명의 출원인을 선택할 수 있습니다.
+        </p>
+        {selectedApplicants.length > 0 ? (
+          <div className="space-y-2">
+            {selectedApplicants.map((app) => (
+              <div
+                key={app.id}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      {app.nameKorean || app.name || "-"}
+                    </p>
+                    <p className="text-sm text-slate-500">{app.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleApplicant(app.id)}
+                    className="text-sm text-rose-600 hover:underline"
+                  >
+                    제거
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-center text-sm text-slate-600">
+              선택된 출원인이 없습니다. &quot;출원인 선택&quot; 버튼을 눌러 출원인을 선택해 주세요.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">담당자 연락처</h2>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4">
@@ -253,6 +339,95 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
           입력 초기화
         </button>
       </div>
+
+      {/* Applicant Selection Modal */}
+      {showApplicantModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          onClick={() => setShowApplicantModal(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-slate-900">출원인 선택</h3>
+              <button
+                type="button"
+                onClick={() => setShowApplicantModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-slate-600">
+              출원인을 선택하거나{" "}
+              <a href="/mypage/applicants/new" className="text-indigo-600 hover:underline">
+                새 출원인을 등록
+              </a>
+              해 주세요.
+            </p>
+
+            {isLoadingApplicants ? (
+              <div className="flex items-center justify-center py-12">
+                <p className="text-slate-600">불러오는 중...</p>
+              </div>
+            ) : applicants.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-sm text-slate-600">
+                  등록된 출원인이 없습니다.{" "}
+                  <a href="/mypage/applicants/new" className="text-indigo-600 hover:underline">
+                    새 출원인을 등록
+                  </a>
+                  해 주세요.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {applicants.map((app) => {
+                  const isSelected = form.selectedApplicantIds.includes(app.id);
+                  return (
+                    <div
+                      key={app.id}
+                      className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                      onClick={() => toggleApplicant(app.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {app.nameKorean || app.name || "-"}
+                          </p>
+                          <p className="text-sm text-slate-500">{app.email}</p>
+                        </div>
+                        {isSelected && (
+                          <span className="rounded-full bg-indigo-600 px-2 py-1 text-xs font-medium text-white">
+                            선택됨
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowApplicantModal(false)}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
