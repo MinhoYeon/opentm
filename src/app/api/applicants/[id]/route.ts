@@ -8,11 +8,55 @@ import {
   handlePostgrestError,
   logAuditFailure,
   logAuditSuccess,
+  selectApplicant,
   toApplicantDto,
 } from "@/server/db/applicants";
 
 function ok(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, init);
+}
+
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createServerClient("mutable");
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    return ok({ error: userError.message }, { status: 500 });
+  }
+
+  if (!user) {
+    return ok({ error: "인증이 필요합니다." }, { status: 401 });
+  }
+
+  const applicantId = params.id;
+
+  try {
+    const applicant = await selectApplicant(supabase, user.id, applicantId);
+
+    if (!applicant) {
+      return ok({ error: "출원인을 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    logAuditSuccess({
+      userId: user.id,
+      operation: "applicant:get",
+      targetIds: [applicantId],
+    });
+
+    return ok(applicant);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "출원인을 조회하지 못했습니다.";
+    logAuditFailure({
+      userId: user.id,
+      operation: "applicant:get",
+      targetIds: [applicantId],
+      message,
+    });
+    return ok({ error: message }, { status: 500 });
+  }
 }
 
 type UpdateBody = {

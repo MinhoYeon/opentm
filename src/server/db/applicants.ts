@@ -1,4 +1,5 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 
 import { auditLogger } from "@/server/logger";
 
@@ -163,6 +164,11 @@ function normaliseEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function hashEmail(email: string): string {
+  const normalized = normaliseEmail(email);
+  return createHash('sha256').update(normalized).digest('hex');
+}
+
 function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -183,7 +189,7 @@ export function buildInsertPayload(userId: string, input: ApplicantPayload) {
   const businessRegistrationNumber = normaliseDigits(input.businessRegistrationNumber ?? undefined);
   const deliveryAddress = cleanString(input.deliveryAddress);
 
-  return {
+  const payload: Record<string, unknown> = {
     user_id: userId,
     display_name: cleanString(input.name),
     email: normaliseEmail(input.email),
@@ -215,6 +221,16 @@ export function buildInsertPayload(userId: string, input: ApplicantPayload) {
     delivery_address_masked: maskAddress(deliveryAddress),
     patent_customer_number: cleanString(input.patentCustomerNumber) || null,
   };
+
+  // Add email_hash if the column exists in the database
+  // This is for backward compatibility with older schema versions
+  try {
+    payload.email_hash = hashEmail(input.email);
+  } catch {
+    // If hashing fails, continue without email_hash
+  }
+
+  return payload;
 }
 
 export function buildUpdatePayload(input: Partial<ApplicantPayload> & { markAsUsed?: boolean }) {
@@ -224,6 +240,12 @@ export function buildUpdatePayload(input: Partial<ApplicantPayload> & { markAsUs
   }
   if (typeof input.email === "string") {
     updates.email = normaliseEmail(input.email);
+    // Update email_hash for backward compatibility
+    try {
+      updates.email_hash = hashEmail(input.email);
+    } catch {
+      // If hashing fails, continue without email_hash
+    }
   }
   if ("phone" in input) {
     const phone = normaliseDigits(input.phone ?? undefined);
