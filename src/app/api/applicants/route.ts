@@ -41,17 +41,45 @@ type CreateApplicantBody = {
   businessNumber?: unknown;
   isFavorite?: unknown;
   metadata?: unknown;
+  // New fields
+  applicantType?: unknown;
+  nameKorean?: unknown;
+  nameEnglish?: unknown;
+  nationality?: unknown;
+  residentRegistrationNumber?: unknown;
+  corporationRegistrationNumber?: unknown;
+  businessRegistrationNumber?: unknown;
+  mobilePhone?: unknown;
+  priorityNumber?: unknown;
+  deliveryPostalCode?: unknown;
+  deliveryAddress?: unknown;
+  patentCustomerNumber?: unknown;
 };
 
 function parseCreateBody(body: CreateApplicantBody) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const email = typeof body.email === "string" ? body.email.trim() : "";
-  if (!name) {
-    throw new Error("출원인 이름은 필수입니다.");
+  const applicantType = typeof body.applicantType === "string" ? body.applicantType : null;
+  const nameKorean = typeof body.nameKorean === "string" ? body.nameKorean.trim() : "";
+
+  // Validation based on applicant type
+  if (applicantType === "domestic_individual" || applicantType === "domestic_corporation") {
+    if (!nameKorean) {
+      throw new Error(applicantType === "domestic_individual" ? "성명은 필수입니다." : "명칭은 필수입니다.");
+    }
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new Error("유효한 이메일을 입력해 주세요.");
+    }
+  } else {
+    // Legacy validation for backward compatibility
+    if (!name) {
+      throw new Error("출원인 이름은 필수입니다.");
+    }
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new Error("유효한 이메일을 입력해 주세요.");
+    }
   }
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    throw new Error("유효한 이메일을 입력해 주세요.");
-  }
+
   const phone = typeof body.phone === "string" ? body.phone : null;
   if (phone && /[^0-9\s+\-.]/.test(phone)) {
     throw new Error("연락처는 숫자와 -, ., 공백만 사용할 수 있습니다.");
@@ -64,6 +92,22 @@ function parseCreateBody(body: CreateApplicantBody) {
   }
   const isFavorite = typeof body.isFavorite === "boolean" ? body.isFavorite : Boolean(body.isFavorite);
   const metadata = typeof body.metadata === "object" && body.metadata !== null ? (body.metadata as Record<string, unknown>) : {};
+
+  // New fields
+  const nameEnglish = typeof body.nameEnglish === "string" ? body.nameEnglish : null;
+  const nationality = typeof body.nationality === "string" ? body.nationality : null;
+  const residentRegistrationNumber = typeof body.residentRegistrationNumber === "string" ? body.residentRegistrationNumber : null;
+  const corporationRegistrationNumber = typeof body.corporationRegistrationNumber === "string" ? body.corporationRegistrationNumber : null;
+  const businessRegistrationNumber = typeof body.businessRegistrationNumber === "string" ? body.businessRegistrationNumber : null;
+  const mobilePhone = typeof body.mobilePhone === "string" ? body.mobilePhone : null;
+  if (mobilePhone && /[^0-9\s+\-.]/.test(mobilePhone)) {
+    throw new Error("휴대전화번호는 숫자와 -, ., 공백만 사용할 수 있습니다.");
+  }
+  const priorityNumber = typeof body.priorityNumber === "string" ? body.priorityNumber : null;
+  const deliveryPostalCode = typeof body.deliveryPostalCode === "string" ? body.deliveryPostalCode : null;
+  const deliveryAddress = typeof body.deliveryAddress === "string" ? body.deliveryAddress : null;
+  const patentCustomerNumber = typeof body.patentCustomerNumber === "string" ? body.patentCustomerNumber : null;
+
   return {
     name,
     email,
@@ -73,6 +117,18 @@ function parseCreateBody(body: CreateApplicantBody) {
     businessNumber,
     isFavorite,
     metadata,
+    applicantType: applicantType as "domestic_individual" | "domestic_corporation" | null,
+    nameKorean,
+    nameEnglish,
+    nationality,
+    residentRegistrationNumber,
+    corporationRegistrationNumber,
+    businessRegistrationNumber,
+    mobilePhone,
+    priorityNumber,
+    deliveryPostalCode,
+    deliveryAddress,
+    patentCustomerNumber,
   };
 }
 

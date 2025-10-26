@@ -8,6 +8,8 @@ import {
   maskAddress,
   maskBusinessNumber,
   maskPhone,
+  maskResidentRegistrationNumber,
+  maskCorporationRegistrationNumber,
   type EncryptedField,
 } from "./encryption";
 
@@ -28,6 +30,24 @@ export type ApplicantRow = {
   last_used_at: string | null;
   created_at: string;
   updated_at: string;
+  // New fields for applicant type distinction
+  applicant_type: string | null;
+  name_korean: string | null;
+  name_english: string | null;
+  nationality: string | null;
+  resident_registration_number_secret: EncryptedField | null;
+  resident_registration_number_masked: string | null;
+  corporation_registration_number_secret: EncryptedField | null;
+  corporation_registration_number_masked: string | null;
+  business_registration_number_secret: EncryptedField | null;
+  business_registration_number_masked: string | null;
+  mobile_phone_secret: EncryptedField | null;
+  mobile_phone_masked: string | null;
+  priority_number: string | null;
+  delivery_postal_code: string | null;
+  delivery_address_secret: EncryptedField | null;
+  delivery_address_masked: string | null;
+  patent_customer_number: string | null;
 };
 
 export type ApplicantPayload = {
@@ -39,6 +59,19 @@ export type ApplicantPayload = {
   businessNumber?: string | null;
   isFavorite?: boolean;
   metadata?: Record<string, unknown> | null;
+  // New fields
+  applicantType?: "domestic_individual" | "domestic_corporation" | null;
+  nameKorean?: string | null;
+  nameEnglish?: string | null;
+  nationality?: string | null;
+  residentRegistrationNumber?: string | null;
+  corporationRegistrationNumber?: string | null;
+  businessRegistrationNumber?: string | null;
+  mobilePhone?: string | null;
+  priorityNumber?: string | null;
+  deliveryPostalCode?: string | null;
+  deliveryAddress?: string | null;
+  patentCustomerNumber?: string | null;
 };
 
 export type ApplicantDTO = {
@@ -58,12 +91,36 @@ export type ApplicantDTO = {
   lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // New fields
+  applicantType: string | null;
+  nameKorean: string | null;
+  nameEnglish: string | null;
+  nationality: string | null;
+  residentRegistrationNumber: string | null;
+  residentRegistrationNumberMasked: string | null;
+  corporationRegistrationNumber: string | null;
+  corporationRegistrationNumberMasked: string | null;
+  businessRegistrationNumber: string | null;
+  businessRegistrationNumberMasked: string | null;
+  mobilePhone: string | null;
+  mobilePhoneMasked: string | null;
+  priorityNumber: string | null;
+  deliveryPostalCode: string | null;
+  deliveryAddress: string | null;
+  deliveryAddressMasked: string | null;
+  patentCustomerNumber: string | null;
 };
 
 export function toApplicantDto(row: ApplicantRow): ApplicantDTO {
   const phone = decryptField(row.phone_secret);
   const address = decryptField(row.address_secret);
   const businessNumber = decryptField(row.business_number_secret);
+  const residentRegistrationNumber = decryptField(row.resident_registration_number_secret);
+  const corporationRegistrationNumber = decryptField(row.corporation_registration_number_secret);
+  const businessRegistrationNumber = decryptField(row.business_registration_number_secret);
+  const mobilePhone = decryptField(row.mobile_phone_secret);
+  const deliveryAddress = decryptField(row.delivery_address_secret);
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -81,6 +138,24 @@ export function toApplicantDto(row: ApplicantRow): ApplicantDTO {
     lastUsedAt: row.last_used_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // New fields
+    applicantType: row.applicant_type,
+    nameKorean: row.name_korean,
+    nameEnglish: row.name_english,
+    nationality: row.nationality,
+    residentRegistrationNumber,
+    residentRegistrationNumberMasked: row.resident_registration_number_masked ?? maskResidentRegistrationNumber(residentRegistrationNumber),
+    corporationRegistrationNumber,
+    corporationRegistrationNumberMasked: row.corporation_registration_number_masked ?? maskCorporationRegistrationNumber(corporationRegistrationNumber),
+    businessRegistrationNumber,
+    businessRegistrationNumberMasked: row.business_registration_number_masked ?? maskBusinessNumber(businessRegistrationNumber),
+    mobilePhone,
+    mobilePhoneMasked: row.mobile_phone_masked ?? maskPhone(mobilePhone),
+    priorityNumber: row.priority_number,
+    deliveryPostalCode: row.delivery_postal_code,
+    deliveryAddress,
+    deliveryAddressMasked: row.delivery_address_masked ?? maskAddress(deliveryAddress),
+    patentCustomerNumber: row.patent_customer_number,
   };
 }
 
@@ -102,6 +177,11 @@ export function buildInsertPayload(userId: string, input: ApplicantPayload) {
   const phone = normaliseDigits(input.phone ?? undefined);
   const businessNumber = normaliseDigits(input.businessNumber ?? undefined);
   const address = cleanString(input.address);
+  const mobilePhone = normaliseDigits(input.mobilePhone ?? undefined);
+  const residentRegistrationNumber = normaliseDigits(input.residentRegistrationNumber ?? undefined);
+  const corporationRegistrationNumber = normaliseDigits(input.corporationRegistrationNumber ?? undefined);
+  const businessRegistrationNumber = normaliseDigits(input.businessRegistrationNumber ?? undefined);
+  const deliveryAddress = cleanString(input.deliveryAddress);
 
   return {
     user_id: userId,
@@ -116,6 +196,24 @@ export function buildInsertPayload(userId: string, input: ApplicantPayload) {
     business_number_masked: maskBusinessNumber(businessNumber),
     metadata: input.metadata ?? {},
     is_favorite: Boolean(input.isFavorite),
+    // New fields
+    applicant_type: input.applicantType || null,
+    name_korean: cleanString(input.nameKorean) || null,
+    name_english: cleanString(input.nameEnglish) || null,
+    nationality: cleanString(input.nationality) || null,
+    resident_registration_number_secret: encryptField(residentRegistrationNumber),
+    resident_registration_number_masked: maskResidentRegistrationNumber(residentRegistrationNumber),
+    corporation_registration_number_secret: encryptField(corporationRegistrationNumber),
+    corporation_registration_number_masked: maskCorporationRegistrationNumber(corporationRegistrationNumber),
+    business_registration_number_secret: encryptField(businessRegistrationNumber),
+    business_registration_number_masked: maskBusinessNumber(businessRegistrationNumber),
+    mobile_phone_secret: encryptField(mobilePhone),
+    mobile_phone_masked: maskPhone(mobilePhone),
+    priority_number: cleanString(input.priorityNumber) || null,
+    delivery_postal_code: cleanString(input.deliveryPostalCode) || null,
+    delivery_address_secret: encryptField(deliveryAddress || null),
+    delivery_address_masked: maskAddress(deliveryAddress),
+    patent_customer_number: cleanString(input.patentCustomerNumber) || null,
   };
 }
 
@@ -150,6 +248,53 @@ export function buildUpdatePayload(input: Partial<ApplicantPayload> & { markAsUs
   }
   if ("metadata" in input) {
     updates.metadata = input.metadata ?? {};
+  }
+  // New fields
+  if ("applicantType" in input) {
+    updates.applicant_type = input.applicantType || null;
+  }
+  if ("nameKorean" in input) {
+    updates.name_korean = cleanString(input.nameKorean) || null;
+  }
+  if ("nameEnglish" in input) {
+    updates.name_english = cleanString(input.nameEnglish) || null;
+  }
+  if ("nationality" in input) {
+    updates.nationality = cleanString(input.nationality) || null;
+  }
+  if ("residentRegistrationNumber" in input) {
+    const residentRegistrationNumber = normaliseDigits(input.residentRegistrationNumber ?? undefined);
+    updates.resident_registration_number_secret = encryptField(residentRegistrationNumber);
+    updates.resident_registration_number_masked = maskResidentRegistrationNumber(residentRegistrationNumber);
+  }
+  if ("corporationRegistrationNumber" in input) {
+    const corporationRegistrationNumber = normaliseDigits(input.corporationRegistrationNumber ?? undefined);
+    updates.corporation_registration_number_secret = encryptField(corporationRegistrationNumber);
+    updates.corporation_registration_number_masked = maskCorporationRegistrationNumber(corporationRegistrationNumber);
+  }
+  if ("businessRegistrationNumber" in input) {
+    const businessRegistrationNumber = normaliseDigits(input.businessRegistrationNumber ?? undefined);
+    updates.business_registration_number_secret = encryptField(businessRegistrationNumber);
+    updates.business_registration_number_masked = maskBusinessNumber(businessRegistrationNumber);
+  }
+  if ("mobilePhone" in input) {
+    const mobilePhone = normaliseDigits(input.mobilePhone ?? undefined);
+    updates.mobile_phone_secret = encryptField(mobilePhone);
+    updates.mobile_phone_masked = maskPhone(mobilePhone);
+  }
+  if ("priorityNumber" in input) {
+    updates.priority_number = cleanString(input.priorityNumber) || null;
+  }
+  if ("deliveryPostalCode" in input) {
+    updates.delivery_postal_code = cleanString(input.deliveryPostalCode) || null;
+  }
+  if ("deliveryAddress" in input) {
+    const deliveryAddress = cleanString(input.deliveryAddress);
+    updates.delivery_address_secret = encryptField(deliveryAddress || null);
+    updates.delivery_address_masked = maskAddress(deliveryAddress);
+  }
+  if ("patentCustomerNumber" in input) {
+    updates.patent_customer_number = cleanString(input.patentCustomerNumber) || null;
   }
   if (input.markAsUsed) {
     updates.last_used_at = new Date().toISOString();

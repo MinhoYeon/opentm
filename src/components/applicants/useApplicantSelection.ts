@@ -18,6 +18,24 @@ type ApplicantResponse = {
   createdAt: string;
   updatedAt: string;
   metadata: Record<string, unknown>;
+  // New fields
+  applicantType: string | null;
+  nameKorean: string | null;
+  nameEnglish: string | null;
+  nationality: string | null;
+  residentRegistrationNumber: string | null;
+  residentRegistrationNumberMasked: string | null;
+  corporationRegistrationNumber: string | null;
+  corporationRegistrationNumberMasked: string | null;
+  businessRegistrationNumber: string | null;
+  businessRegistrationNumberMasked: string | null;
+  mobilePhone: string | null;
+  mobilePhoneMasked: string | null;
+  priorityNumber: string | null;
+  deliveryPostalCode: string | null;
+  deliveryAddress: string | null;
+  deliveryAddressMasked: string | null;
+  patentCustomerNumber: string | null;
 };
 
 export type Applicant = ApplicantResponse;
@@ -31,6 +49,19 @@ export type ApplicantFormInput = {
   businessNumber?: string | null;
   isFavorite?: boolean;
   metadata?: Record<string, unknown>;
+  // New fields
+  applicantType?: "domestic_individual" | "domestic_corporation" | null;
+  nameKorean?: string | null;
+  nameEnglish?: string | null;
+  nationality?: string | null;
+  residentRegistrationNumber?: string | null;
+  corporationRegistrationNumber?: string | null;
+  businessRegistrationNumber?: string | null;
+  mobilePhone?: string | null;
+  priorityNumber?: string | null;
+  deliveryPostalCode?: string | null;
+  deliveryAddress?: string | null;
+  patentCustomerNumber?: string | null;
 };
 
 type ApiError = { error?: string };
