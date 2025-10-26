@@ -80,10 +80,10 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
         if (userError && userError.status !== 400) {
           console.error("Failed to refresh Supabase user", userError);
         }
-        setUser(userData?.user ?? nextSession.user ?? null);
+        setUser(userData?.user ?? null);
       } catch (error) {
         console.error("Failed to refresh Supabase user", error);
-        setUser(nextSession.user ?? null);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
