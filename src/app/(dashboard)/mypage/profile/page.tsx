@@ -10,6 +10,6 @@ export default async function ProfilePage() {
     redirect(`/login?redirect=${encodeURIComponent("/mypage/profile")}`);
   }
 
-  return <ProfileClient email={data.user.email ?? null} />;
+  return <ProfileClient />;
 }
 

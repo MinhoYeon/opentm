@@ -7,13 +7,9 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabaseBrowserClient";
 import { deleteAccount } from "./actions";
 
-export default function ProfileClient({ email }: { email: string | null }) {
+export default function ProfileClient() {
   const supabase = useMemo(() => createBrowserClient(), []);
   const router = useRouter();
-
-  const [emailValue, setEmailValue] = useState(email ?? "");
-  const [emailMsg, setEmailMsg] = useState<string | null>(null);
-  const [emailBusy, setEmailBusy] = useState(false);
 
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
@@ -22,21 +18,6 @@ export default function ProfileClient({ email }: { email: string | null }) {
 
   const [dangerBusy, setDangerBusy] = useState(false);
   const [dangerMsg, setDangerMsg] = useState<string | null>(null);
-
-  async function onUpdateEmail(e: React.FormEvent) {
-    e.preventDefault();
-    setEmailMsg(null);
-    setEmailBusy(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ email: emailValue.trim() });
-      if (error) throw error;
-      setEmailMsg("이메일 변경 요청이 접수되었습니다. 확인 메일을 확인해 주세요.");
-    } catch (err) {
-      setEmailMsg(err instanceof Error ? err.message : "이메일 변경 중 오류가 발생했습니다.");
-    } finally {
-      setEmailBusy(false);
-    }
-  }
 
   async function onUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
@@ -88,30 +69,8 @@ export default function ProfileClient({ email }: { email: string | null }) {
       <header className="space-y-2">
         <p className="text-sm font-medium text-indigo-500">마이페이지</p>
         <h1 className="text-3xl font-semibold text-slate-900">회원 정보 수정</h1>
-        <p className="text-sm text-slate-600">이메일과 비밀번호를 변경하고, 필요시 회원 탈퇴가 가능합니다.</p>
+        <p className="text-sm text-slate-600">비밀번호를 변경하고, 필요시 회원 탈퇴가 가능합니다.</p>
       </header>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">이메일 변경</h2>
-        <form onSubmit={onUpdateEmail} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            type="email"
-            required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-            value={emailValue}
-            onChange={(e) => setEmailValue(e.target.value)}
-            placeholder="example@email.com"
-          />
-          <button
-            type="submit"
-            disabled={emailBusy}
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {emailBusy ? "변경 중..." : "이메일 변경"}
-          </button>
-        </form>
-        {emailMsg ? <p className="mt-2 text-sm text-slate-600">{emailMsg}</p> : null}
-      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">비밀번호 변경</h2>
