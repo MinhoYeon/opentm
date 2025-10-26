@@ -15,14 +15,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    console.log("[LoginPage] Auth state changed:", { isLoading, isAuthenticated });
-    if (!isLoading && isAuthenticated) {
-      // If the user is already authenticated, skip the login form and go to the destination page.
-      console.log("[LoginPage] Redirecting to:", redirectPath);
-      router.replace(redirectPath);
-    }
-  }, [isAuthenticated, isLoading, redirectPath, router]);
+  // Note: We intentionally don't auto-redirect on isAuthenticated to prevent
+  // redirect loops. The redirect only happens after successful login in handleSubmit.
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,13 +38,13 @@ export default function LoginPage() {
       });
       console.log("[LoginPage] Login completed successfully");
 
-      // Refresh server components to ensure they have the latest session cookies
-      router.refresh();
+      // After successful login, redirect to the destination page
+      // The login function has already synced the session with the server
+      console.log("[LoginPage] Redirecting to:", redirectPath);
+      router.replace(redirectPath);
 
-      // The useEffect hook will handle the redirect once isAuthenticated is updated
-      // Note: We intentionally keep isSubmitting true here to prevent double submission
-      // It will be reset if the redirect doesn't happen
-      console.log("[LoginPage] Waiting for redirect...");
+      // Note: Keep isSubmitting true to prevent double submission
+      // The page will navigate away momentarily
     } catch (authError) {
       console.error("[LoginPage] Login error:", authError);
       const message =
