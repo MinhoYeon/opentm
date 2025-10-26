@@ -23,7 +23,7 @@ function parseAttachBody(body: AttachBody) {
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const {
     data: { user },
     error: userError,

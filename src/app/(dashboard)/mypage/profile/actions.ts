@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabaseAdminClient";
 
 export async function deleteAccount(): Promise<{ ok: true } | { ok: false; message: string }> {
   try {
-    const supabase = createServerClient();
+    const supabase = createServerClient("mutable");
     const { data } = await supabase.auth.getUser();
     const userId = data.user?.id;
     if (!userId) {

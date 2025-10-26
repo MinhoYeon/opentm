@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Session } from "@supabase/supabase-js";
 
-import {
-  createServerClient,
-  getSupabaseAuthCookieNames,
-} from "@/lib/supabaseServerClient";
+import { getSupabaseAuthCookieNames } from "@/lib/supabaseServerClient";
 
 function encodeSessionCookie(session: Session) {
   const payload = {
@@ -73,7 +70,7 @@ export async function POST(request: Request) {
   let payload: AuthWebhookPayload;
   try {
     payload = (await request.json()) as AuthWebhookPayload;
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ ok: false, error: "잘못된 JSON 본문입니다." }, { status: 400 });
   }
 
@@ -81,17 +78,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "event 값이 필요합니다." }, { status: 400 });
   }
 
-  const supabase = createServerClient();
-
   switch (payload.event) {
     case "SIGNED_IN":
     case "TOKEN_REFRESHED": {
       if (!payload.session) {
         return NextResponse.json({ ok: false, error: "세션 정보가 필요합니다." }, { status: 400 });
-      }
-      const { error } = await supabase.auth.setSession(payload.session);
-      if (error) {
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
       }
       const response = NextResponse.json(
         { ok: true, session: { user: payload.session.user } },
@@ -101,10 +92,6 @@ export async function POST(request: Request) {
       return response;
     }
     case "SIGNED_OUT": {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-      }
       const response = NextResponse.json({ ok: true }, { status: 200 });
       clearSessionCookies(response);
       return response;

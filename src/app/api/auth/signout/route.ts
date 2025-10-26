@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient, getSupabaseAuthCookieNames } from "@/lib/supabaseServerClient";
 
 export async function POST() {
-  const supabase = createServerClient();
+  const supabase = createServerClient("mutable");
   const { error } = await supabase.auth.signOut();
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
