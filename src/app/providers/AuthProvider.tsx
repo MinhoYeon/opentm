@@ -96,11 +96,14 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      console.log("[AuthProvider] Auth state change:", event, "Session:", !!nextSession);
       setSession(nextSession);
 
       try {
         await syncSessionWithServer(event, nextSession);
+        console.log("[AuthProvider] Session synced for event:", event);
       } catch (error) {
+        console.error("[AuthProvider] Failed to sync session for event:", event, error);
         if (event === "SIGNED_OUT") {
           try {
             await fetch("/api/auth/signout", {
@@ -115,6 +118,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       }
 
       if (event === "SIGNED_OUT" || !nextSession) {
+        console.log("[AuthProvider] Clearing user state");
         setUser(null);
         setIsLoading(false);
         return;
@@ -123,13 +127,15 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       try {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError && userError.status !== 400) {
-          console.error("Failed to refresh Supabase user", userError);
+          console.error("[AuthProvider] Failed to refresh Supabase user", userError);
         }
+        console.log("[AuthProvider] User refreshed:", !!userData?.user);
         setUser(userData?.user ?? null);
       } catch (error) {
-        console.error("Failed to refresh Supabase user", error);
+        console.error("[AuthProvider] Failed to refresh Supabase user", error);
         setUser(null);
       } finally {
+        console.log("[AuthProvider] Setting isLoading to false");
         setIsLoading(false);
       }
     });
@@ -142,6 +148,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
   const login = useCallback(
     async ({ email, password }: LoginCredentials) => {
+      console.log("[AuthProvider] Starting login...");
       // Attempt to authenticate the user with the provided credentials using Supabase.
       const response = await supabase.auth.signInWithPassword({
         email,
@@ -149,23 +156,27 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       });
 
       if (response.error) {
+        console.error("[AuthProvider] Login failed:", response.error);
         // Propagate the error so that the caller can handle the failure state.
         throw response.error;
       }
 
-      if (response.data.session) {
+      console.log("[AuthProvider] Login successful, session received");
+
+      if (response.data.session && response.data.user) {
         // Persist the new session and user to local state when authentication succeeds.
+        // Use the user from the response directly instead of calling getUser again
         setSession(response.data.session);
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          setUser(userData.user ?? null);
-        } catch {}
+        setUser(response.data.user);
+        console.log("[AuthProvider] Session and user state updated");
 
         try {
           // Inform the server about the new session so HTTP-only cookies stay in sync.
           await syncSessionWithServer("SIGNED_IN", response.data.session);
+          console.log("[AuthProvider] Session synced with server");
         } catch (error) {
-          console.error("Failed to sync session after login", error);
+          console.error("[AuthProvider] Failed to sync session after login", error);
+          // Don't throw here - auth state is already set, cookie sync is secondary
         }
       }
 
