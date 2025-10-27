@@ -63,106 +63,20 @@ export function ApplicantCard({
       }`}
       onClick={onSelect}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-4">
-          {/* 첫번째 행: 성명/명칭 (큰 bold) | 특허고객번호 */}
-          <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-slate-900">
-                {applicant.nameKorean || applicant.name || "-"}
-              </h3>
-              {selected && (
-                <span className="rounded-full bg-indigo-600 px-2 py-1 text-xs font-medium text-white">
-                  선택됨
-                </span>
-              )}
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-slate-600">특허고객번호: </span>
-              <span className="text-slate-900">
-                {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
+      <div className="space-y-4">
+        {/* 첫번째 행: 성명/명칭 (큰 bold) | 편집/삭제 버튼 */}
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold text-slate-900">
+              {applicant.nameKorean || applicant.name || "-"}
+            </h3>
+            {selected && (
+              <span className="rounded-full bg-indigo-600 px-2 py-1 text-xs font-medium text-white">
+                선택됨
               </span>
-            </div>
+            )}
           </div>
-
-          {/* 두번째 행: 2컬럼 그리드 */}
-          <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-            {/* 왼쪽 컬럼 */}
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">출원인 구분</span>
-                <span className="text-slate-900">{getApplicantTypeLabel()}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(국문)</span>
-                <span className="text-slate-900">{applicant.nameKorean || "-"}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(영문)</span>
-                <span className="text-slate-900">{applicant.nameEnglish || "-"}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">국적</span>
-                <span className="text-slate-900">{applicant.nationality || "-"}</span>
-              </div>
-            </div>
-
-            {/* 오른쪽 컬럼 */}
-            <div className="space-y-2">
-              {isIndividual && (
-                <div className="flex gap-2">
-                  <span className="w-28 shrink-0 font-medium text-slate-600">주민등록번호</span>
-                  <span className="text-slate-900">{applicant.residentRegistrationNumberMasked || "-"}</span>
-                </div>
-              )}
-              {isCorporation && (
-                <>
-                  <div className="flex gap-2">
-                    <span className="w-28 shrink-0 font-medium text-slate-600">법인등록번호</span>
-                    <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked || "-"}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="w-28 shrink-0 font-medium text-slate-600">사업자등록번호</span>
-                    <span className="text-slate-900">{applicant.businessRegistrationNumberMasked || "-"}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">전화번호</span>
-                <span className="text-slate-900">{applicant.phoneMasked || "-"}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">휴대폰번호</span>
-                <span className="text-slate-900">{applicant.mobilePhoneMasked || "-"}</span>
-              </div>
-              <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">이메일</span>
-                <span className="text-slate-900">{applicant.email || "-"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 세번째 행: 수직 레이아웃 */}
-          <div className="space-y-2 pt-3 border-t border-slate-200 text-sm">
-            <div className="flex gap-2">
-              <span className="w-36 shrink-0 font-medium text-slate-600">주소(주민등록상)</span>
-              <span className="text-slate-900">{applicant.addressMasked || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(송달장소)</span>
-              <span className="text-slate-900">{applicant.deliveryPostalCode || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-36 shrink-0 font-medium text-slate-600">주소(송달장소)</span>
-              <span className="text-slate-900">{applicant.deliveryAddressMasked || "-"}</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-400 pt-2">{formatLastUsed(applicant.lastUsedAt)}</p>
-        </div>
-
-        <div className="flex flex-col items-end gap-2" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={onEdit}
@@ -181,6 +95,91 @@ export function ApplicantCard({
             </button>
           </div>
         </div>
+
+        {/* 두번째 행: 2컬럼 그리드 */}
+        <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+          {/* 왼쪽 컬럼 */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">출원인 구분</span>
+              <span className="text-slate-900">{getApplicantTypeLabel()}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(국문)</span>
+              <span className="text-slate-900">{applicant.nameKorean || "-"}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(영문)</span>
+              <span className="text-slate-900">{applicant.nameEnglish || "-"}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">국적</span>
+              <span className="text-slate-900">{applicant.nationality || "-"}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">특허고객번호</span>
+              <span className="text-slate-900">
+                {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
+              </span>
+            </div>
+          </div>
+
+          {/* 오른쪽 컬럼 */}
+          <div className="space-y-2">
+            {isIndividual && (
+              <div className="flex gap-2">
+                <span className="w-28 shrink-0 font-medium text-slate-600">주민등록번호</span>
+                <span className="text-slate-900">{applicant.residentRegistrationNumberMasked || "-"}</span>
+              </div>
+            )}
+            {isCorporation && (
+              <>
+                <div className="flex gap-2">
+                  <span className="w-28 shrink-0 font-medium text-slate-600">법인등록번호</span>
+                  <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked || "-"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-28 shrink-0 font-medium text-slate-600">사업자등록번호</span>
+                  <span className="text-slate-900">{applicant.businessRegistrationNumberMasked || "-"}</span>
+                </div>
+              </>
+            )}
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">전화번호</span>
+              <span className="text-slate-900">{applicant.phoneMasked || "-"}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">휴대폰번호</span>
+              <span className="text-slate-900">{applicant.mobilePhoneMasked || "-"}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 font-medium text-slate-600">이메일</span>
+              <span className="text-slate-900">{applicant.email || "-"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 세번째 행: 수직 레이아웃 */}
+        <div className="space-y-2 pt-3 border-t border-slate-200 text-sm">
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(주민등록상)</span>
+            <span className="text-slate-900">{applicant.postalCode || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">주소(주민등록상)</span>
+            <span className="text-slate-900">{applicant.addressMasked || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(송달장소)</span>
+            <span className="text-slate-900">{applicant.deliveryPostalCode || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">주소(송달장소)</span>
+            <span className="text-slate-900">{applicant.deliveryAddressMasked || "-"}</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-400 pt-2">{formatLastUsed(applicant.lastUsedAt)}</p>
       </div>
     </div>
   );
