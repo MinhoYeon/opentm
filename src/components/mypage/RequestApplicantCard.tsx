@@ -21,12 +21,12 @@ type ApplicantInfo = {
   patentCustomerNumber?: string;
 };
 
-type ApplicantCardProps = {
+type RequestApplicantCardProps = {
   applicant: ApplicantInfo;
   index: number;
 };
 
-export function ApplicantCard({ applicant, index }: ApplicantCardProps) {
+export function RequestApplicantCard({ applicant, index }: RequestApplicantCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isIndividual = applicant.applicantType === "domestic_individual";
