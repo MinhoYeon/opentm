@@ -4,6 +4,42 @@
 
 이 문서는 OpenTM 시스템에서 관리자 계정을 설정하는 방법을 설명합니다.
 
+---
+
+## ⚠️ 전제조건: admin_sessions 테이블 생성
+
+**관리자 계정을 사용하기 전에 먼저 `admin_sessions` 테이블을 생성해야 합니다.**
+
+### 에러 증상
+
+`/admin/trademarks` 접속 시 다음 에러가 발생하면 테이블이 없는 것입니다:
+```
+Could not find the table 'public.admin_sessions' in the schema cache
+```
+
+### 해결 방법
+
+1. **Supabase Dashboard 접속**
+   - 프로젝트: `https://hrnxmpbtytapeozdioyb.supabase.co`
+
+2. **SQL Editor로 이동**
+   - 좌측 메뉴에서 `SQL Editor` 클릭
+
+3. **SQL 스크립트 실행**
+   - `scripts/create-admin-sessions-table.sql` 파일의 내용을 복사
+   - SQL Editor에 붙여넣기
+   - "Run" 버튼 클릭
+
+4. **결과 확인**
+   ```sql
+   SELECT * FROM public.admin_sessions;
+   ```
+   - 에러 없이 빈 결과가 나오면 성공
+
+이제 관리자 계정을 설정할 수 있습니다.
+
+---
+
 ## 방법 1: SQL Editor 사용 (가장 빠름)
 
 ### 단계
