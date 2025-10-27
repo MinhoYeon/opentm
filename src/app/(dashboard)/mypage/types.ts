@@ -20,6 +20,7 @@ export type TrademarkRequest = {
   referenceCode?: string | null;
   transitions: StatusTransition[];
   applicantName?: string | null;
+  imageUrl?: string | null;
 };
 
 export type PaginationInfo = {
