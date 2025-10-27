@@ -142,6 +142,12 @@ export function normalizeTrademarkRequest(record: Record<string, unknown>): Trad
         : typeof record.applicantName === "string"
           ? (record.applicantName as string)
           : null,
+    imageUrl:
+      typeof record.image_url === "string"
+        ? record.image_url
+        : typeof record.imageUrl === "string"
+          ? (record.imageUrl as string)
+          : null,
   };
 }
 

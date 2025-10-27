@@ -99,53 +99,63 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
   };
 
   return (
-    <article className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="space-y-4">
-        <header className="flex items-start justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
-          <Link
-            href={`/mypage/requests/${request.id}`}
-            className="inline-flex items-center text-sm font-medium text-indigo-600 transition hover:text-indigo-500"
-          >
-            상세 보기 →
-          </Link>
-        </header>
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <Link
+        href={`/mypage/requests/${request.id}`}
+        className="flex gap-6"
+      >
+        {/* 좌측 컬럼 (80%) */}
+        <div className="flex-[8] space-y-4">
+          <div className="flex items-start justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
+            <span className="inline-flex items-center text-sm font-medium text-indigo-600 transition hover:text-indigo-500">
+              상세 보기 →
+            </span>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${status.badgeClass}`}>
-            <span className={`h-2.5 w-2.5 rounded-full ${status.dotClass}`} aria-hidden />
-            {status.label}
-          </span>
-          <span className="text-slate-500">업데이트 {formatDateTime(request.lastUpdated ?? request.submittedAt)}</span>
+          <dl className="grid gap-3 text-sm text-slate-600">
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
+              <dd className="text-slate-800">{request.referenceCode ?? "-"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 text-slate-500">상표명</dt>
+              <dd className="text-slate-800">{request.brandName}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 text-slate-500">상품류</dt>
+              <dd className="text-slate-800">{request.classes.length ? request.classes.join(", ") : "-"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 text-slate-500">출원인</dt>
+              <dd className="text-slate-800">{request.applicantName ?? "미선택"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-24 shrink-0 text-slate-500">현재 상태</dt>
+              <dd className="text-slate-800">
+                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${status.badgeClass}`}>
+                  <span className={`h-2.5 w-2.5 rounded-full ${status.dotClass}`} aria-hidden />
+                  {status.label}
+                </span>
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        <div>
-          <p className="text-sm text-slate-600">{status.description}</p>
+        {/* 우측 컬럼 (20%) */}
+        <div className="flex-[2]">
+          {request.imageUrl ? (
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={request.imageUrl} alt="상표 이미지" className="w-full h-auto object-contain" />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+              이미지 없음
+            </div>
+          )}
         </div>
-
-        <dl className="grid gap-3 text-sm text-slate-600">
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">요청일</dt>
-            <dd className="text-slate-800">{formatDateTime(request.submittedAt)}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">상품류</dt>
-            <dd className="text-slate-800">{request.classes.length ? request.classes.join(", ") : "-"}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">출원인</dt>
-            <dd className="text-slate-800">{request.applicantName ?? "미선택"}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
-            <dd className="text-slate-800">{request.referenceCode ?? "-"}</dd>
-          </div>
-        </dl>
-
-        {request.statusDescription && request.statusDescription !== status.description ? (
-          <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{request.statusDescription}</p>
-        ) : null}
-      </div>
+      </Link>
 
       <footer className="mt-6 flex flex-col gap-2">
         {actions.map((action) => {
