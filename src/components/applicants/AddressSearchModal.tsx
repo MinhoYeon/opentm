@@ -81,7 +81,7 @@ export function AddressSearchModal({ open, onClose, onSelect }: AddressSearchMod
     const top = window.screenY + (window.outerHeight - popupHeight) / 2;
 
     const popup = window.open(
-      "/address-search",
+      "/address-search.html",
       "addressSearchPopup",
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`
     );
