@@ -25,10 +25,10 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
     applicants,
     rawApplicants,
     selectedId,
+    setSelectedId,
     createApplicant,
     updateApplicant,
     deleteApplicant,
-    toggleFavorite,
     attachApplicant,
     refresh,
     search,
@@ -50,11 +50,17 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
   async function handleSelect(applicantId: string) {
     setError(null);
     setSuccessMessage(null);
+
+    // Optimistic update - 즉시 선택 상태 반영
+    setSelectedId(applicantId);
+
     try {
       await attachApplicant(applicantId);
       setPanel({ type: "list" });
       setSuccessMessage("출원인을 연결했습니다.");
     } catch (err) {
+      // 실패하면 선택 해제
+      setSelectedId(null);
       setError(err instanceof Error ? err.message : "출원인 연결에 실패했습니다.");
     }
   }
@@ -144,9 +150,6 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
                   onEdit={() => setPanel({ type: "edit", applicantId: applicant.id })}
                   onDelete={() => {
                     handleDelete(applicant.id).catch(() => undefined);
-                  }}
-                  onToggleFavorite={() => {
-                    toggleFavorite(applicant.id).catch(() => undefined);
                   }}
                   disabled={isSubmitting}
                 />
