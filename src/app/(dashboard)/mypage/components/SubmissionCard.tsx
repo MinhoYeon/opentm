@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-import { StatusTimeline } from "@/components/mypage/StatusTimeline";
 import { getStatusMetadata } from "@/lib/status";
 
 import type { TrademarkRequest } from "../types";
@@ -102,14 +101,8 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
   return (
     <article className="flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="space-y-4">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-            <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${status.badgeClass}`}>
-              <span className={`h-2.5 w-2.5 rounded-full ${status.dotClass}`} aria-hidden />
-              {status.label}
-            </span>
-            <span className="text-slate-500">업데이트 {formatDateTime(request.lastUpdated ?? request.submittedAt)}</span>
-          </div>
+        <header className="flex items-start justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
           <Link
             href={`/mypage/requests/${request.id}`}
             className="inline-flex items-center text-sm font-medium text-indigo-600 transition hover:text-indigo-500"
@@ -118,22 +111,25 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
           </Link>
         </header>
 
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${status.badgeClass}`}>
+            <span className={`h-2.5 w-2.5 rounded-full ${status.dotClass}`} aria-hidden />
+            {status.label}
+          </span>
+          <span className="text-slate-500">업데이트 {formatDateTime(request.lastUpdated ?? request.submittedAt)}</span>
+        </div>
+
+        <div>
           <p className="text-sm text-slate-600">{status.description}</p>
         </div>
 
-        <dl className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+        <dl className="grid gap-3 text-sm text-slate-600">
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">출원일</dt>
+            <dt className="w-24 shrink-0 text-slate-500">요청일</dt>
             <dd className="text-slate-800">{formatDateTime(request.submittedAt)}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
-            <dd className="text-slate-800">{request.referenceCode ?? "-"}</dd>
-          </div>
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">출원 클래스</dt>
+            <dt className="w-24 shrink-0 text-slate-500">상품류</dt>
             <dd className="text-slate-800">{request.classes.length ? request.classes.join(", ") : "-"}</dd>
           </div>
           <div className="flex gap-2">
@@ -141,28 +137,14 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
             <dd className="text-slate-800">{request.applicantName ?? "미선택"}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-slate-500">담당 변리사</dt>
-            <dd className="text-slate-800">{request.representative ?? "-"}</dd>
+            <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
+            <dd className="text-slate-800">{request.referenceCode ?? "-"}</dd>
           </div>
         </dl>
 
         {request.statusDescription && request.statusDescription !== status.description ? (
           <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{request.statusDescription}</p>
         ) : null}
-
-        <div className="rounded-xl bg-slate-50 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-slate-700">최근 상태 이력</h4>
-            <span className="text-xs font-medium text-slate-500">
-              {request.transitions.length ? `${request.transitions.length}건` : "기록 없음"}
-            </span>
-          </div>
-          <StatusTimeline
-            status={request.status}
-            statusLogs={request.transitions}
-            className="mt-4"
-          />
-        </div>
       </div>
 
       <footer className="mt-6 flex flex-col gap-2">
