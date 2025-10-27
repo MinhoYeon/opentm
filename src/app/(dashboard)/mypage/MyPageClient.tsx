@@ -116,7 +116,7 @@ export default function MyPageClient({
               <Link
                 key={app.id}
                 href={`/mypage/applicants/${app.id}`}
-                className="group rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-400"
+                className="text-center group rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-400"
               >
                 <p className="font-medium text-slate-900 transition group-hover:text-indigo-600">
                   {app.name}
