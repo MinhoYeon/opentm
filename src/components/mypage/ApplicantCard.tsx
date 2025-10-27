@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type ApplicantInfo = {
   nameKorean: string;
@@ -49,13 +50,9 @@ export function ApplicantCard({ applicant, index }: ApplicantCardProps) {
               {isExpanded ? "접기" : "자세히 보기"}
             </span>
             {isExpanded ? (
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
+              <ChevronUp className="w-5 h-5 text-slate-600" />
             ) : (
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className="w-5 h-5 text-slate-600" />
             )}
           </div>
         </button>
