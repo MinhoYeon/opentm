@@ -100,16 +100,24 @@ export default async function MyPage({ searchParams }: PageProps) {
 
   const submissions: TrademarkRequest[] = (rows ?? []).map((item) => {
     const row = item as Record<string, unknown>;
-    // Extract applicant name from joined data
+    // Extract all applicant names from joined data
     let applicantName: string | null = null;
     if (Array.isArray(row.trademark_request_applicants) && row.trademark_request_applicants.length > 0) {
-      const firstApplicant = row.trademark_request_applicants[0] as Record<string, unknown>;
-      if (firstApplicant && typeof firstApplicant.applicants === "object" && firstApplicant.applicants !== null) {
-        const applicantData = firstApplicant.applicants as Record<string, unknown>;
-        applicantName =
-          (typeof applicantData.name_korean === "string" ? applicantData.name_korean : null) ||
-          (typeof applicantData.display_name === "string" ? applicantData.display_name : null);
-      }
+      const applicantNames = row.trademark_request_applicants
+        .map((applicantItem) => {
+          const applicantRecord = applicantItem as Record<string, unknown>;
+          if (applicantRecord && typeof applicantRecord.applicants === "object" && applicantRecord.applicants !== null) {
+            const applicantData = applicantRecord.applicants as Record<string, unknown>;
+            return (
+              (typeof applicantData.name_korean === "string" ? applicantData.name_korean : null) ||
+              (typeof applicantData.display_name === "string" ? applicantData.display_name : null)
+            );
+          }
+          return null;
+        })
+        .filter((name): name is string => name !== null);
+
+      applicantName = applicantNames.length > 0 ? applicantNames.join(", ") : null;
     }
 
     return normalizeTrademarkRequest({ ...row, applicant_name: applicantName });

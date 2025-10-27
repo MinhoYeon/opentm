@@ -109,16 +109,16 @@ function parseApplicant(payload: ApplicantResponse): Applicant {
 type UseApplicantSelectionOptions = {
   requestId: string;
   initialApplicants: Applicant[];
-  initialSelectedId?: string | null;
+  initialSelectedIds?: string[];
 };
 
 export function useApplicantSelection({
   requestId,
   initialApplicants,
-  initialSelectedId,
+  initialSelectedIds,
 }: UseApplicantSelectionOptions) {
   const [applicants, setApplicants] = useState<Applicant[]>(initialApplicants);
-  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds ?? []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,20 +138,28 @@ export function useApplicantSelection({
     }
   }, []);
 
-  const attachApplicant = useCallback(
-    async (applicantId: string) => {
+  const toggleApplicant = useCallback((applicantId: string) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(applicantId)) {
+        return prev.filter((id) => id !== applicantId);
+      }
+      return [...prev, applicantId];
+    });
+  }, []);
+
+  const attachApplicants = useCallback(
+    async (applicantIds: string[]) => {
       setIsSubmitting(true);
       setError(null);
       try {
-        await requestJson(`/api/applicants/${applicantId}/attach`, {
+        await requestJson(`/api/trademark-requests/${requestId}/applicants`, {
           method: "POST",
-          body: JSON.stringify({ requestId }),
+          body: JSON.stringify({ applicantIds }),
         });
-        setSelectedId(applicantId);
         const now = new Date().toISOString();
         setApplicants((prev) =>
           prev.map((item) =>
-            item.id === applicantId ? { ...item, lastUsedAt: now } : item
+            applicantIds.includes(item.id) ? { ...item, lastUsedAt: now } : item
           )
         );
       } catch (err) {
@@ -175,7 +183,8 @@ export function useApplicantSelection({
         });
         const applicant = parseApplicant(created);
         setApplicants((prev) => [applicant, ...prev.filter((item) => item.id !== applicant.id)]);
-        await attachApplicant(applicant.id);
+        // Automatically select the newly created applicant
+        toggleApplicant(applicant.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "출원인을 생성하지 못했습니다.");
         throw err;
@@ -183,7 +192,7 @@ export function useApplicantSelection({
         setIsSubmitting(false);
       }
     },
-    [attachApplicant]
+    [toggleApplicant]
   );
 
   const updateApplicant = useCallback(
@@ -216,8 +225,8 @@ export function useApplicantSelection({
       try {
         await requestJson(`/api/applicants/${applicantId}`, { method: "DELETE" });
         setApplicants((prev) => prev.filter((item) => item.id !== applicantId));
-        if (selectedId === applicantId) {
-          setSelectedId(null);
+        if (selectedIds.includes(applicantId)) {
+          setSelectedIds((prev) => prev.filter((id) => id !== applicantId));
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "출원인을 삭제하지 못했습니다.");
@@ -226,7 +235,7 @@ export function useApplicantSelection({
         setIsSubmitting(false);
       }
     },
-    [selectedId]
+    [selectedIds]
   );
 
   const toggleFavorite = useCallback(
@@ -270,13 +279,14 @@ export function useApplicantSelection({
   return {
     applicants: filtered,
     rawApplicants: applicants,
-    selectedId,
-    setSelectedId,
+    selectedIds,
+    setSelectedIds,
+    toggleApplicant,
     createApplicant,
     updateApplicant,
     deleteApplicant,
     toggleFavorite,
-    attachApplicant,
+    attachApplicants,
     refresh,
     search,
     setSearch,

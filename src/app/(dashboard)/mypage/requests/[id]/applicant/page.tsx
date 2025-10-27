@@ -22,6 +22,19 @@ type ApplicantSelectionItem = {
   lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // New fields
+  applicantType: string | null;
+  nameKorean: string | null;
+  nameEnglish: string | null;
+  nationality: string | null;
+  residentRegistrationNumberMasked: string | null;
+  corporationRegistrationNumberMasked: string | null;
+  businessRegistrationNumberMasked: string | null;
+  mobilePhoneMasked: string | null;
+  postalCode: string | null;
+  deliveryPostalCode: string | null;
+  deliveryAddressMasked: string | null;
+  patentCustomerNumber: string | null;
 };
 
 function isPromise<T>(value: unknown): value is Promise<T> {
@@ -70,16 +83,27 @@ export default async function ApplicantPage({ params }: { params: Promise<Applic
     lastUsedAt: item.lastUsedAt,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
+    applicantType: item.applicantType,
+    nameKorean: item.nameKorean,
+    nameEnglish: item.nameEnglish,
+    nationality: item.nationality,
+    residentRegistrationNumberMasked: item.residentRegistrationNumberMasked,
+    corporationRegistrationNumberMasked: item.corporationRegistrationNumberMasked,
+    businessRegistrationNumberMasked: item.businessRegistrationNumberMasked,
+    mobilePhoneMasked: item.mobilePhoneMasked,
+    postalCode: item.postalCode,
+    deliveryPostalCode: item.deliveryPostalCode,
+    deliveryAddressMasked: item.deliveryAddressMasked,
+    patentCustomerNumber: item.patentCustomerNumber,
   }));
 
-  const { data: selectedRow } = await supabase
+  const { data: selectedRows } = await supabase
     .from("trademark_request_applicants")
     .select("applicant_id")
     .eq("request_id", id)
-    .eq("user_id", data.user.id)
-    .maybeSingle();
+    .eq("user_id", data.user.id);
 
-  const selectedApplicantId = selectedRow?.applicant_id ? String(selectedRow.applicant_id) : null;
+  const selectedApplicantIds = selectedRows?.map((row) => String(row.applicant_id)) ?? [];
 
   return (
     <div className="space-y-6">
@@ -99,7 +123,7 @@ export default async function ApplicantPage({ params }: { params: Promise<Applic
       <ApplicantSelector
         requestId={id}
         initialApplicants={initialApplicants}
-        initialSelectedId={selectedApplicantId}
+        initialSelectedIds={selectedApplicantIds}
       />
     </div>
   );
