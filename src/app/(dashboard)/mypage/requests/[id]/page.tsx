@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { StatusTimeline } from "@/components/mypage/StatusTimeline";
@@ -211,7 +212,7 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
           mobile_phone_masked,
           email,
           address_masked,
-          address_postal_code,
+          postal_code,
           delivery_postal_code,
           delivery_address_masked,
           patent_customer_number
@@ -241,7 +242,7 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
               mobilePhoneMasked: typeof a.mobile_phone_masked === "string" ? a.mobile_phone_masked : undefined,
               email: typeof a.email === "string" ? a.email : undefined,
               addressMasked: typeof a.address_masked === "string" ? a.address_masked : undefined,
-              addressPostalCode: typeof a.address_postal_code === "string" ? a.address_postal_code : undefined,
+              addressPostalCode: typeof a.postal_code === "string" ? a.postal_code : undefined,
               deliveryPostalCode: typeof a.delivery_postal_code === "string" ? a.delivery_postal_code : undefined,
               deliveryAddressMasked: typeof a.delivery_address_masked === "string" ? a.delivery_address_masked : undefined,
               patentCustomerNumber: typeof a.patent_customer_number === "string" ? a.patent_customer_number : undefined,
@@ -301,20 +302,21 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
 
             {/* 오른쪽 컬럼 (2/10) - 제출 이미지 */}
             <div className="col-span-2">
+              <h3 className="mb-2 text-sm font-semibold text-slate-900">제출 이미지</h3>
               {imageUrl ? (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-slate-900">제출 이미지</h3>
-                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imageUrl} alt="Trademark" className="w-full h-auto object-contain" />
-                  </div>
+                <div className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <Image
+                    src={imageUrl}
+                    alt={`${brandName} 상표 이미지`}
+                    fill
+                    sizes="200px"
+                    className="object-contain p-2"
+                    unoptimized
+                  />
                 </div>
               ) : (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-slate-900">제출 이미지</h3>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-                    이미지 없음
-                  </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  이미지 없음
                 </div>
               )}
             </div>
