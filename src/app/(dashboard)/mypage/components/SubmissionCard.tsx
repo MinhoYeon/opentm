@@ -100,19 +100,21 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <Link
-        href={`/mypage/requests/${request.id}`}
-        className="flex gap-6"
-      >
-        {/* 좌측 컬럼 (80%) */}
-        <div className="flex-[8] space-y-4">
-          <div className="flex items-start justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
-            <span className="inline-flex items-center text-sm font-medium text-indigo-600 transition hover:text-indigo-500">
-              상세 보기 →
-            </span>
-          </div>
+      {/* 첫 번째 행: 상표명과 상세보기 */}
+      <div className="mb-4 flex items-start justify-between">
+        <h3 className="text-lg font-semibold text-slate-900">{request.brandName}</h3>
+        <Link
+          href={`/mypage/requests/${request.id}`}
+          className="inline-flex items-center text-sm font-medium text-indigo-600 transition hover:text-indigo-500"
+        >
+          상세 보기 →
+        </Link>
+      </div>
 
+      {/* 두 번째 행: 2개 컬럼 */}
+      <div className="flex gap-6">
+        {/* 좌측 컬럼 (80%) */}
+        <div className="flex-[8]">
           <dl className="grid gap-3 text-sm text-slate-600">
             <div className="flex gap-2">
               <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
@@ -155,7 +157,7 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
             </div>
           )}
         </div>
-      </Link>
+      </div>
 
       <footer className="mt-6 flex flex-col gap-2">
         {actions.map((action) => {
