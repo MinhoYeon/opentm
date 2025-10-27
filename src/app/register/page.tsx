@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 
 import { submitTrademarkRequest, type TrademarkType } from "./actions";
@@ -75,14 +76,11 @@ function getInitialState(): TrademarkApplication {
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<TrademarkApplication>(() => getInitialState());
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionMessage, setSubmissionMessage] = useState<string | null>(null);
-  const [submissionDetails, setSubmissionDetails] = useState<
-    { id: string; link: string } | null
-  >(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -119,8 +117,7 @@ export default function RegisterPage() {
 
     try {
       setIsSubmitting(true);
-      setSubmissionMessage(null);
-      setSubmissionDetails(null);
+      setErrors([]);
 
       // 이미지 유무에 따라 상표 유형 자동 결정
       const trademarkType: TrademarkType = formData.image ? "combined" : "word";
@@ -144,34 +141,22 @@ export default function RegisterPage() {
 
       if (!result.success) {
         setErrors(result.errors);
-        setSubmissionMessage(result.message);
         return;
       }
-
-      setErrors([]);
-      setSubmissionDetails({ id: result.requestId, link: result.requestLink });
-      setSubmissionMessage(
-        `신청이 접수되었습니다. 요청 ID: ${result.requestId}`
-      );
-      setFormData({
-        brandName: "",
-        image: null,
-        productClasses: [],
-        representativeEmail: "",
-        additionalNotes: "",
-        agreeToTerms: false,
-      });
 
       // localStorage 초기화
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(storageKey);
       }
+
+      // 성공 시 상세 페이지로 자동 리다이렉트
+      router.push(`/mypage/requests/${result.requestId}`);
     } catch (error) {
-      setSubmissionMessage(
+      setErrors([
         error instanceof Error
           ? error.message
           : "신청 접수 중 알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
-      );
+      ]);
     } finally {
       setIsSubmitting(false);
     }
@@ -385,23 +370,6 @@ export default function RegisterPage() {
                     <li key={error}>{error}</li>
                   ))}
                 </ul>
-              </div>
-            )}
-
-            {submissionMessage && (
-              <div className="space-y-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                <p>{submissionMessage}</p>
-                {submissionDetails ? (
-                  <p>
-                    <a
-                      href={submissionDetails.link}
-                      className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 px-3 py-1 text-xs font-medium text-emerald-100 transition hover:border-white/70 hover:text-white"
-                    >
-                      요청 상세 보기
-                      <span aria-hidden>→</span>
-                    </a>
-                  </p>
-                ) : null}
               </div>
             )}
 
