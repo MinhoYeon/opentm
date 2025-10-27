@@ -111,25 +111,17 @@ export default function MyPageClient({
           </Link>
         </div>
         {applicants.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {applicants.map((app) => (
-              <div
+              <Link
                 key={app.id}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300"
+                href={`/mypage/applicants/${app.id}`}
+                className="group rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-400"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-slate-900">{app.name}</p>
-                    <p className="text-sm text-slate-500">{app.email}</p>
-                  </div>
-                  <Link
-                    href={`/mypage/applicants/${app.id}`}
-                    className="text-sm text-indigo-600 hover:underline"
-                  >
-                    상세보기
-                  </Link>
-                </div>
-              </div>
+                <p className="font-medium text-slate-900 transition group-hover:text-indigo-600">
+                  {app.name}
+                </p>
+              </Link>
             ))}
           </div>
         ) : (
