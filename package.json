@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:status-transitions": "node --test tests/status-transition.test.mjs",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "set-admin": "tsx scripts/set-admin-role.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
@@ -36,6 +37,7 @@
     "jest-environment-jsdom": "^30.2.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.5",
+    "tsx": "^4.7.0",
     "typescript": "^5",
     "whatwg-fetch": "^3.6.20"
   }
