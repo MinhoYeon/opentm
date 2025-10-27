@@ -137,30 +137,9 @@ export default function ApplicantDetailPage() {
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-medium text-indigo-500">출원인 상세</p>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold text-slate-900">
-            {applicant.nameKorean || applicant.name}
-          </h1>
-          {!isEditing && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="rounded-full border border-indigo-500 bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
-              >
-                편집
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isSubmitting}
-                className="rounded-full border border-rose-500 bg-rose-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-700 disabled:opacity-50"
-              >
-                삭제
-              </button>
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-semibold text-slate-900">
+          {applicant.nameKorean || applicant.name}
+        </h1>
         <p className="text-sm text-slate-600">출원인 정보를 확인하고 수정할 수 있습니다.</p>
       </div>
 
@@ -181,16 +160,27 @@ export default function ApplicantDetailPage() {
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="space-y-4">
-            {/* 첫번째 행: 성명/명칭 (큰 bold) | 특허고객번호 */}
+            {/* 첫번째 행: 성명/명칭 (큰 bold) | 편집/삭제 버튼 */}
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200">
               <h3 className="text-xl font-bold text-slate-900">
                 {applicant.nameKorean || applicant.name || "-"}
               </h3>
-              <div className="text-sm">
-                <span className="font-medium text-slate-600">특허고객번호: </span>
-                <span className="text-slate-900">
-                  {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
-                </span>
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="text-indigo-600 hover:underline"
+                >
+                  편집
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isSubmitting}
+                  className="text-rose-500 hover:underline disabled:opacity-50"
+                >
+                  삭제
+                </button>
               </div>
             </div>
 
@@ -223,6 +213,10 @@ export default function ApplicantDetailPage() {
                 <div className="flex gap-2">
                   <span className="w-28 shrink-0 font-medium text-slate-600">국적</span>
                   <span className="text-slate-900">{applicant.nationality || "-"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-28 shrink-0 font-medium text-slate-600">특허고객번호</span>
+                  <span className="text-slate-900">{applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}</span>
                 </div>
               </div>
 
@@ -263,6 +257,10 @@ export default function ApplicantDetailPage() {
 
             {/* 세번째 행: 수직 레이아웃 */}
             <div className="space-y-2 pt-3 border-t border-slate-200 text-sm">
+              <div className="flex gap-2">
+                <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(주민등록상)</span>
+                <span className="text-slate-900">{applicant.postalCode || "-"}</span>
+              </div>
               <div className="flex gap-2">
                 <span className="w-36 shrink-0 font-medium text-slate-600">주소(주민등록상)</span>
                 <span className="text-slate-900">{applicant.addressMasked || "-"}</span>
