@@ -46,19 +46,54 @@ type JusoCallbackParams = {
 
 declare global {
   interface Window {
-    jusoCallBack?: (params: JusoCallbackParams) => void;
+    jusoCallBack?: (
+      roadFullAddr: string,
+      roadAddrPart1: string,
+      addrDetail: string,
+      roadAddrPart2: string,
+      engAddr: string,
+      jibunAddr: string,
+      zipNo: string,
+      admCd: string,
+      rnMgtSn: string,
+      bdMgtSn: string,
+      detBdNmList: string,
+      bdNm: string,
+      bdKdcd: string,
+      siNm: string,
+      sggNm: string,
+      emdNm: string,
+      liNm: string,
+      rn: string,
+      udrtYn: string,
+      buldMnnm: string,
+      buldSlno: string,
+      mtYn: string,
+      lnbrMnnm: string,
+      lnbrSlno: string,
+      emdNo: string
+    ) => void;
   }
 }
 
 export function AddressSearchModal({ open, onClose, onSelect }: AddressSearchModalProps) {
   useEffect(() => {
     // 팝업에서 주소를 선택하면 호출될 콜백 함수 등록
-    window.jusoCallBack = (params: JusoCallbackParams) => {
+    // JUSO API는 개별 파라미터들을 순서대로 전달합니다
+    window.jusoCallBack = (
+      roadFullAddr: string,
+      roadAddrPart1: string,
+      addrDetail: string,
+      roadAddrPart2: string,
+      engAddr: string,
+      jibunAddr: string,
+      zipNo: string
+    ) => {
       const result: AddressResult = {
-        postalCode: params.zipNo,
-        address: params.jibunAddr,
-        roadAddress: params.roadAddrPart1,
-        detailAddress: params.addrDetail || "",
+        postalCode: zipNo,
+        address: jibunAddr,
+        roadAddress: roadAddrPart1,
+        detailAddress: addrDetail || "",
       };
 
       onSelect(result);
