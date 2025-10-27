@@ -354,8 +354,10 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
                 />
               </div>
             )}
+          </>
+        )}
 
-            {error ? <p className="text-sm text-rose-500">{error}</p> : null}
+        {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         <div className="flex items-center gap-3">
           <button
             type="submit"
