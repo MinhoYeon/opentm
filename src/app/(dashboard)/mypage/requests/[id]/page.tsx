@@ -173,25 +173,47 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
 
   const statusMeta = getStatusMeta(status);
 
-  // Try to load applicant info for this request
-  let applicant: null | { name?: string; email?: string; phone?: string; address?: string; businessType?: string; businessNo?: string } = null;
+  // Try to load all applicants for this request
+  type ApplicantInfo = {
+    name: string;
+    applicantType?: string;
+    nationality?: string;
+  };
+  let applicants: ApplicantInfo[] = [];
   try {
     const { data: arows } = await supabase
       .from("trademark_request_applicants")
-      .select("name,email,phone,address,business_type,business_no")
+      .select(`
+        applicant_id,
+        applicants (
+          name_korean,
+          name_english,
+          display_name,
+          applicant_type,
+          nationality
+        )
+      `)
       .eq("request_id", id)
-      .eq("user_id", userId)
-      .limit(1);
+      .eq("user_id", userId);
+
     if (arows && arows.length) {
-      const a = arows[0] as Record<string, unknown>;
-      applicant = {
-        name: typeof a.name === "string" ? a.name : undefined,
-        email: typeof a.email === "string" ? a.email : undefined,
-        phone: typeof a.phone === "string" ? a.phone : undefined,
-        address: typeof a.address === "string" ? a.address : undefined,
-        businessType: typeof a.business_type === "string" ? (a.business_type as string) : undefined,
-        businessNo: typeof a.business_no === "string" ? (a.business_no as string) : undefined,
-      };
+      applicants = arows
+        .map((row) => {
+          const r = row as Record<string, unknown>;
+          if (r.applicants && typeof r.applicants === "object") {
+            const a = r.applicants as Record<string, unknown>;
+            return {
+              name: (typeof a.name_korean === "string" ? a.name_korean : null) ||
+                    (typeof a.name_english === "string" ? a.name_english : null) ||
+                    (typeof a.display_name === "string" ? a.display_name : null) ||
+                    "-",
+              applicantType: typeof a.applicant_type === "string" ? a.applicant_type : undefined,
+              nationality: typeof a.nationality === "string" ? a.nationality : undefined,
+            };
+          }
+          return null;
+        })
+        .filter((item): item is ApplicantInfo => item !== null);
     }
   } catch {}
 
@@ -240,20 +262,52 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">출원인 정보</h2>
-            {applicant ? (
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-                <div className="flex gap-2"><dt className="w-28 shrink-0 text-slate-500">이름</dt><dd className="text-slate-800">{applicant.name}</dd></div>
-                <div className="flex gap-2"><dt className="w-28 shrink-0 text-slate-500">이메일</dt><dd className="text-slate-800">{applicant.email}</dd></div>
-                <div className="flex gap-2"><dt className="w-28 shrink-0 text-slate-500">전화</dt><dd className="text-slate-800">{applicant.phone ?? '-'}</dd></div>
-                <div className="flex gap-2 sm:col-span-2"><dt className="w-28 shrink-0 text-slate-500">주소</dt><dd className="text-slate-800">{applicant.address ?? '-'}</dd></div>
-                <div className="flex gap-2"><dt className="w-28 shrink-0 text-slate-500">구분</dt><dd className="text-slate-800">{applicant.businessType ?? '-'}</dd></div>
-                <div className="flex gap-2"><dt className="w-28 shrink-0 text-slate-500">사업자번호</dt><dd className="text-slate-800">{applicant.businessNo ?? '-'}</dd></div>
-              </dl>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">출원인 정보</h2>
+              <Link
+                href={`/mypage/requests/${id}/applicant`}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                {applicants.length > 0 ? "편집" : "출원인 선택"}
+              </Link>
+            </div>
+            {applicants.length > 0 ? (
+              <div className="mt-4 space-y-4">
+                {applicants.map((applicant, index) => (
+                  <div
+                    key={index}
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="mb-3 font-semibold text-slate-900">출원인 {index + 1}</p>
+                    <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+                      <div className="flex gap-2">
+                        <dt className="w-28 shrink-0 text-slate-500">이름</dt>
+                        <dd className="text-slate-800">{applicant.name}</dd>
+                      </div>
+                      {applicant.applicantType && (
+                        <div className="flex gap-2">
+                          <dt className="w-28 shrink-0 text-slate-500">구분</dt>
+                          <dd className="text-slate-800">
+                            {applicant.applicantType === "domestic_individual" ? "국내 자연인" :
+                             applicant.applicantType === "domestic_corporation" ? "국내 법인" :
+                             applicant.applicantType}
+                          </dd>
+                        </div>
+                      )}
+                      {applicant.nationality && (
+                        <div className="flex gap-2">
+                          <dt className="w-28 shrink-0 text-slate-500">국적</dt>
+                          <dd className="text-slate-800">{applicant.nationality}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p>아직 출원인 정보가 입력되지 않았습니다.</p>
-                <Link href={`/mypage/requests/${id}/applicant`} className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-600">출원인 정보 입력</Link>
+                <Link href={`/mypage/requests/${id}/applicant`} className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-600">출원인 선택</Link>
               </div>
             )}
           </section>

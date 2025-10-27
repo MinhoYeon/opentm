@@ -11,7 +11,7 @@ import { ApplicantFormInput, useApplicantSelection } from "./useApplicantSelecti
 type ApplicantSelectorProps = {
   requestId: string;
   initialApplicants: Applicant[];
-  initialSelectedId?: string | null;
+  initialSelectedIds?: string[];
 };
 
 type PanelState =
@@ -19,17 +19,17 @@ type PanelState =
   | { type: "create" }
   | { type: "edit"; applicantId: string };
 
-export function ApplicantSelector({ requestId, initialApplicants, initialSelectedId }: ApplicantSelectorProps) {
+export function ApplicantSelector({ requestId, initialApplicants, initialSelectedIds }: ApplicantSelectorProps) {
   const router = useRouter();
   const {
     applicants,
     rawApplicants,
-    selectedId,
-    setSelectedId,
+    selectedIds,
+    toggleApplicant,
     createApplicant,
     updateApplicant,
     deleteApplicant,
-    attachApplicant,
+    attachApplicants,
     refresh,
     search,
     setSearch,
@@ -37,7 +37,7 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
     isLoading,
     error,
     setError,
-  } = useApplicantSelection({ requestId, initialApplicants, initialSelectedId });
+  } = useApplicantSelection({ requestId, initialApplicants, initialSelectedIds });
 
   const [panel, setPanel] = useState<PanelState>({ type: "list" });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -47,22 +47,10 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
     return rawApplicants.find((item) => item.id === panel.applicantId);
   }, [panel, rawApplicants]);
 
-  async function handleSelect(applicantId: string) {
+  function handleToggleSelect(applicantId: string) {
     setError(null);
     setSuccessMessage(null);
-
-    // Optimistic update - 즉시 선택 상태 반영
-    setSelectedId(applicantId);
-
-    try {
-      await attachApplicant(applicantId);
-      setPanel({ type: "list" });
-      setSuccessMessage("출원인을 연결했습니다.");
-    } catch (err) {
-      // 실패하면 선택 해제
-      setSelectedId(null);
-      setError(err instanceof Error ? err.message : "출원인 연결에 실패했습니다.");
-    }
+    toggleApplicant(applicantId);
   }
 
   async function handleCreate(input: ApplicantFormInput) {
@@ -85,12 +73,19 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
     await deleteApplicant(applicantId);
   }
 
-  function handleComplete() {
-    if (!selectedId) {
+  async function handleComplete() {
+    if (selectedIds.length === 0) {
       setError("출원인을 선택해 주세요.");
       return;
     }
-    router.push(`/mypage/requests/${requestId}`);
+    setError(null);
+    try {
+      await attachApplicants(selectedIds);
+      setSuccessMessage(`${selectedIds.length}명의 출원인을 연결했습니다.`);
+      router.push(`/mypage/requests/${requestId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "출원인 연결에 실패했습니다.");
+    }
   }
 
   return (
@@ -143,10 +138,8 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
                 <ApplicantCard
                   key={applicant.id}
                   applicant={applicant}
-                  selected={selectedId === applicant.id}
-                  onSelect={() => {
-                    handleSelect(applicant.id).catch(() => undefined);
-                  }}
+                  selected={selectedIds.includes(applicant.id)}
+                  onSelect={() => handleToggleSelect(applicant.id)}
                   onEdit={() => setPanel({ type: "edit", applicantId: applicant.id })}
                   onDelete={() => {
                     handleDelete(applicant.id).catch(() => undefined);
@@ -158,23 +151,32 @@ export function ApplicantSelector({ requestId, initialApplicants, initialSelecte
           </div>
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4">
             <div>
-              <p className="text-sm font-medium text-slate-700">현재 선택된 출원인</p>
-              <p className="text-sm text-slate-500">
-                {selectedId
-                  ? (() => {
-                      const selected = rawApplicants.find((item) => item.id === selectedId);
-                      return selected?.nameKorean || selected?.name || "선택됨";
-                    })()
-                  : "출원인을 선택해 주세요."}
-              </p>
+              <p className="text-sm font-medium text-slate-700">현재 선택된 출원인 ({selectedIds.length}명)</p>
+              {selectedIds.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedIds.map((id) => {
+                    const selected = rawApplicants.find((item) => item.id === id);
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-sm text-indigo-700"
+                      >
+                        {selected?.nameKorean || selected?.name || "선택됨"}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">출원인을 선택해 주세요.</p>
+              )}
             </div>
             <button
               type="button"
               onClick={handleComplete}
-              disabled={!selectedId || isSubmitting}
+              disabled={selectedIds.length === 0 || isSubmitting}
               className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {isSubmitting ? "처리 중..." : selectedId ? "출원인 선택" : "출원인 선택"}
+              {isSubmitting ? "처리 중..." : selectedIds.length > 0 ? `${selectedIds.length}명 선택 완료` : "출원인 선택"}
             </button>
           </div>
         </div>
