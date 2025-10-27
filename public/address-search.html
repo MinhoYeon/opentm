@@ -40,37 +40,41 @@
 
       if (inputYn === 'Y') {
         // 주소 선택 후 돌아온 경우 - 부모 창으로 데이터 전달
-        const params = {
-          roadFullAddr: urlParams.get('roadFullAddr') || '',
-          roadAddrPart1: urlParams.get('roadAddrPart1') || '',
-          roadAddrPart2: urlParams.get('roadAddrPart2') || '',
-          engAddr: urlParams.get('engAddr') || '',
-          jibunAddr: urlParams.get('jibunAddr') || '',
-          zipNo: urlParams.get('zipNo') || '',
-          addrDetail: urlParams.get('addrDetail') || '',
-          admCd: urlParams.get('admCd') || '',
-          rnMgtSn: urlParams.get('rnMgtSn') || '',
-          bdMgtSn: urlParams.get('bdMgtSn') || '',
-          detBdNmList: urlParams.get('detBdNmList') || '',
-          bdNm: urlParams.get('bdNm') || '',
-          bdKdcd: urlParams.get('bdKdcd') || '',
-          siNm: urlParams.get('siNm') || '',
-          sggNm: urlParams.get('sggNm') || '',
-          emdNm: urlParams.get('emdNm') || '',
-          liNm: urlParams.get('liNm') || '',
-          rn: urlParams.get('rn') || '',
-          udrtYn: urlParams.get('udrtYn') || '',
-          buldMnnm: urlParams.get('buldMnnm') || '',
-          buldSlno: urlParams.get('buldSlno') || '',
-          mtYn: urlParams.get('mtYn') || '',
-          lnbrMnnm: urlParams.get('lnbrMnnm') || '',
-          lnbrSlno: urlParams.get('lnbrSlno') || '',
-          emdNo: urlParams.get('emdNo') || ''
-        };
+        // JUSO API 공식 샘플 코드에 따라 개별 파라미터로 전달
+        const roadFullAddr = urlParams.get('roadFullAddr') || '';
+        const roadAddrPart1 = urlParams.get('roadAddrPart1') || '';
+        const addrDetail = urlParams.get('addrDetail') || '';
+        const roadAddrPart2 = urlParams.get('roadAddrPart2') || '';
+        const engAddr = urlParams.get('engAddr') || '';
+        const jibunAddr = urlParams.get('jibunAddr') || '';
+        const zipNo = urlParams.get('zipNo') || '';
+        const admCd = urlParams.get('admCd') || '';
+        const rnMgtSn = urlParams.get('rnMgtSn') || '';
+        const bdMgtSn = urlParams.get('bdMgtSn') || '';
+        const detBdNmList = urlParams.get('detBdNmList') || '';
+        const bdNm = urlParams.get('bdNm') || '';
+        const bdKdcd = urlParams.get('bdKdcd') || '';
+        const siNm = urlParams.get('siNm') || '';
+        const sggNm = urlParams.get('sggNm') || '';
+        const emdNm = urlParams.get('emdNm') || '';
+        const liNm = urlParams.get('liNm') || '';
+        const rn = urlParams.get('rn') || '';
+        const udrtYn = urlParams.get('udrtYn') || '';
+        const buldMnnm = urlParams.get('buldMnnm') || '';
+        const buldSlno = urlParams.get('buldSlno') || '';
+        const mtYn = urlParams.get('mtYn') || '';
+        const lnbrMnnm = urlParams.get('lnbrMnnm') || '';
+        const lnbrSlno = urlParams.get('lnbrSlno') || '';
+        const emdNo = urlParams.get('emdNo') || '';
 
-        // 부모 창의 콜백 함수 호출
+        // 부모 창의 콜백 함수 호출 (개별 파라미터로 전달)
         if (window.opener && typeof window.opener.jusoCallBack === 'function') {
-          window.opener.jusoCallBack(params);
+          window.opener.jusoCallBack(
+            roadFullAddr, roadAddrPart1, addrDetail, roadAddrPart2, engAddr,
+            jibunAddr, zipNo, admCd, rnMgtSn, bdMgtSn, detBdNmList,
+            bdNm, bdKdcd, siNm, sggNm, emdNm, liNm, rn, udrtYn,
+            buldMnnm, buldSlno, mtYn, lnbrMnnm, lnbrSlno, emdNo
+          );
         }
 
         // 팝업 창 닫기
