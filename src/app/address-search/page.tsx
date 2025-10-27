@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type JusoCallbackParams = {
   roadFullAddr: string;
@@ -31,11 +32,21 @@ type JusoCallbackParams = {
   emdNo: string;
 };
 
-export default function AddressSearchPage() {
+function AddressSearchContent() {
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
+  const [returnUrl, setReturnUrl] = useState<string>("");
 
   useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== "undefined") {
+      setReturnUrl(window.location.origin + window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!returnUrl) return;
+
     const inputYn = searchParams.get("inputYn");
 
     if (inputYn !== "Y") {
@@ -81,26 +92,39 @@ export default function AddressSearchPage() {
       // 팝업 창 닫기
       window.close();
     }
-  }, [searchParams]);
+  }, [searchParams, returnUrl]);
 
   // 환경 변수에서 승인키 가져오기 (없으면 테스트키 사용)
   const confmKey = process.env.NEXT_PUBLIC_JUSO_API_KEY || "devU01TX0FVVEgyMDI1MDEyNzExMjA1NjExNTM0ODI=";
-  const currentUrl = typeof window !== "undefined" ? window.location.origin + "/address-search" : "";
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50">
       <div className="text-center">
         <p className="text-slate-600">주소 검색 창으로 이동 중...</p>
-        <form
-          ref={formRef}
-          method="post"
-          action="https://business.juso.go.kr/addrlink/addrLinkUrl.do"
-        >
-          <input type="hidden" name="confmKey" value={confmKey} />
-          <input type="hidden" name="returnUrl" value={currentUrl} />
-          <input type="hidden" name="resultType" value="4" />
-        </form>
+        {returnUrl && (
+          <form
+            ref={formRef}
+            method="post"
+            action="https://business.juso.go.kr/addrlink/addrLinkUrl.do"
+          >
+            <input type="hidden" name="confmKey" value={confmKey} />
+            <input type="hidden" name="returnUrl" value={returnUrl} />
+            <input type="hidden" name="resultType" value="4" />
+          </form>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function AddressSearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <p className="text-slate-600">로딩 중...</p>
+      </div>
+    }>
+      <AddressSearchContent />
+    </Suspense>
   );
 }
