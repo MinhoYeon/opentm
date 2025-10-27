@@ -386,17 +386,17 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               ...(typeof prev.metadata.address === "object" && prev.metadata.address !== null
                 ? (prev.metadata.address as Record<string, unknown>)
                 : {}),
-              roadAddress: result.roadAddress ?? result.address ?? null,
-              jibunAddress: result.address ?? null,
-              coordinates:
-                typeof result.x === "number" && typeof result.y === "number"
-                  ? { lat: result.y, lng: result.x }
-                  : null,
+              roadAddress: result.roadAddress,
+              jibunAddress: result.address,
+              postalCode: result.postalCode,
             };
-            const newAddress = result.roadAddress ?? result.address ?? prev.address;
+            const newAddress = result.roadAddress;
+            const newPostalCode = result.postalCode;
             return {
               ...prev,
+              postalCode: newPostalCode,
               address: newAddress,
+              deliveryPostalCode: prev.sameAsResidentialAddress ? newPostalCode : prev.deliveryPostalCode,
               deliveryAddress: prev.sameAsResidentialAddress ? newAddress : prev.deliveryAddress,
               metadata: { ...prev.metadata, address: addressMetadata },
             };
@@ -414,16 +414,14 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               ...(typeof prev.metadata.deliveryAddress === "object" && prev.metadata.deliveryAddress !== null
                 ? (prev.metadata.deliveryAddress as Record<string, unknown>)
                 : {}),
-              roadAddress: result.roadAddress ?? result.address ?? null,
-              jibunAddress: result.address ?? null,
-              coordinates:
-                typeof result.x === "number" && typeof result.y === "number"
-                  ? { lat: result.y, lng: result.x }
-                  : null,
+              roadAddress: result.roadAddress,
+              jibunAddress: result.address,
+              postalCode: result.postalCode,
             };
             return {
               ...prev,
-              deliveryAddress: result.roadAddress ?? result.address ?? prev.deliveryAddress,
+              deliveryPostalCode: result.postalCode,
+              deliveryAddress: result.roadAddress,
               metadata: { ...prev.metadata, deliveryAddress: deliveryAddressMetadata },
             };
           });
