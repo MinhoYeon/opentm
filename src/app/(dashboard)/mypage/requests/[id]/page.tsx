@@ -175,9 +175,20 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
 
   // Try to load all applicants for this request
   type ApplicantInfo = {
-    name: string;
+    nameKorean: string;
+    nameEnglish?: string;
     applicantType?: string;
     nationality?: string;
+    residentRegistrationNumberMasked?: string;
+    corporationRegistrationNumberMasked?: string;
+    businessRegistrationNumberMasked?: string;
+    phoneMasked?: string;
+    mobilePhoneMasked?: string;
+    email?: string;
+    addressMasked?: string;
+    deliveryPostalCode?: string;
+    deliveryAddressMasked?: string;
+    patentCustomerNumber?: string;
   };
   let applicants: ApplicantInfo[] = [];
   try {
@@ -190,7 +201,17 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
           name_english,
           display_name,
           applicant_type,
-          nationality
+          nationality,
+          resident_registration_number_masked,
+          corporation_registration_number_masked,
+          business_registration_number_masked,
+          phone_masked,
+          mobile_phone_masked,
+          email,
+          address_masked,
+          delivery_postal_code,
+          delivery_address_masked,
+          patent_customer_number
         )
       `)
       .eq("request_id", id)
@@ -203,12 +224,23 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
           if (r.applicants && typeof r.applicants === "object") {
             const a = r.applicants as Record<string, unknown>;
             return {
-              name: (typeof a.name_korean === "string" ? a.name_korean : null) ||
-                    (typeof a.name_english === "string" ? a.name_english : null) ||
-                    (typeof a.display_name === "string" ? a.display_name : null) ||
-                    "-",
+              nameKorean: (typeof a.name_korean === "string" ? a.name_korean : null) ||
+                          (typeof a.name_english === "string" ? a.name_english : null) ||
+                          (typeof a.display_name === "string" ? a.display_name : null) ||
+                          "-",
+              nameEnglish: typeof a.name_english === "string" ? a.name_english : undefined,
               applicantType: typeof a.applicant_type === "string" ? a.applicant_type : undefined,
               nationality: typeof a.nationality === "string" ? a.nationality : undefined,
+              residentRegistrationNumberMasked: typeof a.resident_registration_number_masked === "string" ? a.resident_registration_number_masked : undefined,
+              corporationRegistrationNumberMasked: typeof a.corporation_registration_number_masked === "string" ? a.corporation_registration_number_masked : undefined,
+              businessRegistrationNumberMasked: typeof a.business_registration_number_masked === "string" ? a.business_registration_number_masked : undefined,
+              phoneMasked: typeof a.phone_masked === "string" ? a.phone_masked : undefined,
+              mobilePhoneMasked: typeof a.mobile_phone_masked === "string" ? a.mobile_phone_masked : undefined,
+              email: typeof a.email === "string" ? a.email : undefined,
+              addressMasked: typeof a.address_masked === "string" ? a.address_masked : undefined,
+              deliveryPostalCode: typeof a.delivery_postal_code === "string" ? a.delivery_postal_code : undefined,
+              deliveryAddressMasked: typeof a.delivery_address_masked === "string" ? a.delivery_address_masked : undefined,
+              patentCustomerNumber: typeof a.patent_customer_number === "string" ? a.patent_customer_number : undefined,
             };
           }
           return null;
@@ -272,37 +304,110 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
               </Link>
             </div>
             {applicants.length > 0 ? (
-              <div className="mt-4 space-y-4">
-                {applicants.map((applicant, index) => (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <p className="mb-3 font-semibold text-slate-900">출원인 {index + 1}</p>
-                    <dl className="grid gap-3 sm:grid-cols-2 text-sm">
-                      <div className="flex gap-2">
-                        <dt className="w-28 shrink-0 text-slate-500">이름</dt>
-                        <dd className="text-slate-800">{applicant.name}</dd>
+              <div className="mt-4 space-y-6">
+                {applicants.map((applicant, index) => {
+                  const isIndividual = applicant.applicantType === "domestic_individual";
+                  const isCorporation = applicant.applicantType === "domestic_corporation";
+                  const nameLabel = isCorporation ? "명칭" : "성명";
+
+                  return (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-slate-200 bg-white p-5"
+                    >
+                      <p className="mb-3 text-xs font-medium text-slate-500">출원인 {index + 1}</p>
+                      <div className="space-y-4">
+                        {/* 첫번째 행: 성명/명칭 (큰 bold) | 특허고객번호 */}
+                        <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200">
+                          <h3 className="text-xl font-bold text-slate-900">
+                            {applicant.nameKorean}
+                          </h3>
+                          <div className="text-sm">
+                            <span className="font-medium text-slate-600">특허고객번호: </span>
+                            <span className="text-slate-900">
+                              {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 두번째 행: 2컬럼 그리드 */}
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                          {/* 왼쪽 컬럼 */}
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">출원인 구분</span>
+                              <span className="text-slate-900">
+                                {isIndividual ? "국내 자연인" : isCorporation ? "국내 법인" : "-"}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(국문)</span>
+                              <span className="text-slate-900">{applicant.nameKorean}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(영문)</span>
+                              <span className="text-slate-900">{applicant.nameEnglish || "-"}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">국적</span>
+                              <span className="text-slate-900">{applicant.nationality || "-"}</span>
+                            </div>
+                          </div>
+
+                          {/* 오른쪽 컬럼 */}
+                          <div className="space-y-2">
+                            {isIndividual && (
+                              <div className="flex gap-2">
+                                <span className="w-28 shrink-0 font-medium text-slate-600">주민등록번호</span>
+                                <span className="text-slate-900">{applicant.residentRegistrationNumberMasked || "-"}</span>
+                              </div>
+                            )}
+                            {isCorporation && (
+                              <>
+                                <div className="flex gap-2">
+                                  <span className="w-28 shrink-0 font-medium text-slate-600">법인등록번호</span>
+                                  <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked || "-"}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="w-28 shrink-0 font-medium text-slate-600">사업자등록번호</span>
+                                  <span className="text-slate-900">{applicant.businessRegistrationNumberMasked || "-"}</span>
+                                </div>
+                              </>
+                            )}
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">전화번호</span>
+                              <span className="text-slate-900">{applicant.phoneMasked || "-"}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">휴대폰번호</span>
+                              <span className="text-slate-900">{applicant.mobilePhoneMasked || "-"}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <span className="w-28 shrink-0 font-medium text-slate-600">이메일</span>
+                              <span className="text-slate-900">{applicant.email || "-"}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 세번째 행: 수직 레이아웃 */}
+                        <div className="space-y-2 pt-3 border-t border-slate-200 text-sm">
+                          <div className="flex gap-2">
+                            <span className="w-36 shrink-0 font-medium text-slate-600">주소(주민등록상)</span>
+                            <span className="text-slate-900">{applicant.addressMasked || "-"}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(송달장소)</span>
+                            <span className="text-slate-900">{applicant.deliveryPostalCode || "-"}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="w-36 shrink-0 font-medium text-slate-600">주소(송달장소)</span>
+                            <span className="text-slate-900">{applicant.deliveryAddressMasked || "-"}</span>
+                          </div>
+                        </div>
                       </div>
-                      {applicant.applicantType && (
-                        <div className="flex gap-2">
-                          <dt className="w-28 shrink-0 text-slate-500">구분</dt>
-                          <dd className="text-slate-800">
-                            {applicant.applicantType === "domestic_individual" ? "국내 자연인" :
-                             applicant.applicantType === "domestic_corporation" ? "국내 법인" :
-                             applicant.applicantType}
-                          </dd>
-                        </div>
-                      )}
-                      {applicant.nationality && (
-                        <div className="flex gap-2">
-                          <dt className="w-28 shrink-0 text-slate-500">국적</dt>
-                          <dd className="text-slate-800">{applicant.nationality}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
