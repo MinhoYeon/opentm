@@ -22,7 +22,7 @@ function parseAttachBody(body: AttachBody) {
   return body.requestId.trim();
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = createServerClient("mutable");
   const {
     data: { user },
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return ok({ error: "인증이 필요합니다." }, { status: 401 });
   }
 
+  const { id: applicantId } = await params;
+
   let requestId: string;
   try {
     const json = (await request.json()) as AttachBody;
@@ -46,13 +48,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     logAuditFailure({
       userId: user.id,
       operation: "applicant:attach-request",
-      targetIds: [params.id],
+      targetIds: [applicantId],
       message,
     });
     return ok({ error: message }, { status: 400 });
   }
-
-  const applicantId = params.id;
 
   try {
     const { data: applicant, error: applicantError } = await supabase
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           user_id: user.id,
           updated_at: now,
         },
-        { onConflict: "request_id" }
+        { onConflict: "request_id,applicant_id" }
       );
 
     if (upsertError) {

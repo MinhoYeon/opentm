@@ -301,7 +301,17 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
 
             {/* 우편번호(송달장소) */}
             <div>
-              <label className="text-sm font-medium text-slate-700">우편번호(송달장소)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">우편번호(송달장소)</label>
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={formState.sameAsResidentialAddress}
+                    onChange={(event) => handleSameAsResidentialChange(event.target.checked)}
+                  />
+                  위 주민등록상 주소와 동일
+                </label>
+              </div>
               <input
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
                 value={formState.deliveryPostalCode}
@@ -330,14 +340,6 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
                   주소 검색
                 </button>
               </div>
-              <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={formState.sameAsResidentialAddress}
-                  onChange={(event) => handleSameAsResidentialChange(event.target.checked)}
-                />
-                위 주민등록상 주소와 동일
-              </label>
             </div>
 
             {/* 특허고객번호 (자연인만 표시) */}
@@ -353,20 +355,7 @@ export function ApplicantForm({ mode, initialValue, onSubmit, onCancel, isSubmit
               </div>
             )}
 
-            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={formState.isFavorite}
-                onChange={(event) =>
-                  setFormState((prev) => ({ ...prev, isFavorite: event.target.checked }))
-                }
-              />
-              즐겨찾기에 추가
-            </label>
-          </>
-        )}
-
-        {error ? <p className="text-sm text-rose-500">{error}</p> : null}
+            {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         <div className="flex items-center gap-3">
           <button
             type="submit"

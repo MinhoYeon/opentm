@@ -136,6 +136,12 @@ export function normalizeTrademarkRequest(record: Record<string, unknown>): Trad
           ? (record.referenceCode as string)
           : null,
     transitions: toStatusTransitions(extras.status_transitions ?? extras.statusTransitions),
+    applicantName:
+      typeof record.applicant_name === "string"
+        ? record.applicant_name
+        : typeof record.applicantName === "string"
+          ? (record.applicantName as string)
+          : null,
   };
 }
 
