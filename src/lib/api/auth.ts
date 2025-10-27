@@ -183,6 +183,12 @@ function assertAllowedRole(role: AdminRole, allowedRoles?: AdminRole[]) {
 }
 
 function assertMfaIfRequired(role: AdminRole, adminSession: AdminSessionRow) {
+  // 개발 환경에서는 MFA 체크 비활성화
+  const isDevelopment = process.env.NODE_ENV === "development";
+  if (isDevelopment) {
+    return;
+  }
+
   if ((role === "super_admin" || role === "operations_admin") && !adminSession.mfa_verified_at) {
     throw new ApiError("다중 인증이 완료되지 않았습니다.", { status: 403 });
   }
