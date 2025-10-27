@@ -137,6 +137,10 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
             <dd className="text-slate-800">{request.classes.length ? request.classes.join(", ") : "-"}</dd>
           </div>
           <div className="flex gap-2">
+            <dt className="w-24 shrink-0 text-slate-500">출원인</dt>
+            <dd className="text-slate-800">{request.applicantName ?? "미선택"}</dd>
+          </div>
+          <div className="flex gap-2">
             <dt className="w-24 shrink-0 text-slate-500">담당 변리사</dt>
             <dd className="text-slate-800">{request.representative ?? "-"}</dd>
           </div>

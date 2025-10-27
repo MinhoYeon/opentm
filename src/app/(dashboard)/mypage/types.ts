@@ -19,6 +19,7 @@ export type TrademarkRequest = {
   representative?: string | null;
   referenceCode?: string | null;
   transitions: StatusTransition[];
+  applicantName?: string | null;
 };
 
 export type PaginationInfo = {

@@ -80,7 +80,16 @@ export default async function MyPage({ searchParams }: PageProps) {
 
   const { data: rows, count, error: listError } = await supabase
     .from("trademark_requests")
-    .select("*", { count: "exact" })
+    .select(`
+      *,
+      trademark_request_applicants(
+        applicant_id,
+        applicants(
+          name_korean,
+          display_name
+        )
+      )
+    `, { count: "exact" })
     .eq("user_id", data.user.id)
     .order("submitted_at", { ascending: false })
     .range(from, to);
@@ -89,9 +98,22 @@ export default async function MyPage({ searchParams }: PageProps) {
     throw listError;
   }
 
-  const submissions: TrademarkRequest[] = (rows ?? []).map((item) =>
-    normalizeTrademarkRequest(item as Record<string, unknown>)
-  );
+  const submissions: TrademarkRequest[] = (rows ?? []).map((item) => {
+    const row = item as Record<string, unknown>;
+    // Extract applicant name from joined data
+    let applicantName: string | null = null;
+    if (Array.isArray(row.trademark_request_applicants) && row.trademark_request_applicants.length > 0) {
+      const firstApplicant = row.trademark_request_applicants[0] as Record<string, unknown>;
+      if (firstApplicant && typeof firstApplicant.applicants === "object" && firstApplicant.applicants !== null) {
+        const applicantData = firstApplicant.applicants as Record<string, unknown>;
+        applicantName =
+          (typeof applicantData.name_korean === "string" ? applicantData.name_korean : null) ||
+          (typeof applicantData.display_name === "string" ? applicantData.display_name : null);
+      }
+    }
+
+    return normalizeTrademarkRequest({ ...row, applicant_name: applicantName });
+  });
 
   const totalCount = Number.isFinite(count) && typeof count === "number" ? count : submissions.length;
 
