@@ -265,33 +265,57 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">요청 정보</h2>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">상표명</dt>
-                <dd className="text-slate-800">{brandName}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">상표 유형</dt>
-                <dd className="text-slate-800">{trademarkType}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">상품류</dt>
-                <dd className="text-slate-800">{productClasses.length ? productClasses.join(", ") : '-'}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-32 shrink-0 text-slate-500">담당 이메일</dt>
-                <dd className="text-slate-800">{representativeEmail}</dd>
-              </div>
-              <div className="flex gap-2 sm:col-span-2">
-                <dt className="w-32 shrink-0 text-slate-500">추가 메모</dt>
-                <dd className="text-slate-800 whitespace-pre-wrap">{additionalNotes ?? '-'}</dd>
-              </div>
-            </dl>
-          </section>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">요청 정보</h2>
+          <div className="grid grid-cols-10 gap-6">
+            {/* 왼쪽 컬럼 (8/10) */}
+            <div className="col-span-8">
+              <dl className="space-y-3 text-sm">
+                <div className="flex gap-2">
+                  <dt className="w-32 shrink-0 text-slate-500">관리번호</dt>
+                  <dd className="text-slate-800">{referenceCode}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-32 shrink-0 text-slate-500">상표명</dt>
+                  <dd className="text-slate-800">{brandName}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-32 shrink-0 text-slate-500">상품류</dt>
+                  <dd className="text-slate-800">{productClasses.length ? productClasses.join(", ") : '-'}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-32 shrink-0 text-slate-500">메모</dt>
+                  <dd className="text-slate-800 whitespace-pre-wrap">{additionalNotes ?? '-'}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-32 shrink-0 text-slate-500">담당 이메일</dt>
+                  <dd className="text-slate-800">{representativeEmail}</dd>
+                </div>
+              </dl>
+            </div>
+
+            {/* 오른쪽 컬럼 (2/10) - 제출 이미지 */}
+            <div className="col-span-2">
+              {imageUrl ? (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">제출 이미지</h3>
+                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl} alt="Trademark" className="w-full h-auto object-contain" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-slate-900">제출 이미지</h3>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                    이미지 없음
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
@@ -410,9 +434,8 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
                 })}
               </div>
             ) : (
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p>아직 출원인 정보가 입력되지 않았습니다.</p>
-                <Link href={`/mypage/requests/${id}/applicant`} className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-700 hover:border-indigo-400 hover:text-indigo-600">출원인 선택</Link>
               </div>
             )}
           </section>
@@ -426,41 +449,6 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
             </div>
             <StatusTimeline status={status} statusLogs={transitions} className="mt-6" />
           </section>
-        </div>
-
-        <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900">요약</h3>
-            <dl className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-slate-500">요청 ID</dt>
-                <dd className="text-slate-800">{referenceCode}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">제출일</dt>
-                <dd className="text-slate-800">{formatDateTime(submittedAt)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">최근 업데이트</dt>
-                <dd className="text-slate-800">{formatDateTime(lastUpdated)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-slate-500">현 상태</dt>
-                <dd className="text-slate-800">{statusLabel ?? status}</dd>
-              </div>
-            </dl>
-          </section>
-
-          {imageUrl ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">제출 이미지</h3>
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt="Trademark" className="mx-auto max-h-72 w-auto object-contain" />
-              </div>
-            </section>
-          ) : null}
-        </aside>
       </div>
     </div>
   );
