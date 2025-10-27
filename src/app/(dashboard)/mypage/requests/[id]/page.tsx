@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { StatusTimeline } from "@/components/mypage/StatusTimeline";
-import { ApplicantCard } from "@/components/mypage/ApplicantCard";
+import { RequestApplicantCard } from "@/components/mypage/RequestApplicantCard";
 import { createServerClient } from "@/lib/supabaseServerClient";
 
 type StatusTransition = {
@@ -334,7 +334,7 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
             {applicants.length > 0 ? (
               <div className="mt-4 space-y-4">
                 {applicants.map((applicant, index) => (
-                  <ApplicantCard key={index} applicant={applicant} index={index} />
+                  <RequestApplicantCard key={index} applicant={applicant} index={index} />
                 ))}
               </div>
             ) : (

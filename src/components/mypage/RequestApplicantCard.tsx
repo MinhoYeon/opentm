@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
+
 type ApplicantInfo = {
   nameKorean: string;
   nameEnglish?: string;
@@ -21,12 +22,12 @@ type ApplicantInfo = {
   patentCustomerNumber?: string;
 };
 
-type ApplicantCardProps = {
+type RequestApplicantCardProps = {
   applicant: ApplicantInfo;
   index: number;
 };
 
-export function ApplicantCard({ applicant, index }: ApplicantCardProps) {
+export function RequestApplicantCard({ applicant, index }: RequestApplicantCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isIndividual = applicant.applicantType === "domestic_individual";
