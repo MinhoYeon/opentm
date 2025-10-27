@@ -24,22 +24,36 @@
 
 ### 3. 승인키 설정
 
-`.env.local` 파일에 승인키를 추가:
+`public/address-search.html` 파일을 열어서 승인키를 수정:
 
-```bash
-NEXT_PUBLIC_JUSO_API_KEY=여기에-발급받은-승인키-입력
+```javascript
+// 약 85번째 줄 근처
+const confmKey = '여기에-발급받은-승인키-입력';
 ```
 
-**기본값**: 테스트 키가 코드에 설정되어 있음
-- `.env.local` 파일이 없으면 테스트 키 사용
+**기본값**: 테스트 키가 설정되어 있음
 - 개발/테스트 환경에서는 그대로 사용 가능
 - 운영 환경에서는 정식 승인키로 교체 필수
 
 ## 개발/테스트 환경
 
-- 기본 테스트 키가 `src/app/popup/juso/page.tsx`에 설정되어 있음
-- `.env.local` 파일에 `NEXT_PUBLIC_JUSO_API_KEY`를 설정하면 해당 키 우선 사용
+- 기본 테스트 키가 `public/address-search.html`에 하드코딩되어 있음
 - 제한된 기능만 제공될 수 있으므로 정식 승인키 발급을 권장합니다
+
+## 기술 선택: Static HTML vs Next.js
+
+이 구현은 **static HTML 방식**을 사용합니다. Next.js App Router 방식을 시도했으나 다음 이유로 static HTML을 선택했습니다:
+
+### Static HTML 방식의 장점
+- ✅ Next.js 15 SSR 문제 없음 (`window.location` 접근 안전)
+- ✅ JUSO API 공식 샘플 코드와 유사한 구조
+- ✅ 빠른 로딩 및 안정적인 동작
+- ✅ 빌드 프로세스 영향 없음
+
+### Next.js App Router의 문제점
+- ❌ `useEffect` 실행 전 SSR 시도로 "Invalid URL" 에러
+- ❌ `window.location.href`가 서버에서 null/undefined
+- ❌ Suspense/dynamic import로도 완전한 해결 어려움
 
 ## API 사용 방법
 
@@ -60,27 +74,43 @@ NEXT_PUBLIC_JUSO_API_KEY=여기에-발급받은-승인키-입력
 
 ## 기술 구조
 
-### 1. 팝업 페이지 (`src/app/popup/juso/page.tsx`)
+### 1. Static HTML 팝업 페이지 (`public/address-search.html`)
 
-Next.js App Router 기반 팝업 페이지:
-- `inputYn !== 'Y'`: JUSO API로 POST 요청 (최초 호출)
+순수 JavaScript 기반 팝업 페이지:
+- `inputYn !== 'Y'`: JUSO API로 GET 요청 (최초 호출)
 - `inputYn === 'Y'`: 부모 창으로 주소 데이터 전달 (주소 선택 후)
 - 동적 폼 생성 및 자동 제출
-- 25개 파라미터를 부모 창의 콜백 함수로 전달
+- 25개 파라미터를 개별적으로 부모 창의 콜백 함수로 전달
+- Next.js 빌드 프로세스와 독립적으로 동작
+
+**작동 흐름:**
+```javascript
+// 최초 호출 시
+<form method="get" action="https://business.juso.go.kr/addrlink/addrLinkUrl.do">
+  <input name="confmKey" value="승인키">
+  <input name="returnUrl" value="http://localhost:3000/address-search.html">
+  <input name="resultType" value="4">
+</form>
+
+// 주소 선택 후 (JUSO API가 returnUrl로 리다이렉트)
+window.opener.jusoCallBack(roadFullAddr, roadAddrPart1, ...); // 25개 파라미터
+window.close();
+```
 
 ### 2. AddressSearchModal 컴포넌트 (`src/components/applicants/AddressSearchModal.tsx`)
 
-- 팝업 창 제어 (`window.open`)
+- 팝업 창 제어 (`window.open("/address-search.html")`)
 - 전역 콜백 함수 `window.jusoCallBack` 등록
 - JUSO API 공식 스펙에 따라 25개 개별 파라미터 수신
 - AddressResult 타입으로 변환하여 onSelect 콜백 호출
+- 팝업 닫힘 감지 및 cleanup
 
 ### 3. ApplicantForm 통합 (`src/components/applicants/ApplicantForm.tsx`)
 
-- 주민등록상 주소 검색
-- 송달장소 주소 검색
+- 주민등록상 주소 검색 (`showAddressModal`)
+- 송달장소 주소 검색 (`showDeliveryAddressModal`)
 - "위 주민등록상 주소와 동일" 체크 시 자동 동기화
-- 우편번호, 도로명주소, 지번주소 자동 입력
+- 우편번호, 도로명주소, 지번주소 메타데이터 포함 자동 입력
 
 ## 참고 사항
 
