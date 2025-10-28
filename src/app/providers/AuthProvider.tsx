@@ -50,6 +50,12 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
   const supabase = useMemo(() => createBrowserClient(), []);
 
+  // Session timeout configuration (30 minutes of inactivity)
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const lastActivityRef = useCallback(() => {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  }, []);
+
   const syncSessionWithServer = useCallback(
     async (event: AuthChangeEvent, nextSession: Session | null) => {
       try {
@@ -146,6 +152,59 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     };
   }, [supabase, syncSessionWithServer]);
 
+  // Session timeout: auto-logout after 30 minutes of inactivity
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') {
+      return;
+    }
+
+    const storage = lastActivityRef();
+    if (!storage) {
+      return;
+    }
+
+    // Update last activity timestamp
+    const updateActivity = () => {
+      const now = Date.now();
+      storage.setItem('lastActivity', now.toString());
+    };
+
+    // Check for session timeout
+    const checkTimeout = () => {
+      const lastActivity = storage.getItem('lastActivity');
+      if (!lastActivity) {
+        updateActivity();
+        return;
+      }
+
+      const timeSinceLastActivity = Date.now() - parseInt(lastActivity, 10);
+      if (timeSinceLastActivity >= SESSION_TIMEOUT) {
+        console.log('[AuthProvider] Session timeout - logging out due to inactivity');
+        void logout();
+      }
+    };
+
+    // Initialize last activity on mount
+    updateActivity();
+
+    // Activity event listeners
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity);
+    });
+
+    // Check for timeout every minute
+    const timeoutCheckInterval = setInterval(checkTimeout, 60 * 1000);
+
+    // Cleanup
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity);
+      });
+      clearInterval(timeoutCheckInterval);
+    };
+  }, [user, logout, SESSION_TIMEOUT, lastActivityRef]);
+
   const login = useCallback(
     async ({ email, password }: LoginCredentials) => {
       console.log("[AuthProvider] Starting login...");
@@ -194,6 +253,12 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     setUser(null);
     setIsLoading(false);
 
+    // Clear last activity timestamp
+    const storage = lastActivityRef();
+    if (storage) {
+      storage.removeItem('lastActivity');
+    }
+
     try {
       // Ask Supabase to invalidate the session; ignore benign "missing session" errors.
       const { error } = await supabase.auth.signOut();
@@ -210,7 +275,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     // Route the user back to the login page and trigger a refresh to ensure stale data is cleared.
     router.replace("/login");
     router.refresh();
-  }, [router, supabase]);
+  }, [router, supabase, lastActivityRef]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

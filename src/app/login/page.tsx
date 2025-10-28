@@ -15,8 +15,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Note: We intentionally don't auto-redirect on isAuthenticated to prevent
-  // redirect loops. The redirect only happens after successful login in handleSubmit.
+  // Auto-redirect if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log("[LoginPage] User already authenticated, redirecting to:", redirectPath);
+      router.replace(redirectPath);
+    }
+  }, [isLoading, isAuthenticated, redirectPath, router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,7 +46,10 @@ export default function LoginPage() {
       // After successful login, redirect to the destination page
       // The login function has already synced the session with the server
       console.log("[LoginPage] Redirecting to:", redirectPath);
-      router.replace(redirectPath);
+
+      // Use window.location.href for more reliable navigation after login
+      // This ensures the page fully reloads with the new auth state
+      window.location.href = redirectPath;
 
       // Note: Keep isSubmitting true to prevent double submission
       // The page will navigate away momentarily
