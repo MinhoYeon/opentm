@@ -152,6 +152,78 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
     };
   }, [supabase, syncSessionWithServer]);
 
+  const logout = useCallback(async () => {
+    // Immediately clear the local auth state so the UI reflects the logged-out status.
+    setSession(null);
+    setUser(null);
+    setIsLoading(false);
+
+    // Clear last activity timestamp
+    const storage = lastActivityRef();
+    if (storage) {
+      storage.removeItem('lastActivity');
+    }
+
+    try {
+      // Ask Supabase to invalidate the session; ignore benign "missing session" errors.
+      const { error } = await supabase.auth.signOut();
+      const lowerMessage = error?.message?.toLowerCase?.() ?? "";
+      if (error && !lowerMessage.includes("auth session missing")) {
+        // Non-benign error: still continue but log for debugging
+        console.warn("supabase.auth.signOut returned error", error);
+      }
+    } catch (err) {
+      // Ignore; proceed to clear server cookie
+      console.warn("Client signOut threw", err);
+    }
+
+    // Route the user back to the login page and trigger a refresh to ensure stale data is cleared.
+    router.replace("/login");
+    router.refresh();
+  }, [router, supabase, lastActivityRef]);
+
+  const login = useCallback(
+    async ({ email, password }: LoginCredentials) => {
+      console.log("[AuthProvider] Starting login...");
+      // Attempt to authenticate the user with the provided credentials using Supabase.
+      const response = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (response.error) {
+        console.error("[AuthProvider] Login failed:", response.error);
+        // Propagate the error so that the caller can handle the failure state.
+        throw response.error;
+      }
+
+      console.log("[AuthProvider] Login successful, session received");
+
+      if (response.data.session && response.data.user) {
+        try {
+          // IMPORTANT: Sync session with server BEFORE updating local state
+          // This ensures server-side cookies are set before any navigation occurs
+          console.log("[AuthProvider] Syncing session with server...");
+          await syncSessionWithServer("SIGNED_IN", response.data.session);
+          console.log("[AuthProvider] Session synced with server");
+        } catch (error) {
+          console.error("[AuthProvider] Failed to sync session after login", error);
+          // If cookie sync fails, throw to prevent navigation with incomplete auth state
+          throw new Error("세션 동기화에 실패했습니다. 다시 시도해 주세요.");
+        }
+
+        // Only update local state after server cookies are successfully set
+        // This prevents race conditions where navigation happens before cookies are ready
+        setSession(response.data.session);
+        setUser(response.data.user);
+        console.log("[AuthProvider] Session and user state updated");
+      }
+
+      return response;
+    },
+    [supabase, syncSessionWithServer]
+  );
+
   // Session timeout: auto-logout after 30 minutes of inactivity
   useEffect(() => {
     if (!user || typeof window === 'undefined') {
@@ -204,78 +276,6 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       clearInterval(timeoutCheckInterval);
     };
   }, [user, logout, SESSION_TIMEOUT, lastActivityRef]);
-
-  const login = useCallback(
-    async ({ email, password }: LoginCredentials) => {
-      console.log("[AuthProvider] Starting login...");
-      // Attempt to authenticate the user with the provided credentials using Supabase.
-      const response = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (response.error) {
-        console.error("[AuthProvider] Login failed:", response.error);
-        // Propagate the error so that the caller can handle the failure state.
-        throw response.error;
-      }
-
-      console.log("[AuthProvider] Login successful, session received");
-
-      if (response.data.session && response.data.user) {
-        try {
-          // IMPORTANT: Sync session with server BEFORE updating local state
-          // This ensures server-side cookies are set before any navigation occurs
-          console.log("[AuthProvider] Syncing session with server...");
-          await syncSessionWithServer("SIGNED_IN", response.data.session);
-          console.log("[AuthProvider] Session synced with server");
-        } catch (error) {
-          console.error("[AuthProvider] Failed to sync session after login", error);
-          // If cookie sync fails, throw to prevent navigation with incomplete auth state
-          throw new Error("세션 동기화에 실패했습니다. 다시 시도해 주세요.");
-        }
-
-        // Only update local state after server cookies are successfully set
-        // This prevents race conditions where navigation happens before cookies are ready
-        setSession(response.data.session);
-        setUser(response.data.user);
-        console.log("[AuthProvider] Session and user state updated");
-      }
-
-      return response;
-    },
-    [supabase, syncSessionWithServer]
-  );
-
-  const logout = useCallback(async () => {
-    // Immediately clear the local auth state so the UI reflects the logged-out status.
-    setSession(null);
-    setUser(null);
-    setIsLoading(false);
-
-    // Clear last activity timestamp
-    const storage = lastActivityRef();
-    if (storage) {
-      storage.removeItem('lastActivity');
-    }
-
-    try {
-      // Ask Supabase to invalidate the session; ignore benign "missing session" errors.
-      const { error } = await supabase.auth.signOut();
-      const lowerMessage = error?.message?.toLowerCase?.() ?? "";
-      if (error && !lowerMessage.includes("auth session missing")) {
-        // Non-benign error: still continue but log for debugging
-        console.warn("supabase.auth.signOut returned error", error);
-      }
-    } catch (err) {
-      // Ignore; proceed to clear server cookie
-      console.warn("Client signOut threw", err);
-    }
-
-    // Route the user back to the login page and trigger a refresh to ensure stale data is cleared.
-    router.replace("/login");
-    router.refresh();
-  }, [router, supabase, lastActivityRef]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
