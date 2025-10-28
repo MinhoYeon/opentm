@@ -129,6 +129,7 @@ function buildHeaderStats(summary: StatusSummary[], totalCount: number): HeaderS
 }
 
 type FilterSidebarProps = {
+  admin: AdminUserSummary;
   filters: AdminDashboardFilters;
   statusOptions: StatusOption[];
   onApply: (filters: AdminDashboardFilters) => void;
@@ -136,7 +137,7 @@ type FilterSidebarProps = {
   savedFilters?: SavedFilter[];
 };
 
-function FilterSidebar({ filters, statusOptions, onApply, onReset, savedFilters }: FilterSidebarProps) {
+function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedFilters }: FilterSidebarProps) {
   const [localFilters, setLocalFilters] = useState<AdminDashboardFilters>(filters);
   const [selectedSavedFilter, setSelectedSavedFilter] = useState<string | null>(null);
 
@@ -201,6 +202,12 @@ function FilterSidebar({ filters, statusOptions, onApply, onReset, savedFilters 
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="text-xs text-slate-500">접속 중</div>
+        <div className="mt-1 text-sm font-semibold text-slate-900">{admin.name ?? admin.email ?? "관리자"}</div>
+        <div className="text-xs text-slate-500">역할: {admin.role}</div>
+      </div>
+
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-900">필터</h2>
         <p className="text-xs text-slate-600">상태, 결제, 담당자 조건을 조합해 필요한 신청만 모아보세요.</p>
@@ -564,8 +571,11 @@ function ApplicationsTable({
               })}
               {applications.length === 0 && !isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={8}>
-                    조건에 맞는 신청이 없습니다. 필터를 조정해 보세요.
+                  <td className="px-4 py-12 text-center" colSpan={8}>
+                    <div className="text-sm text-slate-600">조건에 맞는 신청이 없습니다.</div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      필터를 조정해 보거나, 데이터베이스에 상표등록 신청 데이터가 있는지 확인해주세요.
+                    </div>
                   </td>
                 </tr>
               ) : null}
@@ -690,12 +700,6 @@ function UtilityRail({ admin, selectedCount, capabilities, onBulkAction, activit
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="text-xs text-slate-500">접속 중</div>
-        <div className="mt-1 text-sm font-semibold text-slate-900">{admin.name ?? admin.email ?? "관리자"}</div>
-        <div className="text-xs text-slate-500">역할: {admin.role}</div>
-      </div>
-
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-slate-900">퀵 액션</h3>
         <div className="space-y-2">
@@ -1254,6 +1258,7 @@ export default function AdminTrademarkDashboardClient({
     <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-80 border-r border-slate-200 bg-white/80 backdrop-blur md:block">
         <FilterSidebar
+          admin={admin}
           filters={filters}
           statusOptions={statusOptions}
           onApply={applyFilters}
@@ -1262,7 +1267,7 @@ export default function AdminTrademarkDashboardClient({
         />
       </aside>
       <main className="flex min-h-screen flex-1 flex-col">
-        <header className="border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
+        <header className="border-b border-slate-200 bg-white py-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
@@ -1290,7 +1295,7 @@ export default function AdminTrademarkDashboardClient({
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          <section className="flex-1 overflow-y-auto px-6 py-6">
+          <section className="flex-1 overflow-y-auto py-6">
             <ApplicationsTable
               applications={applications}
               pagination={pagination}
