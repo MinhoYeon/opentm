@@ -182,6 +182,7 @@ export async function submitTrademarkRequest(
   const submittedAt = new Date().toISOString();
 
   try {
+    // 1. trademark_requests에 저장
     const { error: insertError } = await admin
       .from("trademark_requests")
       .insert({
@@ -203,6 +204,46 @@ export async function submitTrademarkRequest(
       .single();
     if (insertError) {
       throw insertError;
+    }
+
+    // 2. 자동으로 trademark_applications 생성 (관리자 페이지에서 바로 보이도록)
+    const { data: application, error: appError } = await admin
+      .from("trademark_applications")
+      .insert({
+        request_id: requestId,
+        user_id: input.userId ?? null,
+        brand_name: input.brandName.trim(),
+        trademark_type: input.trademarkType,
+        product_classes: input.productClasses,
+        goods_description: input.additionalNotes?.trim() || null,
+        status: "awaiting_payment",
+        status_detail: "결제 대기 중입니다.",
+        status_updated_at: submittedAt,
+        payment_amount: 350000, // 기본 금액 (관리자가 나중에 수정 가능)
+        payment_currency: "KRW",
+        payment_due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7일 후
+        metadata: {
+          auto_created: true,
+          source: "user_submission",
+          image_url: imageUrl,
+        },
+      })
+      .select()
+      .single();
+
+    if (appError) {
+      console.error("Failed to auto-create trademark application:", appError);
+      // trademark_requests는 이미 생성되었으므로 에러를 던지지 않고 계속 진행
+    } else if (application) {
+      // 상태 로그 생성
+      await admin.from("trademark_status_logs").insert({
+        application_id: application.id,
+        from_status: null,
+        to_status: application.status,
+        changed_by: input.userId ?? null,
+        note: "신청서 자동 승인",
+        metadata: { auto_approved: true },
+      });
     }
   } catch (error) {
     const message =

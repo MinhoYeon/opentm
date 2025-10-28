@@ -421,6 +421,7 @@ type ApplicationsTableProps = {
   isLoading?: boolean;
   error?: string | null;
   onRefresh: () => void;
+  onUnapprove?: (application: AdminTrademarkApplication) => void;
 };
 
 function ApplicationsTable({
@@ -434,6 +435,7 @@ function ApplicationsTable({
   isLoading,
   error,
   onRefresh,
+  onUnapprove,
 }: ApplicationsTableProps) {
   const allSelected = applications.length > 0 && applications.every((app) => selectedIds.includes(app.id));
 
@@ -496,6 +498,11 @@ function ApplicationsTable({
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   최근 업데이트
                 </th>
+                {onUnapprove ? (
+                  <th className="w-32 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    작업
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -566,12 +573,32 @@ function ApplicationsTable({
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {formatDateTime(application.lastTouchedAt ?? application.updatedAt)}
                     </td>
+                    {onUnapprove && application.metadata?.auto_created ? (
+                      <td className="px-4 py-3 text-center" onClick={(event) => event.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (confirm(`${application.brandName} 출원을 승인 해제하시겠습니까?`)) {
+                              onUnapprove(application);
+                            }
+                          }}
+                          className="rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                        >
+                          승인 해제
+                        </button>
+                      </td>
+                    ) : onUnapprove ? (
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs text-slate-400">-</span>
+                      </td>
+                    ) : null}
                   </tr>
                 );
               })}
               {applications.length === 0 && !isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={8}>
+                  <td className="px-4 py-12 text-center" colSpan={onUnapprove ? 9 : 8}>
                     <div className="text-sm text-slate-600">조건에 맞는 신청이 없습니다.</div>
                     <div className="mt-2 text-xs text-slate-500">
                       필터를 조정해 보거나, 데이터베이스에 상표등록 신청 데이터가 있는지 확인해주세요.
@@ -581,7 +608,7 @@ function ApplicationsTable({
               ) : null}
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={8}>
+                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={onUnapprove ? 9 : 8}>
                     데이터를 불러오는 중입니다...
                   </td>
                 </tr>
@@ -1195,6 +1222,7 @@ export default function AdminTrademarkDashboardClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeApplication, setActiveApplication] = useState<AdminTrademarkApplication | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"applications" | "requests">("applications");
 
   useEffect(() => {
     setSelectedIds([]);
@@ -1254,6 +1282,28 @@ export default function AdminTrademarkDashboardClient({
     [updateFilters]
   );
 
+  const handleUnapprove = useCallback(
+    async (application: AdminTrademarkApplication) => {
+      try {
+        const response = await fetch(`/api/admin/trademark-applications/${application.id}/unapprove`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const json = await response.json();
+          throw new Error(json.error || "승인 해제에 실패했습니다.");
+        }
+
+        alert(`${application.brandName} 출원이 승인 해제되었습니다.`);
+        refresh();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "승인 해제 중 오류가 발생했습니다.";
+        alert(message);
+      }
+    },
+    [refresh]
+  );
+
   return (
     <div className="flex min-h-screen w-full bg-slate-50">
       <aside className="hidden w-80 border-r border-slate-200 bg-white/80 backdrop-blur md:block">
@@ -1271,7 +1321,32 @@ export default function AdminTrademarkDashboardClient({
           <div className="flex flex-wrap items-center justify-between gap-4 px-6">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
-              <p className="text-sm text-slate-600">필터, 상태 변경, 결제 확인을 한 화면에서 처리하세요.</p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("applications")}
+                  className={classNames(
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition",
+                    activeTab === "applications"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  출원 관리
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("requests")}
+                  className={classNames(
+                    "rounded-full px-4 py-1.5 text-sm font-medium transition",
+                    activeTab === "requests"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  신청서 대기
+                </button>
+              </div>
             </div>
             {admin.capabilities.canCreateManualEntry ? (
               <button className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
@@ -1296,18 +1371,32 @@ export default function AdminTrademarkDashboardClient({
 
         <div className="flex flex-1 overflow-hidden">
           <section className="flex-1 overflow-y-auto px-6 py-6">
-            <ApplicationsTable
-              applications={applications}
-              pagination={pagination}
-              selectedIds={selectedIds}
-              onToggleRow={handleToggleRow}
-              onToggleAll={handleToggleAll}
-              onSelectApplication={handleSelectApplication}
-              onPageChange={goToPage}
-              isLoading={isLoading}
-              error={error}
-              onRefresh={refresh}
-            />
+            {activeTab === "applications" ? (
+              <ApplicationsTable
+                applications={applications}
+                pagination={pagination}
+                selectedIds={selectedIds}
+                onToggleRow={handleToggleRow}
+                onToggleAll={handleToggleAll}
+                onSelectApplication={handleSelectApplication}
+                onPageChange={goToPage}
+                isLoading={isLoading}
+                error={error}
+                onRefresh={refresh}
+                onUnapprove={handleUnapprove}
+              />
+            ) : (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+                <h2 className="text-lg font-semibold text-slate-900">신청서 대기 목록</h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  사용자가 제출한 신청서 목록입니다. 승인하면 출원 관리로 이동합니다.
+                </p>
+                <div className="mt-6 text-sm text-slate-500">
+                  <p>현재는 자동 승인으로 설정되어 있어, 사용자가 신청하면 바로 출원 관리 목록에 표시됩니다.</p>
+                  <p className="mt-2">수동 승인/해제 기능은 곧 추가될 예정입니다.</p>
+                </div>
+              </div>
+            )}
           </section>
           <aside className="hidden w-80 border-l border-slate-200 bg-white/80 backdrop-blur xl:block">
             <UtilityRail
