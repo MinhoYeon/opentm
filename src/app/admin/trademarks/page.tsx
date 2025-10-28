@@ -196,17 +196,6 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   console.log(`Loaded ${rows?.length ?? 0} trademark applications (total: ${count ?? 0})`);
 
-  // Check trademark_requests table if applications is empty
-  if (!rows || rows.length === 0) {
-    console.log("No trademark applications found, checking trademark_requests...");
-    const { data: requests, count: requestCount } = await supabase
-      .from("trademark_requests")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .limit(5);
-    console.log(`Found ${requestCount ?? 0} trademark requests. Sample:`, requests?.slice(0, 2));
-  }
-
   const applications: AdminTrademarkApplication[] = (rows ?? []).map((row) =>
     normalizeTrademarkApplication(row as Record<string, unknown>)
   );

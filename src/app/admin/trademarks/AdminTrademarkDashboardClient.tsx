@@ -1255,7 +1255,7 @@ export default function AdminTrademarkDashboardClient({
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-80 border-r border-slate-200 bg-white/80 backdrop-blur md:block">
         <FilterSidebar
           admin={admin}
