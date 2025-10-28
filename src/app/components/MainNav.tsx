@@ -16,6 +16,7 @@ const baseNavItems = [
 export function MainNav() {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout, user } = useAuth();
+  const isAdminPage = pathname.startsWith("/admin");
 
   const navItems = baseNavItems.map((item) => {
     const isRestricted = item.requiresAuth && !isAuthenticated;
@@ -35,7 +36,7 @@ export function MainNav() {
 
   return (
     <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-50">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:py-4">
+      <nav className={`mx-auto flex w-full items-center justify-between gap-4 px-4 py-3 sm:py-4 ${isAdminPage ? "" : "max-w-5xl"}`}>
         <Link href="/" className="text-lg font-semibold text-slate-900">
           오픈 상표
         </Link>
