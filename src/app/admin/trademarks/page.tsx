@@ -199,17 +199,11 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   let statusSummary: StatusSummary[] = [];
   try {
-    const { data: statusRows } = await supabase
+    const { data: allApplications } = await supabase
       .from("trademark_applications")
-      .select("status, count:id")
-      .group("status");
-    if (Array.isArray(statusRows)) {
-      statusSummary = statusRows.map((row) => ({
-        status: (typeof row.status === "string" && isTrademarkStatus(row.status)
-          ? row.status
-          : "draft") as StatusSummary["status"],
-        count: typeof row.count === "number" ? row.count : 0,
-      }));
+      .select("status");
+    if (allApplications) {
+      statusSummary = createStatusSummary(allApplications as AdminTrademarkApplication[]);
     }
   } catch (statusError) {
     console.warn("Failed to load status summary", statusError);
