@@ -130,9 +130,17 @@ async function upsertAdminSession(session: SupabaseSession): Promise<AdminSessio
       .single();
 
     if (insertError || !inserted) {
+      console.error("Failed to insert admin session:", {
+        error: insertError,
+        payload: insertPayload,
+        userId: session.user.id,
+        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      });
       throw new ApiError("관리자 세션을 생성하지 못했습니다.", {
         status: 500,
-        details: insertError?.message,
+        details: insertError
+          ? `${insertError.message} (code: ${insertError.code || "unknown"})`
+          : "No data returned from insert",
       });
     }
 
