@@ -1268,7 +1268,7 @@ export default function AdminTrademarkDashboardClient({
       </aside>
       <main className="flex min-h-screen flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white py-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-6">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
               <p className="text-sm text-slate-600">필터, 상태 변경, 결제 확인을 한 화면에서 처리하세요.</p>
@@ -1279,7 +1279,7 @@ export default function AdminTrademarkDashboardClient({
               </button>
             ) : null}
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid gap-3 px-6 md:grid-cols-2 xl:grid-cols-4">
             {headerStats.map((stat) => (
               <div key={stat.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-xs text-slate-500">{stat.label}</div>
@@ -1295,7 +1295,7 @@ export default function AdminTrademarkDashboardClient({
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          <section className="flex-1 overflow-y-auto py-6">
+          <section className="flex-1 overflow-y-auto px-6 py-6">
             <ApplicationsTable
               applications={applications}
               pagination={pagination}
