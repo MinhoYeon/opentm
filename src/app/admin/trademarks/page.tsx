@@ -9,7 +9,7 @@ import {
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import { requireAdminContext } from "@/lib/api/auth";
-import { createServerClient } from "@/lib/supabaseServerClient";
+import { createAdminClient } from "@/lib/supabaseAdminClient";
 import { TRADEMARK_STATUSES, isTrademarkStatus } from "@/lib/trademarks/status";
 
 function isPromise<T>(value: unknown): value is Promise<T> {
@@ -141,7 +141,7 @@ type PageProps = {
 
 export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   const { context: adminContext, session } = await requireAdminContext();
-  const supabase = createServerClient();
+  const supabase = createAdminClient();
 
   const sp = isPromise<PageSearchParams>(searchParams)
     ? await searchParams
@@ -190,8 +190,11 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   const { data: rows, count, error: listError } = await query;
 
   if (listError) {
+    console.error("Failed to fetch trademark applications:", listError);
     throw listError;
   }
+
+  console.log(`Loaded ${rows?.length ?? 0} trademark applications (total: ${count ?? 0})`);
 
   const applications: AdminTrademarkApplication[] = (rows ?? []).map((row) =>
     normalizeTrademarkApplication(row as Record<string, unknown>)
