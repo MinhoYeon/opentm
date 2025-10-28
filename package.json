@@ -10,7 +10,8 @@
     "test:status-transitions": "node --test tests/status-transition.test.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
-    "set-admin": "tsx scripts/set-admin-role.ts"
+    "set-admin": "tsx scripts/set-admin-role.ts",
+    "check-admin-sessions": "tsx scripts/check-admin-sessions.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
