@@ -1835,11 +1835,19 @@ export default function AdminTrademarkDashboardClient({
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
               <p className="mt-1 text-sm text-slate-600">모든 상표등록 신청서를 확인하고 승인/해제할 수 있습니다.</p>
             </div>
-            {admin.capabilities.canCreateManualEntry ? (
-              <button className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
-                수동 신청 등록
-              </button>
-            ) : null}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/admin/stats"
+                className="rounded-full border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100"
+              >
+                📊 통계 및 리포트
+              </Link>
+              {admin.capabilities.canCreateManualEntry ? (
+                <button className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                  수동 신청 등록
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {headerStats.map((stat) => (
