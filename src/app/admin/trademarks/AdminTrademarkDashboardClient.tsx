@@ -13,6 +13,7 @@ import {
   type SavedFilter,
   type StatusSummary,
   type UnifiedTrademarkItem,
+  type DashboardStats,
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
@@ -45,6 +46,7 @@ type AdminTrademarkDashboardClientProps = {
   statusOptions: StatusOption[];
   recentActivity: AdminActivityLog[];
   savedFilters?: SavedFilter[];
+  dashboardStats: DashboardStats;
 };
 
 type HeaderStat = {
@@ -1676,6 +1678,7 @@ export default function AdminTrademarkDashboardClient({
   statusOptions,
   recentActivity,
   savedFilters,
+  dashboardStats,
 }: AdminTrademarkDashboardClientProps) {
   const [unifiedItems, setUnifiedItems] = useState<UnifiedTrademarkItem[]>(initialUnifiedItems);
   const [pagination, setPagination] = useState<AdminDashboardPagination>(initialPagination);
@@ -1850,6 +1853,40 @@ export default function AdminTrademarkDashboardClient({
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* 결제 통계 위젯 */}
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-xs text-slate-500">총 청구 금액</div>
+              <div className="mt-1 text-xl font-semibold text-slate-900">
+                {formatCurrency(dashboardStats.payments.totalAmount)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+              <div className="text-xs text-emerald-600">입금 완료</div>
+              <div className="mt-1 text-xl font-semibold text-emerald-700">
+                {formatCurrency(dashboardStats.payments.totalPaid)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
+              <div className="text-xs text-amber-600">미수금</div>
+              <div className="mt-1 text-xl font-semibold text-amber-700">
+                {formatCurrency(dashboardStats.payments.totalUnpaid)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 shadow-sm">
+              <div className="text-xs text-rose-600">연체</div>
+              <div className="mt-1 text-xl font-semibold text-rose-700">
+                {dashboardStats.payments.overdueCount}건
+              </div>
+            </div>
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 shadow-sm">
+              <div className="text-xs text-indigo-600">환불 요청</div>
+              <div className="mt-1 text-xl font-semibold text-indigo-700">
+                {dashboardStats.payments.refundRequestedCount}건
+              </div>
+            </div>
           </div>
         </header>
 

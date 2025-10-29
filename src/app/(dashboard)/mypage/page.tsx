@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import MyPageClient from "./MyPageClient";
-import type { ApplicantSummary, TrademarkRequest } from "./types";
+import type { ApplicantSummary, TrademarkRequest, UserDashboardStats } from "./types";
 import { normalizeTrademarkRequest } from "./utils/normalizeTrademarkRequest";
 import { createServerClient } from "@/lib/supabaseServerClient";
 import { listApplicants } from "@/server/db/applicants";
@@ -185,6 +185,23 @@ export default async function MyPage({ searchParams }: PageProps) {
     name: displayName,
   };
 
+  // 사용자 대시보드 통계 계산
+  const stats: UserDashboardStats = {
+    totalRequests: submissions.length,
+    inProgress: submissions.filter((s) =>
+      !["completed", "registered", "rejected", "cancelled"].includes(s.status)
+    ).length,
+    completed: submissions.filter((s) =>
+      ["completed", "registered"].includes(s.status)
+    ).length,
+    pendingActions: submissions.filter((s) =>
+      ["awaiting_documents", "awaiting_client_signature", "awaiting_client_response"].includes(s.status)
+    ).length,
+    awaitingPayment: submissions.filter((s) =>
+      ["awaiting_payment", "awaiting_registration_fee"].includes(s.status)
+    ).length,
+  };
+
   return (
     <MyPageClient
       user={userInfo}
@@ -193,6 +210,7 @@ export default async function MyPage({ searchParams }: PageProps) {
       processSteps={processSteps}
       applicant={applicant}
       applicants={applicants}
+      stats={stats}
     />
   );
 }

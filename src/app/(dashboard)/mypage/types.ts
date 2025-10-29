@@ -44,3 +44,11 @@ export type ApplicantSummary = {
   businessNo?: string | null;
   requestId?: string | null;
 };
+
+export type UserDashboardStats = {
+  totalRequests: number;
+  inProgress: number;
+  completed: number;
+  pendingActions: number;
+  awaitingPayment: number;
+};

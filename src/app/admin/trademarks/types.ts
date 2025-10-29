@@ -164,3 +164,17 @@ export type UnifiedTrademarkItem = {
   isApproved: boolean;
 };
 
+// 대시보드 위젯 통계
+export type DashboardStats = {
+  totalRequests: number;
+  pendingApproval: number;
+  approved: number;
+  payments: {
+    totalAmount: number;
+    totalPaid: number;
+    totalUnpaid: number;
+    overdueCount: number;
+    refundRequestedCount: number;
+  };
+};
+

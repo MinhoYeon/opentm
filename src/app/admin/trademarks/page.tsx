@@ -8,6 +8,7 @@ import {
   type StatusSummary,
   type AdminUserSummary,
   type UnifiedTrademarkItem,
+  type DashboardStats,
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import { requireAdminContext } from "@/lib/api/auth";
@@ -265,6 +266,73 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   const statusOptions = resolveStatusOptions();
 
+  // 결제 통계 계산
+  let dashboardStats: DashboardStats = {
+    totalRequests: totalCount,
+    pendingApproval: requests.filter((r) => r.status === "submitted").length,
+    approved: applications.length,
+    payments: {
+      totalAmount: 0,
+      totalPaid: 0,
+      totalUnpaid: 0,
+      overdueCount: 0,
+      refundRequestedCount: 0,
+    },
+  };
+
+  try {
+    const { data: paymentsRows } = await supabase
+      .from("trademark_payments")
+      .select("payment_status, amount, paid_amount, due_at");
+
+    if (paymentsRows && paymentsRows.length > 0) {
+      let totalAmount = 0;
+      let totalPaid = 0;
+      let totalUnpaid = 0;
+      let overdueCount = 0;
+      let refundRequestedCount = 0;
+
+      const now = new Date();
+
+      for (const payment of paymentsRows) {
+        const amount = typeof payment.amount === "number" ? payment.amount : 0;
+        const paidAmount = typeof payment.paid_amount === "number" ? payment.paid_amount : 0;
+        const status = payment.payment_status as string;
+        const dueAt = payment.due_at ? new Date(payment.due_at as string) : null;
+
+        totalAmount += amount;
+        totalPaid += paidAmount;
+
+        if (status === "paid") {
+          // 완납된 경우
+        } else if (status === "refund_requested" || status === "refunded") {
+          refundRequestedCount += 1;
+        } else {
+          // 미납 금액 계산
+          const unpaidAmount = amount - paidAmount;
+          if (unpaidAmount > 0) {
+            totalUnpaid += unpaidAmount;
+          }
+
+          // 연체 확인
+          if (status === "overdue" || (dueAt && dueAt < now && status !== "paid")) {
+            overdueCount += 1;
+          }
+        }
+      }
+
+      dashboardStats.payments = {
+        totalAmount,
+        totalPaid,
+        totalUnpaid,
+        overdueCount,
+        refundRequestedCount,
+      };
+    }
+  } catch (paymentsError) {
+    console.warn("Failed to load payment statistics", paymentsError);
+  }
+
   const adminUser: AdminUserSummary = {
     id: session.user.id,
     email: session.user.email ?? null,
@@ -286,6 +354,7 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
       statusOptions={statusOptions}
       recentActivity={recentActivity}
       savedFilters={savedFilters}
+      dashboardStats={dashboardStats}
     />
   );
 }
