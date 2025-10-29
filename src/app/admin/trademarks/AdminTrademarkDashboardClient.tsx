@@ -10,13 +10,10 @@ import {
   type AdminTrademarkApplication,
   type AdminTrademarkRequest,
   type AdminUserSummary,
-  type RequestsFilters,
-  type RequestsPagination,
   type SavedFilter,
   type StatusSummary,
+  type UnifiedTrademarkItem,
 } from "./types";
-import { useAdminTrademarkApplications } from "./hooks/useAdminTrademarkApplications";
-import { useAdminTrademarkRequests } from "./hooks/useAdminTrademarkRequests";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
 import { TRADEMARK_STATUS_VALUES } from "@/types/status";
@@ -38,16 +35,13 @@ type StatusOption = {
 
 type AdminTrademarkDashboardClientProps = {
   admin: AdminUserSummary;
-  initialApplications: AdminTrademarkApplication[];
+  initialUnifiedItems: UnifiedTrademarkItem[];
   initialPagination: AdminDashboardPagination;
   initialStatusSummary: StatusSummary[];
   initialFilters: AdminDashboardFilters;
   statusOptions: StatusOption[];
   recentActivity: AdminActivityLog[];
   savedFilters?: SavedFilter[];
-  initialRequests: AdminTrademarkRequest[];
-  initialRequestsPagination: RequestsPagination;
-  initialRequestsFilters: RequestsFilters;
 };
 
 type HeaderStat = {
@@ -616,6 +610,251 @@ function ApplicationsTable({
               {isLoading ? (
                 <tr>
                   <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={onUnapprove ? 9 : 8}>
+                    데이터를 불러오는 중입니다...
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
+          <div>
+            총 {pagination.totalCount.toLocaleString()}건 / 페이지당 {pagination.pageSize}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
+              className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+              disabled={pagination.page <= 1}
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onPageChange(
+                  Math.min(Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)), pagination.page + 1)
+                )
+              }
+              className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+              disabled={pagination.page >= Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))}
+            >
+              다음
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type UnifiedTableProps = {
+  items: UnifiedTrademarkItem[];
+  pagination: AdminDashboardPagination;
+  selectedIds: string[];
+  onToggleRow: (id: string) => void;
+  onToggleAll: () => void;
+  onPageChange: (page: number) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  onRefresh: () => void;
+  onApprove: (item: UnifiedTrademarkItem) => void;
+  onUnapprove: (item: UnifiedTrademarkItem) => void;
+  onSelectApplication?: (application: AdminTrademarkApplication) => void;
+};
+
+function UnifiedTable({
+  items,
+  pagination,
+  selectedIds,
+  onToggleRow,
+  onToggleAll,
+  onPageChange,
+  isLoading,
+  error,
+  onRefresh,
+  onApprove,
+  onUnapprove,
+  onSelectApplication,
+}: UnifiedTableProps) {
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.request.id));
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-";
+    try {
+      return new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">상표 신청 목록</h2>
+          <p className="text-xs text-slate-600">
+            총 {items.length}건 (승인됨: {items.filter(i => i.isApproved).length}, 대기중: {items.filter(i => !i.isApproved).length})
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+          >
+            새로고침
+          </button>
+          <div className="text-xs text-slate-500">
+            페이지 {pagination.page} / {Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))}
+          </div>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+      ) : null}
+
+      <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-[70vh] overflow-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="sticky top-0 z-10 bg-white">
+              <tr>
+                <th className="w-12 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={onToggleAll}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상표명
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상표 유형
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상품류
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  담당자 이메일
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  제출일
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상태
+                </th>
+                <th className="w-32 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  작업
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {items.map((item) => {
+                const selected = selectedIds.includes(item.request.id);
+                return (
+                  <tr
+                    key={item.request.id}
+                    className={classNames(
+                      "cursor-pointer bg-white transition hover:bg-indigo-50",
+                      selected ? "bg-indigo-50" : ""
+                    )}
+                    onClick={() => item.application && onSelectApplication?.(item.application)}
+                  >
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => onToggleRow(item.request.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-medium text-slate-900">{item.request.brand_name}</div>
+                      {item.request.additional_notes ? (
+                        <div className="text-xs text-slate-500">{item.request.additional_notes.slice(0, 50)}...</div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {item.request.trademark_type === "word"
+                        ? "문자"
+                        : item.request.trademark_type === "logo"
+                        ? "도형"
+                        : item.request.trademark_type === "combined"
+                        ? "결합"
+                        : item.request.trademark_type || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {item.request.product_classes.length > 0
+                        ? item.request.product_classes.slice(0, 2).join(", ") +
+                          (item.request.product_classes.length > 2 ? ` 외 ${item.request.product_classes.length - 2}` : "")
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{item.request.representative_email}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(item.request.submitted_at)}</td>
+                    <td className="px-4 py-3">
+                      {item.isApproved ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
+                          승인됨
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
+                          승인 대기
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center" onClick={(event) => event.stopPropagation()}>
+                      {item.isApproved ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`${item.request.brand_name} 출원을 승인 해제하시겠습니까?`)) {
+                              onUnapprove(item);
+                            }
+                          }}
+                          className="rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                        >
+                          승인 해제
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`${item.request.brand_name} 신청서를 승인하시겠습니까?`)) {
+                              onApprove(item);
+                            }
+                          }}
+                          className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+                        >
+                          승인
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {items.length === 0 && !isLoading ? (
+                <tr>
+                  <td className="px-4 py-12 text-center" colSpan={8}>
+                    <div className="text-sm text-slate-600">신청서가 없습니다.</div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      사용자가 신청서를 제출하면 이곳에 표시됩니다.
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+              {isLoading ? (
+                <tr>
+                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={8}>
                     데이터를 불러오는 중입니다...
                   </td>
                 </tr>
@@ -1403,55 +1642,28 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
 
 export default function AdminTrademarkDashboardClient({
   admin,
-  initialApplications,
+  initialUnifiedItems,
   initialPagination,
   initialStatusSummary,
   initialFilters,
   statusOptions,
   recentActivity,
   savedFilters,
-  initialRequests,
-  initialRequestsPagination,
-  initialRequestsFilters,
 }: AdminTrademarkDashboardClientProps) {
-  const {
-    applications,
-    pagination,
-    filters,
-    statusSummary,
-    isLoading,
-    error,
-    updateFilters,
-    goToPage,
-    refresh,
-  } = useAdminTrademarkApplications({
-    initialApplications,
-    initialPagination,
-    initialStatusSummary,
-    initialFilters,
-  });
-
-  const {
-    requests,
-    pagination: requestsPagination,
-    isLoading: requestsLoading,
-    error: requestsError,
-    goToPage: goToRequestsPage,
-    refresh: refreshRequests,
-  } = useAdminTrademarkRequests({
-    initialRequests,
-    initialPagination: initialRequestsPagination,
-    initialFilters: initialRequestsFilters,
-  });
+  const [unifiedItems, setUnifiedItems] = useState<UnifiedTrademarkItem[]>(initialUnifiedItems);
+  const [pagination, setPagination] = useState<AdminDashboardPagination>(initialPagination);
+  const [filters, setFilters] = useState<AdminDashboardFilters>(initialFilters);
+  const [statusSummary, setStatusSummary] = useState<StatusSummary[]>(initialStatusSummary);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeApplication, setActiveApplication] = useState<AdminTrademarkApplication | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"applications" | "requests">("applications");
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [applications]);
+  }, [unifiedItems]);
 
   const headerStats = useMemo(
     () => buildHeaderStats(statusSummary, pagination.totalCount),
@@ -1464,18 +1676,46 @@ export default function AdminTrademarkDashboardClient({
 
   const handleToggleAll = useCallback(() => {
     setSelectedIds((prev) => {
-      if (applications.length === 0) {
+      if (unifiedItems.length === 0) {
         return [];
       }
-      const allSelected = applications.every((app) => prev.includes(app.id));
-      return allSelected ? [] : applications.map((app) => app.id);
+      const allSelected = unifiedItems.every((item) => prev.includes(item.request.id));
+      return allSelected ? [] : unifiedItems.map((item) => item.request.id);
     });
-  }, [applications]);
+  }, [unifiedItems]);
 
   const handleSelectApplication = useCallback((application: AdminTrademarkApplication) => {
     setActiveApplication(application);
     setDrawerOpen(true);
   }, []);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // 데이터 새로고침 로직 (API 호출 등)
+      // 여기서는 일단 초기 데이터를 그대로 사용
+      setUnifiedItems(initialUnifiedItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "데이터를 불러올 수 없습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initialUnifiedItems]);
+
+  const updateFilters = useCallback(
+    async (nextFilters: AdminDashboardFilters) => {
+      setFilters(nextFilters);
+      // 필터 적용 로직
+    },
+    []
+  );
+
+  const applyFilters = useCallback(
+    (next: AdminDashboardFilters) => {
+      updateFilters(next);
+    },
+    [updateFilters]
+  );
 
   const handleUpdated = useCallback(
     (updated: AdminTrademarkApplication) => {
@@ -1500,17 +1740,12 @@ export default function AdminTrademarkDashboardClient({
     [selectedIds]
   );
 
-  const applyFilters = useCallback(
-    (next: AdminDashboardFilters) => {
-      updateFilters(next);
-    },
-    [updateFilters]
-  );
-
   const handleUnapprove = useCallback(
-    async (application: AdminTrademarkApplication) => {
+    async (item: UnifiedTrademarkItem) => {
+      if (!item.application) return;
+
       try {
-        const response = await fetch(`/api/admin/trademark-applications/${application.id}/unapprove`, {
+        const response = await fetch(`/api/admin/trademark-applications/${item.application.id}/unapprove`, {
           method: "POST",
         });
 
@@ -1519,21 +1754,20 @@ export default function AdminTrademarkDashboardClient({
           throw new Error(json.error || "승인 해제에 실패했습니다.");
         }
 
-        alert(`${application.brandName} 출원이 승인 해제되었습니다.`);
+        alert(`${item.request.brand_name} 출원이 승인 해제되었습니다.`);
         refresh();
-        refreshRequests();
       } catch (error) {
         const message = error instanceof Error ? error.message : "승인 해제 중 오류가 발생했습니다.";
         alert(message);
       }
     },
-    [refresh, refreshRequests]
+    [refresh]
   );
 
   const handleApprove = useCallback(
-    async (request: AdminTrademarkRequest) => {
+    async (item: UnifiedTrademarkItem) => {
       try {
-        const response = await fetch(`/api/admin/trademark-requests/${request.id}/approve`, {
+        const response = await fetch(`/api/admin/trademark-requests/${item.request.id}/approve`, {
           method: "POST",
         });
 
@@ -1542,15 +1776,14 @@ export default function AdminTrademarkDashboardClient({
           throw new Error(json.error || "승인에 실패했습니다.");
         }
 
-        alert(`${request.brand_name} 신청서가 승인되었습니다.`);
-        refreshRequests();
+        alert(`${item.request.brand_name} 신청서가 승인되었습니다.`);
         refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : "승인 중 오류가 발생했습니다.";
         alert(message);
       }
     },
-    [refresh, refreshRequests]
+    [refresh]
   );
 
   return (
@@ -1570,32 +1803,7 @@ export default function AdminTrademarkDashboardClient({
           <div className="flex flex-wrap items-center justify-between gap-4 px-6">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("applications")}
-                  className={classNames(
-                    "rounded-full px-4 py-1.5 text-sm font-medium transition",
-                    activeTab === "applications"
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  )}
-                >
-                  출원 관리
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("requests")}
-                  className={classNames(
-                    "rounded-full px-4 py-1.5 text-sm font-medium transition",
-                    activeTab === "requests"
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  )}
-                >
-                  신청서 대기
-                </button>
-              </div>
+              <p className="mt-1 text-sm text-slate-600">모든 상표등록 신청서를 확인하고 승인/해제할 수 있습니다.</p>
             </div>
             {admin.capabilities.canCreateManualEntry ? (
               <button className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
@@ -1620,31 +1828,20 @@ export default function AdminTrademarkDashboardClient({
 
         <div className="flex flex-1 overflow-hidden">
           <section className="flex-1 overflow-y-auto px-6 py-6">
-            {activeTab === "applications" ? (
-              <ApplicationsTable
-                applications={applications}
-                pagination={pagination}
-                selectedIds={selectedIds}
-                onToggleRow={handleToggleRow}
-                onToggleAll={handleToggleAll}
-                onSelectApplication={handleSelectApplication}
-                onPageChange={goToPage}
-                isLoading={isLoading}
-                error={error}
-                onRefresh={refresh}
-                onUnapprove={handleUnapprove}
-              />
-            ) : (
-              <RequestsTable
-                requests={requests}
-                pagination={requestsPagination}
-                onPageChange={goToRequestsPage}
-                isLoading={requestsLoading}
-                error={requestsError}
-                onRefresh={refreshRequests}
-                onApprove={handleApprove}
-              />
-            )}
+            <UnifiedTable
+              items={unifiedItems}
+              pagination={pagination}
+              selectedIds={selectedIds}
+              onToggleRow={handleToggleRow}
+              onToggleAll={handleToggleAll}
+              onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+              isLoading={isLoading}
+              error={error}
+              onRefresh={refresh}
+              onApprove={handleApprove}
+              onUnapprove={handleUnapprove}
+              onSelectApplication={handleSelectApplication}
+            />
           </section>
           <aside className="hidden w-80 border-l border-slate-200 bg-white/80 backdrop-blur xl:block">
             <UtilityRail

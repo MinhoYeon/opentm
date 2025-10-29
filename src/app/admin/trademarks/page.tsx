@@ -3,14 +3,16 @@ import {
   type AdminActivityLog,
   type AdminDashboardFilters,
   type AdminTrademarkApplication,
+  type AdminTrademarkRequest,
   type SavedFilter,
   type StatusSummary,
   type AdminUserSummary,
+  type UnifiedTrademarkItem,
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import { requireAdminContext } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
-import { TRADEMARK_STATUSES, isTrademarkStatus } from "@/lib/trademarks/status";
+import { TRADEMARK_STATUSES, isTrademarkStatus, type TrademarkStatus } from "@/lib/trademarks/status";
 
 function isPromise<T>(value: unknown): value is Promise<T> {
   return (
@@ -37,14 +39,6 @@ function toPositiveInteger(value: string | undefined, fallback: number) {
   }
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function createStatusSummary(applications: AdminTrademarkApplication[]): StatusSummary[] {
-  const counts = new Map<string, number>();
-  for (const application of applications) {
-    counts.set(application.status, (counts.get(application.status) ?? 0) + 1);
-  }
-  return Array.from(counts.entries()).map(([status, count]) => ({ status: status as StatusSummary["status"], count }));
 }
 
 export function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
@@ -168,60 +162,71 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     dateRange: null,
   };
 
-  let query = supabase
-    .from("trademark_applications")
+  // 통합 뷰: trademark_requests를 기준으로 데이터 로드
+  let requestsQuery = supabase
+    .from("trademark_requests")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, limit);
 
-  if (statuses.length > 0) {
-    query = query.in("status", statuses);
-  }
-
   if (search) {
     const like = `%${search.replace(/%/g, "").replace(/_/g, "")}%`;
-    query = query.or(`brand_name.ilike.${like},management_number.ilike.${like}`);
+    requestsQuery = requestsQuery.or(`brand_name.ilike.${like},representative_email.ilike.${like}`);
   }
 
-  if (assignedTo) {
-    query = query.eq("assigned_to", assignedTo);
+  const { data: requestsRows, count: requestsCount, error: requestsError } = await requestsQuery;
+
+  if (requestsError) {
+    console.error("Failed to fetch trademark requests:", requestsError);
+    throw requestsError;
   }
 
-  const { data: rows, count, error: listError } = await query;
+  console.log(`Loaded ${requestsRows?.length ?? 0} trademark requests (total: ${requestsCount ?? 0})`);
 
-  if (listError) {
-    console.error("Failed to fetch trademark applications:", listError);
-    throw listError;
+  const requests: AdminTrademarkRequest[] = (requestsRows ?? []) as AdminTrademarkRequest[];
+
+  // trademark_applications 로드 (request_id로 매핑하기 위해)
+  const { data: applicationsRows, error: applicationsError } = await supabase
+    .from("trademark_applications")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (applicationsError) {
+    console.error("Failed to fetch trademark applications:", applicationsError);
   }
 
-  console.log(`Loaded ${rows?.length ?? 0} trademark applications (total: ${count ?? 0})`);
-
-  // Check trademark_requests table if applications is empty
-  if (!rows || rows.length === 0) {
-    console.log("No trademark applications found, checking trademark_requests...");
-    const { data: requests, count: requestCount } = await supabase
-      .from("trademark_requests")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .limit(5);
-    console.log(`Found ${requestCount ?? 0} trademark requests. Sample:`, requests?.slice(0, 2));
-  }
-
-  const applications: AdminTrademarkApplication[] = (rows ?? []).map((row) =>
+  const applications: AdminTrademarkApplication[] = (applicationsRows ?? []).map((row) =>
     normalizeTrademarkApplication(row as Record<string, unknown>)
   );
 
-  let statusSummary: StatusSummary[] = [];
-  try {
-    const { data: allApplications } = await supabase
-      .from("trademark_applications")
-      .select("status");
-    if (allApplications) {
-      statusSummary = createStatusSummary(allApplications as AdminTrademarkApplication[]);
+  // request_id를 키로 하는 맵 생성
+  const applicationsByRequestId = new Map<string, AdminTrademarkApplication>();
+  applications.forEach((app) => {
+    const requestId = app.metadata?.request_id as string | undefined;
+    if (requestId) {
+      applicationsByRequestId.set(requestId, app);
     }
-  } catch (statusError) {
-    console.warn("Failed to load status summary", statusError);
-    statusSummary = createStatusSummary(applications);
+  });
+
+  // 통합 아이템 생성
+  const unifiedItems: UnifiedTrademarkItem[] = requests.map((request) => {
+    const application = applicationsByRequestId.get(request.id) || null;
+    return {
+      request,
+      application,
+      isApproved: application !== null,
+    };
+  });
+
+  // 상태 요약은 이제 requests의 상태 기준으로 생성
+  const statusSummary: StatusSummary[] = [];
+  const statusCounts = new Map<string, number>();
+  requests.forEach((request) => {
+    const status = request.status === "submitted" ? "awaiting_payment" : (request.status as TrademarkStatus);
+    statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+  });
+  for (const [status, count] of statusCounts) {
+    statusSummary.push({ status: status as StatusSummary["status"], count });
   }
 
   let recentActivity: AdminActivityLog[] = [];
@@ -256,7 +261,7 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     (session.user.user_metadata?.saved_filters as unknown);
   const savedFilters = extractSavedFilters(savedFilterSource);
 
-  const totalCount = typeof count === "number" ? count : applications.length;
+  const totalCount = typeof requestsCount === "number" ? requestsCount : requests.length;
 
   const statusOptions = resolveStatusOptions();
 
@@ -271,31 +276,16 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     capabilities: adminContext.capabilities,
   };
 
-  // Load trademark_requests (신청서 대기 목록)
-  const requestsPage = 1;
-  const requestsPageSize = 25;
-  const { data: requestsData, count: requestsCount } = await supabase
-    .from("trademark_requests")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(0, requestsPageSize - 1);
-
-  const initialRequests = requestsData ?? [];
-  const requestsTotalCount = typeof requestsCount === "number" ? requestsCount : initialRequests.length;
-
   return (
     <AdminTrademarkDashboardClient
       admin={adminUser}
-      initialApplications={applications}
+      initialUnifiedItems={unifiedItems}
       initialPagination={{ page, pageSize, totalCount }}
       initialStatusSummary={statusSummary}
       initialFilters={initialFilters}
       statusOptions={statusOptions}
       recentActivity={recentActivity}
       savedFilters={savedFilters}
-      initialRequests={initialRequests}
-      initialRequestsPagination={{ page: requestsPage, pageSize: requestsPageSize, totalCount: requestsTotalCount }}
-      initialRequestsFilters={{}}
     />
   );
 }
