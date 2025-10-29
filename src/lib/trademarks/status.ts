@@ -6,24 +6,38 @@ export const TRADEMARK_STATUSES = TRADEMARK_STATUS_VALUES;
 type TransitionMap = Record<TrademarkStatus, TrademarkStatus[]>;
 
 export const TRADEMARK_STATUS_TRANSITIONS: TransitionMap = {
-  draft: ["awaiting_payment", "awaiting_documents", "preparing_filing", "cancelled"],
-  awaiting_payment: ["payment_received", "awaiting_documents", "preparing_filing", "cancelled"],
-  payment_received: ["awaiting_documents", "preparing_filing", "cancelled"],
+  draft: ["submitted", "awaiting_payment", "cancelled"],
+  submitted: ["awaiting_payment", "cancelled"],
+  awaiting_payment: ["payment_received", "cancelled"],
+  payment_received: ["awaiting_applicant_info", "applicant_info_completed", "preparing_filing", "cancelled"],
+  awaiting_applicant_info: ["applicant_info_completed", "cancelled"],
+  applicant_info_completed: ["preparing_filing", "cancelled"],
   awaiting_documents: ["preparing_filing", "awaiting_client_signature", "cancelled"],
   preparing_filing: ["awaiting_client_signature", "filed", "cancelled"],
   awaiting_client_signature: ["filed", "cancelled"],
-  filed: ["office_action", "awaiting_registration_fee", "completed", "rejected"],
-  office_action: ["awaiting_client_response", "preparing_filing", "completed", "rejected", "cancelled"],
-  awaiting_client_response: ["preparing_filing", "office_action", "cancelled"],
-  awaiting_registration_fee: ["completed", "cancelled"],
+  filed: ["under_examination", "rejected", "withdrawn"],
+  under_examination: ["awaiting_office_action", "publication_announced", "registration_decided", "rejected"],
+  office_action: ["awaiting_office_action", "responding_to_office_action", "rejected", "withdrawn"],
+  awaiting_office_action: ["responding_to_office_action", "withdrawn"],
+  responding_to_office_action: ["under_examination", "publication_announced", "rejected", "withdrawn"],
+  awaiting_client_response: ["responding_to_office_action", "withdrawn"],
+  publication_announced: ["registration_decided", "rejected"],
+  registration_decided: ["awaiting_registration_fee", "withdrawn"],
+  awaiting_registration_fee: ["registration_fee_paid", "withdrawn"],
+  registration_fee_paid: ["registered", "withdrawn"],
   completed: [],
-  rejected: ["awaiting_documents", "preparing_filing", "cancelled"],
+  registered: [],
+  rejected: ["withdrawn"],
   cancelled: [],
+  withdrawn: [],
 };
 
 export const TERMINAL_STATUSES: readonly TrademarkStatus[] = [
   "completed",
+  "registered",
+  "rejected",
   "cancelled",
+  "withdrawn",
 ];
 
 export function isTrademarkStatus(value: unknown): value is TrademarkStatus {
