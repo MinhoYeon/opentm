@@ -157,14 +157,10 @@ export type AdminTrademarkRequest = {
   updated_at?: string | null;
 };
 
-export type RequestsFilters = {
-  status?: string;
-  search?: string;
-};
-
-export type RequestsPagination = {
-  page: number;
-  pageSize: number;
-  totalCount: number;
+// 통합 뷰: trademark_requests와 trademark_applications를 결합한 타입
+export type UnifiedTrademarkItem = {
+  request: AdminTrademarkRequest;
+  application: AdminTrademarkApplication | null;
+  isApproved: boolean;
 };
 
