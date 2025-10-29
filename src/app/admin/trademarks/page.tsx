@@ -260,6 +260,18 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     capabilities: adminContext.capabilities,
   };
 
+  // Load trademark_requests (신청서 대기 목록)
+  const requestsPage = 1;
+  const requestsPageSize = 25;
+  const { data: requestsData, count: requestsCount } = await supabase
+    .from("trademark_requests")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(0, requestsPageSize - 1);
+
+  const initialRequests = requestsData ?? [];
+  const requestsTotalCount = typeof requestsCount === "number" ? requestsCount : initialRequests.length;
+
   return (
     <AdminTrademarkDashboardClient
       admin={adminUser}
@@ -270,6 +282,9 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
       statusOptions={statusOptions}
       recentActivity={recentActivity}
       savedFilters={savedFilters}
+      initialRequests={initialRequests}
+      initialRequestsPagination={{ page: requestsPage, pageSize: requestsPageSize, totalCount: requestsTotalCount }}
+      initialRequestsFilters={{}}
     />
   );
 }

@@ -8,11 +8,15 @@ import {
   type AdminDashboardFilters,
   type AdminDashboardPagination,
   type AdminTrademarkApplication,
+  type AdminTrademarkRequest,
   type AdminUserSummary,
+  type RequestsFilters,
+  type RequestsPagination,
   type SavedFilter,
   type StatusSummary,
 } from "./types";
 import { useAdminTrademarkApplications } from "./hooks/useAdminTrademarkApplications";
+import { useAdminTrademarkRequests } from "./hooks/useAdminTrademarkRequests";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
 import { TRADEMARK_STATUS_VALUES } from "@/types/status";
@@ -41,6 +45,9 @@ type AdminTrademarkDashboardClientProps = {
   statusOptions: StatusOption[];
   recentActivity: AdminActivityLog[];
   savedFilters?: SavedFilter[];
+  initialRequests: AdminTrademarkRequest[];
+  initialRequestsPagination: RequestsPagination;
+  initialRequestsFilters: RequestsFilters;
 };
 
 type HeaderStat = {
@@ -648,6 +655,208 @@ function ApplicationsTable({
   );
 }
 
+type RequestsTableProps = {
+  requests: AdminTrademarkRequest[];
+  pagination: RequestsPagination;
+  onPageChange: (page: number) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  onRefresh: () => void;
+  onApprove: (request: AdminTrademarkRequest) => void;
+};
+
+function RequestsTable({
+  requests,
+  pagination,
+  onPageChange,
+  isLoading,
+  error,
+  onRefresh,
+  onApprove,
+}: RequestsTableProps) {
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-";
+    try {
+      return new Intl.DateTimeFormat("ko-KR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">신청서 대기 목록</h2>
+          <p className="text-xs text-slate-600">사용자가 제출한 신청서 {requests.length}건을 표시합니다.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+          >
+            새로고침
+          </button>
+          <div className="text-xs text-slate-500">
+            페이지 {pagination.page} / {Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))}
+          </div>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+      ) : null}
+
+      <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-[60vh] overflow-auto">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="sticky top-0 z-10 bg-white">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상표명
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상표 유형
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상품류
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  담당자 이메일
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  제출일
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  상태
+                </th>
+                <th className="w-32 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  작업
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {requests.map((request) => (
+                <tr key={request.id} className="bg-white transition hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <div className="text-sm font-medium text-slate-900">{request.brand_name}</div>
+                    {request.additional_notes ? (
+                      <div className="text-xs text-slate-500">{request.additional_notes.slice(0, 50)}...</div>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600">
+                    {request.trademark_type === "word"
+                      ? "문자"
+                      : request.trademark_type === "logo"
+                      ? "도형"
+                      : request.trademark_type === "combined"
+                      ? "결합"
+                      : request.trademark_type || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600">
+                    {request.product_classes.length > 0
+                      ? request.product_classes.slice(0, 2).join(", ") +
+                        (request.product_classes.length > 2 ? ` 외 ${request.product_classes.length - 2}` : "")
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{request.representative_email}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(request.submitted_at)}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={classNames(
+                        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium",
+                        request.status === "submitted"
+                          ? "bg-amber-100 text-amber-700"
+                          : request.status === "approved"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-700"
+                      )}
+                    >
+                      {request.status === "submitted"
+                        ? "승인 대기"
+                        : request.status === "approved"
+                        ? "승인됨"
+                        : request.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {request.status === "submitted" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`${request.brand_name} 신청서를 승인하시겠습니까?`)) {
+                            onApprove(request);
+                          }
+                        }}
+                        className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+                      >
+                        승인
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {requests.length === 0 && !isLoading ? (
+                <tr>
+                  <td className="px-4 py-12 text-center" colSpan={7}>
+                    <div className="text-sm text-slate-600">대기 중인 신청서가 없습니다.</div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      모든 신청서가 자동으로 승인되어 출원 관리 목록으로 이동했습니다.
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+              {isLoading ? (
+                <tr>
+                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={7}>
+                    데이터를 불러오는 중입니다...
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-600">
+          <div>
+            총 {pagination.totalCount.toLocaleString()}건 / 페이지당 {pagination.pageSize}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
+              className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+              disabled={pagination.page <= 1}
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onPageChange(
+                  Math.min(Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)), pagination.page + 1)
+                )
+              }
+              className="rounded-full border border-slate-300 px-3 py-1 font-medium text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600"
+              disabled={pagination.page >= Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))}
+            >
+              다음
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type ActivityFeedProps = {
   activity: AdminActivityLog[];
 };
@@ -1201,6 +1410,9 @@ export default function AdminTrademarkDashboardClient({
   statusOptions,
   recentActivity,
   savedFilters,
+  initialRequests,
+  initialRequestsPagination,
+  initialRequestsFilters,
 }: AdminTrademarkDashboardClientProps) {
   const {
     applications,
@@ -1217,6 +1429,19 @@ export default function AdminTrademarkDashboardClient({
     initialPagination,
     initialStatusSummary,
     initialFilters,
+  });
+
+  const {
+    requests,
+    pagination: requestsPagination,
+    isLoading: requestsLoading,
+    error: requestsError,
+    goToPage: goToRequestsPage,
+    refresh: refreshRequests,
+  } = useAdminTrademarkRequests({
+    initialRequests,
+    initialPagination: initialRequestsPagination,
+    initialFilters: initialRequestsFilters,
   });
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -1296,12 +1521,36 @@ export default function AdminTrademarkDashboardClient({
 
         alert(`${application.brandName} 출원이 승인 해제되었습니다.`);
         refresh();
+        refreshRequests();
       } catch (error) {
         const message = error instanceof Error ? error.message : "승인 해제 중 오류가 발생했습니다.";
         alert(message);
       }
     },
-    [refresh]
+    [refresh, refreshRequests]
+  );
+
+  const handleApprove = useCallback(
+    async (request: AdminTrademarkRequest) => {
+      try {
+        const response = await fetch(`/api/admin/trademark-requests/${request.id}/approve`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const json = await response.json();
+          throw new Error(json.error || "승인에 실패했습니다.");
+        }
+
+        alert(`${request.brand_name} 신청서가 승인되었습니다.`);
+        refreshRequests();
+        refresh();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "승인 중 오류가 발생했습니다.";
+        alert(message);
+      }
+    },
+    [refresh, refreshRequests]
   );
 
   return (
@@ -1386,16 +1635,15 @@ export default function AdminTrademarkDashboardClient({
                 onUnapprove={handleUnapprove}
               />
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-                <h2 className="text-lg font-semibold text-slate-900">신청서 대기 목록</h2>
-                <p className="mt-2 text-sm text-slate-600">
-                  사용자가 제출한 신청서 목록입니다. 승인하면 출원 관리로 이동합니다.
-                </p>
-                <div className="mt-6 text-sm text-slate-500">
-                  <p>현재는 자동 승인으로 설정되어 있어, 사용자가 신청하면 바로 출원 관리 목록에 표시됩니다.</p>
-                  <p className="mt-2">수동 승인/해제 기능은 곧 추가될 예정입니다.</p>
-                </div>
-              </div>
+              <RequestsTable
+                requests={requests}
+                pagination={requestsPagination}
+                onPageChange={goToRequestsPage}
+                isLoading={requestsLoading}
+                error={requestsError}
+                onRefresh={refreshRequests}
+                onApprove={handleApprove}
+              />
             )}
           </section>
           <aside className="hidden w-80 border-l border-slate-200 bg-white/80 backdrop-blur xl:block">
