@@ -7,7 +7,6 @@ import {
   TrademarkStatus,
   isTrademarkStatus,
   resolveInitialStatus,
-  shouldSetPaymentReceivedAt,
 } from "@/lib/trademarks/status";
 
 function parseStringArray(value: unknown): string[] | null {
@@ -273,7 +272,7 @@ export async function POST(request: NextRequest) {
     payment_currency: paymentCurrency,
     payment_due_at: paymentDueAt,
     payment_reference: paymentReference,
-    payment_received_at: shouldSetPaymentReceivedAt(initialStatus) ? nowIso : null,
+    payment_received_at: null, // payment_received status no longer exists
     metadata,
   } satisfies Record<string, unknown>;
 

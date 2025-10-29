@@ -7,7 +7,6 @@ import {
   canTransitionStatus,
   isTrademarkStatus,
   shouldSetFiledAt,
-  shouldSetPaymentReceivedAt,
 } from "@/lib/trademarks/status";
 import { TRADEMARK_STATUS_VALUES } from "@/types/status";
 
@@ -122,12 +121,8 @@ export async function PATCH(
     updateFields.filing_submission_reference = filingSubmissionReference;
   }
 
-  if (shouldSetPaymentReceivedAt(nextStatus)) {
-    const parsedPaymentReceivedAt = payload.paymentReceivedAt
-      ? parseDate(payload.paymentReceivedAt)
-      : null;
-    updateFields.payment_received_at = parsedPaymentReceivedAt ?? new Date().toISOString();
-  } else if (payload.paymentReceivedAt !== undefined) {
+  // payment_received_at can be set manually if provided in payload
+  if (payload.paymentReceivedAt !== undefined) {
     updateFields.payment_received_at = parseDate(payload.paymentReceivedAt);
   }
 
