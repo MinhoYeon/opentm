@@ -7,7 +7,6 @@ import {
   validatePaymentAmounts,
   getPaymentStageLabel,
 } from "@/types/trademark";
-import { autoTransitionOnPaymentComplete } from "@/lib/payments/automation";
 import { sendQuoteNotification, sendPaymentConfirmedNotification } from "@/lib/email/notifications";
 
 type RouteContext = {
