@@ -166,7 +166,7 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   let requestsQuery = supabase
     .from("trademark_requests")
     .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
+    .order("submitted_at", { ascending: false })
     .range(offset, limit);
 
   if (search) {
