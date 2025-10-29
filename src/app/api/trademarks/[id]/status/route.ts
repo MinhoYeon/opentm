@@ -66,7 +66,7 @@ export async function PATCH(
 
   const adminClient = createAdminClient();
   const { data: current, error: fetchError } = await adminClient
-    .from("trademark_applications")
+    .from("trademark_requests")
     .select("*")
     .eq("id", id)
     .single();
@@ -143,7 +143,7 @@ export async function PATCH(
   }
 
   const { data: updated, error: updateError } = await adminClient
-    .from("trademark_applications")
+    .from("trademark_requests")
     .update(updateFields)
     .eq("id", id)
     .select()
@@ -159,7 +159,7 @@ export async function PATCH(
     : {};
 
   await adminClient.from("trademark_status_logs").insert({
-    application_id: id,
+    request_id: id,
     from_status: currentStatus,
     to_status: nextStatus,
     note,
@@ -167,5 +167,5 @@ export async function PATCH(
     changed_by: session.user.id,
   });
 
-  return NextResponse.json({ application: updated });
+  return NextResponse.json({ request: updated });
 }

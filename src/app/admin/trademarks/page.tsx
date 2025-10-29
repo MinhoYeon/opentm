@@ -2,15 +2,12 @@ import AdminTrademarkDashboardClient from "./AdminTrademarkDashboardClient";
 import {
   type AdminActivityLog,
   type AdminDashboardFilters,
-  type AdminTrademarkApplication,
   type AdminTrademarkRequest,
   type SavedFilter,
   type StatusSummary,
   type AdminUserSummary,
-  type UnifiedTrademarkItem,
   type DashboardStats,
 } from "./types";
-import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import { requireAdminContext } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
 import { TRADEMARK_STATUSES, isTrademarkStatus, type TrademarkStatus } from "@/lib/trademarks/status";
@@ -153,8 +150,8 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     dateRange: null,
   };
 
-  // 통합 뷰: trademark_requests를 기준으로 데이터 로드
-  let requestsQuery = supabase
+  // trademark_requests에서 통합된 데이터 로드
+  let trademarksQuery = supabase
     .from("trademark_requests")
     .select("*", { count: "exact" })
     .order("submitted_at", { ascending: false })
@@ -162,22 +159,30 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   if (search) {
     const like = `%${search.replace(/%/g, "").replace(/_/g, "")}%`;
-    requestsQuery = requestsQuery.or(`brand_name.ilike.${like},representative_email.ilike.${like}`);
+    trademarksQuery = trademarksQuery.or(`brand_name.ilike.${like},representative_email.ilike.${like},applicant_name.ilike.${like},applicant_email.ilike.${like}`);
   }
 
-  const { data: requestsRows, count: requestsCount, error: requestsError } = await requestsQuery;
-
-  if (requestsError) {
-    console.error("Failed to fetch trademark requests:", requestsError);
-    throw requestsError;
+  if (statuses.length > 0) {
+    trademarksQuery = trademarksQuery.in("status", statuses);
   }
 
-  console.log(`Loaded ${requestsRows?.length ?? 0} trademark requests (total: ${requestsCount ?? 0})`);
+  const { data: trademarksRows, count: trademarksCount, error: trademarksError } = await trademarksQuery;
 
-  const requests: AdminTrademarkRequest[] = (requestsRows ?? []) as AdminTrademarkRequest[];
+  if (trademarksError) {
+    console.error("Failed to fetch trademarks:", trademarksError);
+    throw trademarksError;
+  }
 
-  // 사용자 정보 조회 (user_id로)
-  const userIds = [...new Set(requests.map(r => r.user_id).filter((id): id is string => Boolean(id)))];
+  console.log(`Loaded ${trademarksRows?.length ?? 0} trademarks (total: ${trademarksCount ?? 0})`);
+
+  const trademarks: AdminTrademarkRequest[] = (trademarksRows ?? []) as AdminTrademarkRequest[];
+
+  // 사용자 정보 조회 (user_id로) - applicant_name/email이 없는 경우에만
+  const userIds = [...new Set(trademarks
+    .filter(t => t.user_id && !t.applicant_name && !t.applicant_email)
+    .map(t => t.user_id)
+    .filter((id): id is string => Boolean(id)))];
+
   const usersMap = new Map<string, { name: string | null; email: string | null }>();
 
   if (userIds.length > 0) {
@@ -194,55 +199,26 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     }
   }
 
-  // requests에 사용자 정보 매핑
-  requests.forEach(request => {
-    if (request.user_id && usersMap.has(request.user_id)) {
-      const userData = usersMap.get(request.user_id)!;
-      request.applicant_name = userData.name;
-      request.applicant_email = userData.email;
+  // trademarks에 사용자 정보 매핑 (applicant_name/email이 없는 경우)
+  trademarks.forEach(trademark => {
+    if (trademark.user_id && usersMap.has(trademark.user_id)) {
+      const userData = usersMap.get(trademark.user_id)!;
+      if (!trademark.applicant_name) {
+        trademark.applicant_name = userData.name;
+      }
+      if (!trademark.applicant_email) {
+        trademark.applicant_email = userData.email;
+      }
     }
     // trademark_image_url은 image_url로 매핑
-    request.trademark_image_url = request.image_url;
+    trademark.trademark_image_url = trademark.image_url;
   });
 
-  // trademark_applications 로드 (request_id로 매핑하기 위해)
-  const { data: applicationsRows, error: applicationsError } = await supabase
-    .from("trademark_applications")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (applicationsError) {
-    console.error("Failed to fetch trademark applications:", applicationsError);
-  }
-
-  const applications: AdminTrademarkApplication[] = (applicationsRows ?? []).map((row) =>
-    normalizeTrademarkApplication(row as Record<string, unknown>)
-  );
-
-  // request_id를 키로 하는 맵 생성
-  const applicationsByRequestId = new Map<string, AdminTrademarkApplication>();
-  applications.forEach((app) => {
-    const requestId = app.metadata?.request_id as string | undefined;
-    if (requestId) {
-      applicationsByRequestId.set(requestId, app);
-    }
-  });
-
-  // 통합 아이템 생성
-  const unifiedItems: UnifiedTrademarkItem[] = requests.map((request) => {
-    const application = applicationsByRequestId.get(request.id) || null;
-    return {
-      request,
-      application,
-      isApproved: application !== null,
-    };
-  });
-
-  // 상태 요약은 이제 requests의 상태 기준으로 생성
+  // 상태 요약 생성
   const statusSummary: StatusSummary[] = [];
   const statusCounts = new Map<string, number>();
-  requests.forEach((request) => {
-    const status = request.status === "submitted" ? "awaiting_payment" : (request.status as TrademarkStatus);
+  trademarks.forEach((trademark) => {
+    const status = trademark.status as TrademarkStatus;
     statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
   });
   for (const [status, count] of statusCounts) {
@@ -281,15 +257,15 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     (session.user.user_metadata?.saved_filters as unknown);
   const savedFilters = extractSavedFilters(savedFilterSource);
 
-  const totalCount = typeof requestsCount === "number" ? requestsCount : requests.length;
+  const totalCount = typeof trademarksCount === "number" ? trademarksCount : trademarks.length;
 
   const statusOptions = resolveStatusOptions();
 
   // 결제 통계 계산
   let dashboardStats: DashboardStats = {
     totalRequests: totalCount,
-    pendingApproval: requests.filter((r) => r.status === "submitted").length,
-    approved: applications.length,
+    pendingApproval: trademarks.filter((t) => t.status === "submitted").length,
+    approved: trademarks.filter((t) => t.status !== "submitted").length,
     payments: {
       totalAmount: 0,
       totalPaid: 0,
@@ -366,7 +342,7 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   return (
     <AdminTrademarkDashboardClient
       admin={adminUser}
-      initialUnifiedItems={unifiedItems}
+      initialTrademarks={trademarks}
       initialPagination={{ page, pageSize, totalCount }}
       initialStatusSummary={statusSummary}
       initialFilters={initialFilters}
