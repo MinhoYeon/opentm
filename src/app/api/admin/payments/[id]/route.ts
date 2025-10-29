@@ -5,8 +5,10 @@ import {
   type UpdateTrademarkPaymentInput,
   isPaymentStatus,
   validatePaymentAmounts,
+  getPaymentStageLabel,
 } from "@/types/trademark";
 import { autoTransitionOnPaymentComplete } from "@/lib/payments/automation";
+import { sendQuoteNotification, sendPaymentConfirmedNotification } from "@/lib/email/notifications";
 
 type RouteContext = {
   params: Promise<{ id: string }> | { id: string };
@@ -73,16 +75,29 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get current payment to validate amounts and for auto-transition
+    // Get current payment with application data for email notifications
     const { data: currentPayment, error: fetchError } = await adminClient
       .from("trademark_payments")
-      .select("amount, paid_amount, application_id, payment_stage, payment_status")
+      .select(`
+        *,
+        trademark_applications!inner (
+          id,
+          brand_name,
+          management_number,
+          applicant_name,
+          applicant_email
+        )
+      `)
       .eq("id", id)
       .single();
 
     if (fetchError || !currentPayment) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
+
+    const application = Array.isArray(currentPayment.trademark_applications)
+      ? currentPayment.trademark_applications[0]
+      : currentPayment.trademark_applications;
 
     // Validate amounts
     const newAmount = body.amount !== undefined ? body.amount : currentPayment.amount;
@@ -153,6 +168,55 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       } else {
         console.warn(`Failed to auto-transition: ${result.error}`);
         // Don't fail the entire request, just log the warning
+      }
+
+      // Send payment confirmed email notification
+      if (application && application.applicant_email) {
+        try {
+          await sendPaymentConfirmedNotification({
+            applicantName: application.applicant_name || "고객님",
+            applicantEmail: application.applicant_email,
+            brandName: application.brand_name,
+            paymentStage: payment.payment_stage,
+            paymentStageLabel: getPaymentStageLabel(payment.payment_stage),
+            paidAmount: payment.paid_amount || 0,
+            currency: payment.currency || "KRW",
+            paidAt: payment.paid_at || new Date().toISOString(),
+            remitterName: payment.remitter_name,
+            managementNumber: application.management_number,
+          });
+          console.log(`Sent payment confirmed email to ${application.applicant_email}`);
+        } catch (emailError) {
+          console.error("Failed to send payment confirmed email:", emailError);
+          // Don't fail the entire request
+        }
+      }
+    }
+
+    // Send quote email notification if status changed to quote_sent
+    const wasNotQuoteSent = currentPayment.payment_status !== "quote_sent";
+    const isNowQuoteSent = payment.payment_status === "quote_sent";
+
+    if (wasNotQuoteSent && isNowQuoteSent) {
+      if (application && application.applicant_email) {
+        try {
+          await sendQuoteNotification({
+            applicantName: application.applicant_name || "고객님",
+            applicantEmail: application.applicant_email,
+            brandName: application.brand_name,
+            paymentStage: payment.payment_stage,
+            paymentStageLabel: getPaymentStageLabel(payment.payment_stage),
+            amount: payment.amount || 0,
+            currency: payment.currency || "KRW",
+            dueDate: payment.due_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            quoteSentAt: payment.quote_sent_at || new Date().toISOString(),
+            managementNumber: application.management_number,
+          });
+          console.log(`Sent quote email to ${application.applicant_email}`);
+        } catch (emailError) {
+          console.error("Failed to send quote email:", emailError);
+          // Don't fail the entire request
+        }
       }
     }
 
