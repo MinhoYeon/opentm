@@ -1787,7 +1787,7 @@ export default function AdminTrademarkDashboardClient({
   );
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-80 border-r border-slate-200 bg-white/80 backdrop-blur md:block">
         <FilterSidebar
           admin={admin}
@@ -1800,7 +1800,7 @@ export default function AdminTrademarkDashboardClient({
       </aside>
       <main className="flex min-h-screen flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white py-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4 px-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
               <p className="mt-1 text-sm text-slate-600">모든 상표등록 신청서를 확인하고 승인/해제할 수 있습니다.</p>
@@ -1811,7 +1811,7 @@ export default function AdminTrademarkDashboardClient({
               </button>
             ) : null}
           </div>
-          <div className="mt-4 grid gap-3 px-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {headerStats.map((stat) => (
               <div key={stat.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-xs text-slate-500">{stat.label}</div>

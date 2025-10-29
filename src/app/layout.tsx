@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
 import MainNav from "./components/MainNav";
+import LayoutWrapper from "./components/LayoutWrapper";
 import { AuthProvider } from "./providers/AuthProvider";
 import { createServerClient } from "@/lib/supabaseServerClient";
 import type { Session } from "@supabase/supabase-js";
@@ -94,10 +94,6 @@ export default async function RootLayout({
         }
       : null;
 
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
-  const isAdminPage = pathname.startsWith("/admin");
-
   return (
     <html lang="ko">
       <body
@@ -107,13 +103,7 @@ export default async function RootLayout({
           <div className="flex min-h-screen flex-col">
             <MainNav />
             <main className="flex-1">
-              {isAdminPage ? (
-                children
-              ) : (
-                <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
-                  {children}
-                </div>
-              )}
+              <LayoutWrapper>{children}</LayoutWrapper>
             </main>
           </div>
         </AuthProvider>
