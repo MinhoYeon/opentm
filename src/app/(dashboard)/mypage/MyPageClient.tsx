@@ -8,6 +8,7 @@ import type {
   AuthenticatedUser,
   PaginationInfo,
   TrademarkRequest,
+  UserDashboardStats,
 } from "./types";
 import { StatusFilter } from "./components/StatusFilter";
 import { TrademarkRequestList } from "./components/TrademarkRequestList";
@@ -21,6 +22,7 @@ type MyPageClientProps = {
   processSteps: string[];
   applicant: ApplicantSummary | null;
   applicants: Array<{ id: string; name: string; email: string }>;
+  stats: UserDashboardStats;
 };
 
 function createPageHref(page: number) {
@@ -39,6 +41,7 @@ export default function MyPageClient({
   processSteps,
   applicant,
   applicants,
+  stats,
 }: MyPageClientProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,6 +86,30 @@ export default function MyPageClient({
         <h1 className="text-3xl font-semibold text-slate-900">마이페이지</h1>
         <p className="text-sm text-slate-600">{heroDescription}</p>
       </header>
+
+      {/* 통계 위젯 */}
+      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="text-xs text-slate-500">총 신청</div>
+          <div className="mt-2 text-2xl font-semibold text-slate-900">{stats.totalRequests}건</div>
+        </div>
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 shadow-sm">
+          <div className="text-xs text-blue-600">진행 중</div>
+          <div className="mt-2 text-2xl font-semibold text-blue-700">{stats.inProgress}건</div>
+        </div>
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+          <div className="text-xs text-emerald-600">완료</div>
+          <div className="mt-2 text-2xl font-semibold text-emerald-700">{stats.completed}건</div>
+        </div>
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
+          <div className="text-xs text-amber-600">조치 필요</div>
+          <div className="mt-2 text-2xl font-semibold text-amber-700">{stats.pendingActions}건</div>
+        </div>
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 shadow-sm">
+          <div className="text-xs text-rose-600">결제 대기</div>
+          <div className="mt-2 text-2xl font-semibold text-rose-700">{stats.awaitingPayment}건</div>
+        </div>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">회원정보</h2>
