@@ -176,6 +176,35 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   const requests: AdminTrademarkRequest[] = (requestsRows ?? []) as AdminTrademarkRequest[];
 
+  // 사용자 정보 조회 (user_id로)
+  const userIds = [...new Set(requests.map(r => r.user_id).filter((id): id is string => Boolean(id)))];
+  const usersMap = new Map<string, { name: string | null; email: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: usersData } = await supabase.auth.admin.listUsers();
+    if (usersData?.users) {
+      usersData.users.forEach(user => {
+        if (user.id) {
+          usersMap.set(user.id, {
+            name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+            email: user.email || null,
+          });
+        }
+      });
+    }
+  }
+
+  // requests에 사용자 정보 매핑
+  requests.forEach(request => {
+    if (request.user_id && usersMap.has(request.user_id)) {
+      const userData = usersMap.get(request.user_id)!;
+      request.applicant_name = userData.name;
+      request.applicant_email = userData.email;
+    }
+    // trademark_image_url은 image_url로 매핑
+    request.trademark_image_url = request.image_url;
+  });
+
   // trademark_applications 로드 (request_id로 매핑하기 위해)
   const { data: applicationsRows, error: applicationsError } = await supabase
     .from("trademark_applications")

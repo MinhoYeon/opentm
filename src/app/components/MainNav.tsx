@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "../providers/AuthProvider";
+import { isAdminUser } from "@/lib/admin/roles";
 
 const baseNavItems = [
   { label: "상표등록 시작하기", href: "/register", requiresAuth: true },
@@ -17,8 +18,14 @@ export function MainNav() {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout, user } = useAuth();
   const isAdminPage = pathname.startsWith("/admin");
+  const isAdmin = isAdminUser(user);
 
-  const navItems = baseNavItems.map((item) => {
+  // 관리자인 경우 관리자 메뉴 추가
+  const allNavItems = isAdmin && isAuthenticated
+    ? [...baseNavItems, { label: "관리자", href: "/admin/trademarks", requiresAuth: true }]
+    : baseNavItems;
+
+  const navItems = allNavItems.map((item) => {
     const isRestricted = item.requiresAuth && !isAuthenticated;
     const targetHref = isRestricted
       ? `/login?redirect=${encodeURIComponent(item.href)}`
