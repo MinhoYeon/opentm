@@ -261,10 +261,11 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
         <p className="text-xs font-semibold text-slate-700">결제 상태</p>
         <div className="flex flex-wrap gap-2">
           {[
-            { value: "unpaid", label: "미입금" },
-            { value: "paid", label: "입금 완료" },
-            { value: "partial", label: "부분 입금" },
+            { value: "unpaid", label: "결제 대기" },
+            { value: "paid", label: "결제 완료" },
+            { value: "partial", label: "부분 결제" },
             { value: "refund_requested", label: "환불 요청" },
+            { value: "refunded", label: "환불 완료" },
             { value: "overdue", label: "기한 초과" },
           ].map((item) => {
             const active = localFilters.paymentStates.includes(item.value);
@@ -783,6 +784,13 @@ function UnifiedTable({
                   }
                 };
 
+                // 현재 상태 (request 또는 application의 상태)
+                const currentStatus = item.application?.status || item.request.status;
+
+                // 결제가 필요한 상태인지 확인
+                const paymentRequiredStatuses = ["submitted", "awaiting_acceleration", "awaiting_office_action", "registration_decided"];
+                const needsPayment = paymentRequiredStatuses.includes(currentStatus);
+
                 // 결제 상태는 application에서 가져옴
                 const paymentStatus = item.application?.payment?.state;
                 const getPaymentStatusLabel = (status?: string | null) => {
@@ -790,9 +798,9 @@ function UnifiedTable({
                   const labels: Record<string, string> = {
                     not_requested: "미요청",
                     quote_sent: "견적 발송",
-                    unpaid: "미납",
-                    partial: "일부 입금",
-                    paid: "입금 완료",
+                    unpaid: "결제 대기",
+                    partial: "부분 결제",
+                    paid: "결제 완료",
                     overdue: "연체",
                     refund_requested: "환불 요청",
                     refunded: "환불 완료",
@@ -847,19 +855,46 @@ function UnifiedTable({
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{item.request.representative_email}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDate(item.request.submitted_at)}</td>
-                    <td className="px-4 py-3">
-                      {item.application ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                          {STATUS_METADATA[item.application.status as TrademarkStatus]?.label || item.application.status}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-                          승인 대기
-                        </span>
-                      )}
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <select
+                        value={currentStatus}
+                        onChange={(event) => {
+                          const newStatus = event.target.value;
+                          // TODO: API 호출하여 상태 변경
+                          console.log(`상태 변경: ${item.request.id} -> ${newStatus}`);
+                        }}
+                        className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      >
+                        {TRADEMARK_STATUS_VALUES.map((status) => (
+                          <option key={status} value={status}>
+                            {STATUS_METADATA[status]?.label || status}
+                          </option>
+                        ))}
+                      </select>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {getPaymentStatusLabel(paymentStatus)}
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      {needsPayment ? (
+                        <select
+                          value={paymentStatus || "not_requested"}
+                          onChange={(event) => {
+                            const newPaymentStatus = event.target.value;
+                            // TODO: API 호출하여 결제 상태 변경
+                            console.log(`결제 상태 변경: ${item.request.id} -> ${newPaymentStatus}`);
+                          }}
+                          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        >
+                          <option value="not_requested">미요청</option>
+                          <option value="quote_sent">견적 발송</option>
+                          <option value="unpaid">결제 대기</option>
+                          <option value="partial">부분 결제</option>
+                          <option value="paid">결제 완료</option>
+                          <option value="overdue">연체</option>
+                          <option value="refund_requested">환불 요청</option>
+                          <option value="refunded">환불 완료</option>
+                        </select>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
                     </td>
                   </tr>
                 );
