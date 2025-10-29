@@ -860,16 +860,17 @@ function UnifiedTable({
                         value={currentStatus}
                         onChange={async (event) => {
                           const newStatus = event.target.value;
+                          const originalValue = currentStatus;
 
                           // application이 없으면 상태 변경 불가
                           if (!item.application) {
                             alert("상표 신청이 승인되지 않아 상태를 변경할 수 없습니다.");
-                            event.target.value = currentStatus; // 원래 값으로 복원
+                            event.target.value = originalValue;
                             return;
                           }
 
                           if (!confirm(`상태를 "${STATUS_METADATA[newStatus as TrademarkStatus]?.label}"(으)로 변경하시겠습니까?`)) {
-                            event.target.value = currentStatus; // 원래 값으로 복원
+                            event.target.value = originalValue;
                             return;
                           }
 
@@ -894,11 +895,12 @@ function UnifiedTable({
                           } catch (error) {
                             console.error("상태 변경 실패:", error);
                             alert(error instanceof Error ? error.message : "상태 변경에 실패했습니다.");
-                            event.target.value = currentStatus; // 원래 값으로 복원
+                            event.target.value = originalValue;
                           }
                         }}
-                        className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         disabled={!item.application}
+                        style={{ cursor: item.application ? 'pointer' : 'not-allowed' }}
                       >
                         {TRADEMARK_STATUS_VALUES.map((status) => (
                           <option key={status} value={status}>
@@ -913,11 +915,12 @@ function UnifiedTable({
                           value={paymentStatus || "not_requested"}
                           onChange={async (event) => {
                             const newPaymentStatus = event.target.value;
+                            const originalValue = paymentStatus || "not_requested";
 
                             // application이 없으면 결제 상태 변경 불가
                             if (!item.application) {
                               alert("상표 신청이 승인되지 않아 결제 상태를 변경할 수 없습니다.");
-                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                              event.target.value = originalValue;
                               return;
                             }
 
@@ -933,7 +936,7 @@ function UnifiedTable({
                             };
 
                             if (!confirm(`결제 상태를 "${paymentStatusLabels[newPaymentStatus]}"(으)로 변경하시겠습니까?`)) {
-                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                              event.target.value = originalValue;
                               return;
                             }
 
@@ -962,7 +965,7 @@ function UnifiedTable({
 
                               if (!payment?.id) {
                                 alert("결제 정보가 없습니다. 먼저 결제를 생성해주세요.");
-                                event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                                event.target.value = originalValue;
                                 return;
                               }
 
@@ -987,11 +990,12 @@ function UnifiedTable({
                             } catch (error) {
                               console.error("결제 상태 변경 실패:", error);
                               alert(error instanceof Error ? error.message : "결제 상태 변경에 실패했습니다.");
-                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                              event.target.value = originalValue;
                             }
                           }}
-                          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           disabled={!item.application}
+                          style={{ cursor: item.application ? 'pointer' : 'not-allowed' }}
                         >
                           <option value="not_requested">미요청</option>
                           <option value="quote_sent">견적 발송</option>
