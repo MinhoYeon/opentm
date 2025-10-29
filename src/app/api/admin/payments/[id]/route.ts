@@ -154,20 +154,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const isNowPaid = payment.payment_status === "paid";
 
     if (wasNotPaid && isNowPaid) {
-      // Trigger auto-transition
-      const result = await autoTransitionOnPaymentComplete(
-        adminClient,
-        payment.application_id,
-        payment.payment_stage,
-        null // TODO: Get user ID from session
-      );
-
-      if (result.success) {
-        console.log(`Auto-transitioned application ${payment.application_id} to ${result.newStatus}`);
-      } else {
-        console.warn(`Failed to auto-transition: ${result.error}`);
-        // Don't fail the entire request, just log the warning
-      }
+      // TODO: Implement auto-transition logic
+      // const result = await autoTransitionOnPaymentComplete(
+      //   adminClient,
+      //   payment.application_id,
+      //   payment.payment_stage,
+      //   null
+      // );
+      // if (result.success) {
+      //   console.log(`Auto-transitioned application ${payment.application_id} to ${result.newStatus}`);
+      // } else {
+      //   console.warn(`Failed to auto-transition: ${result.error}`);
+      // }
 
       // Send payment confirmed email notification
       if (application && application.applicant_email) {
