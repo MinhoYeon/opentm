@@ -108,7 +108,7 @@ export default async function RootLayout({
             <MainNav />
             <main className="flex-1">
               {isAdminPage ? (
-                children
+                childrenㄴ
               ) : (
                 <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
                   {children}
