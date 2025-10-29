@@ -19,14 +19,6 @@ const DEFAULT_TIMELINE = {
 };
 
 export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
-  draft: {
-    key: "draft",
-    label: "임시 저장",
-    helpText: "제출 전 임시 저장 상태입니다.",
-    tone: "neutral",
-    badge: DEFAULT_BADGE,
-    timeline: DEFAULT_TIMELINE,
-  },
   submitted: {
     key: "submitted",
     label: "신청 접수",
@@ -187,22 +179,6 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "search",
     },
   },
-  office_action: {
-    key: "office_action",
-    label: "심사 진행중",
-    helpText: "특허청의 검토가 진행 중입니다.",
-    tone: "warning",
-    badge: {
-      backgroundClass: "bg-amber-100 text-amber-700",
-      dotClass: "bg-amber-500",
-    },
-    timeline: {
-      accentColor: "#fbbf24",
-      iconBackground: "#fef3c7",
-      iconColor: "#b45309",
-      icon: "search",
-    },
-  },
   awaiting_office_action: {
     key: "awaiting_office_action",
     label: "의견제출통지서 대기",
@@ -233,22 +209,6 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       iconBackground: "#dbeafe",
       iconColor: "#1d4ed8",
       icon: "clipboard",
-    },
-  },
-  awaiting_client_response: {
-    key: "awaiting_client_response",
-    label: "의견서 준비",
-    helpText: "특허청 대응을 위해 의견서/자료 보완이 필요합니다.",
-    tone: "warning",
-    badge: {
-      backgroundClass: "bg-orange-100 text-orange-700",
-      dotClass: "bg-orange-500",
-    },
-    timeline: {
-      accentColor: "#fb923c",
-      iconBackground: "#ffedd5",
-      iconColor: "#c2410c",
-      icon: "alert",
     },
   },
   publication_announced: {
@@ -313,22 +273,6 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       iconBackground: "#d1fae5",
       iconColor: "#047857",
       icon: "check",
-    },
-  },
-  completed: {
-    key: "completed",
-    label: "등록 완료",
-    helpText: "상표 등록이 완료되었습니다.",
-    tone: "success",
-    badge: {
-      backgroundClass: "bg-emerald-100 text-emerald-700",
-      dotClass: "bg-emerald-500",
-    },
-    timeline: {
-      accentColor: "#34d399",
-      iconBackground: "#d1fae5",
-      iconColor: "#047857",
-      icon: "shield",
     },
   },
   registered: {
@@ -402,11 +346,11 @@ const DEFAULT_NOTIFICATION: NotificationTemplate = {
 };
 
 export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
-  draft: {
+  submitted: {
     channels: ["email"],
-    emailSubject: "임시 저장된 상표 출원 초안",
+    emailSubject: "[OpenTM] 신청 접수 완료 - {{brandName}}",
     emailBody:
-      "{{brandName}} 출원 초안이 저장되었습니다. 언제든지 마이페이지에서 이어서 진행하실 수 있습니다.",
+      "{{brandName}} 상표 출원 신청이 접수되었습니다. 담당 변리사가 검토 후 다음 단계를 안내드립니다.",
   },
   awaiting_payment: {
     channels: ["email", "sms"],
@@ -420,6 +364,20 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
     emailSubject: "[OpenTM] 결제 완료 - {{brandName}}",
     emailBody:
       "입금이 확인되었습니다. 담당 변리사가 서류 검토를 시작했습니다. 진행 상황은 마이페이지에서 확인하실 수 있습니다.",
+  },
+  awaiting_applicant_info: {
+    channels: ["email", "sms"],
+    emailSubject: "[OpenTM] 출원인 정보 제출 요청 - {{brandName}}",
+    emailBody:
+      "출원에 필요한 출원인 정보를 제출해 주세요. 마이페이지에서 정보를 입력하실 수 있습니다.",
+    smsBody: "[OpenTM] {{brandName}} 출원인 정보 제출이 필요합니다.",
+    escalateToOps: true,
+  },
+  applicant_info_completed: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 출원인 정보 제출 완료 - {{brandName}}",
+    emailBody:
+      "출원인 정보가 제출되었습니다. 담당 변리사가 서류 검토를 진행합니다.",
   },
   awaiting_documents: {
     channels: ["email", "sms"],
@@ -448,20 +406,37 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
     emailBody:
       "특허청에 출원이 접수되었습니다. 접수번호 및 예상 심사 일정을 마이페이지에서 확인하실 수 있습니다.",
   },
-  office_action: {
-    channels: ["email", "sms"],
-    emailSubject: "[OpenTM] 심사 진행 알림 - {{brandName}}",
+  under_examination: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 심사 진행중 - {{brandName}}",
     emailBody:
-      "특허청 심사가 진행 중입니다. 심사 의견 수신 시 신속하게 안내드리겠습니다.",
-    smsBody: "[OpenTM] {{brandName}} 심사가 진행 중입니다. 의견 통보 시 즉시 안내드릴 예정입니다.",
+      "특허청 심사가 진행 중입니다. 심사 결과가 나오면 즉시 안내드립니다.",
   },
-  awaiting_client_response: {
+  awaiting_office_action: {
     channels: ["email", "sms"],
-    emailSubject: "[OpenTM] 의견서/자료 제출 요청 - {{brandName}}",
+    emailSubject: "[OpenTM] 의견제출통지서 수령 - {{brandName}}",
     emailBody:
-      "특허청 대응을 위해 의견서 또는 추가 자료가 필요합니다. 기한 내 제출을 위해 담당자와 상담해 주세요.",
-    smsBody: "[OpenTM] {{brandName}} 의견서 제출이 필요합니다. 마이페이지 공지와 담당자 안내를 확인해 주세요.",
-    escalateToOps: true,
+      "의견제출통지서를 수령했습니다. 담당 변리사가 대응 방안을 검토 중입니다.",
+    smsBody: "[OpenTM] {{brandName}} 의견제출통지서가 도착했습니다. 담당자가 검토 후 안내드립니다.",
+  },
+  responding_to_office_action: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 의견/보정서 작성중 - {{brandName}}",
+    emailBody:
+      "의견서 또는 보정서를 작성하고 있습니다. 제출 완료 시 안내드립니다.",
+  },
+  publication_announced: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 출원공고 진행 - {{brandName}}",
+    emailBody:
+      "출원공고가 진행되었습니다. 이의신청 기간 경과 후 등록 결정됩니다.",
+  },
+  registration_decided: {
+    channels: ["email", "sms"],
+    emailSubject: "[OpenTM] 등록결정 알림 - {{brandName}}",
+    emailBody:
+      "등록결정이 났습니다! 등록료 납부 안내를 드립니다.",
+    smsBody: "[OpenTM] {{brandName}} 등록결정! 등록료 납부 안내를 확인해 주세요.",
   },
   awaiting_registration_fee: {
     channels: ["email", "sms"],
@@ -470,12 +445,18 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
       "등록 결정을 위해 잔여 등록료 납부가 필요합니다. 납부 기한을 확인해 주세요.",
     smsBody: "[OpenTM] {{brandName}} 등록료 납부 안내. 마이페이지에서 납부 정보를 확인해 주세요.",
   },
-  completed: {
-    channels: ["email", "sms"],
-    emailSubject: "[OpenTM] 등록 완료 축하드립니다 - {{brandName}}",
+  registration_fee_paid: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 등록료 납부 확인 - {{brandName}}",
     emailBody:
-      "상표 등록이 완료되었습니다. 등록증 수령 안내와 유지 관리 일정을 확인해 주세요.",
-    smsBody: "[OpenTM] {{brandName}} 상표 등록이 완료되었습니다. 축하드립니다!",
+      "등록료 납부가 확인되었습니다. 곧 상표등록증이 발급됩니다.",
+  },
+  registered: {
+    channels: ["email", "sms"],
+    emailSubject: "[OpenTM] 상표등록 완료 축하드립니다 - {{brandName}}",
+    emailBody:
+      "상표등록증이 발급되었습니다! 등록증은 마이페이지에서 다운로드하실 수 있습니다.",
+    smsBody: "[OpenTM] {{brandName}} 상표등록이 완료되었습니다. 축하드립니다!",
   },
   rejected: {
     channels: ["email", "sms"],
@@ -491,12 +472,18 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
     emailBody:
       "요청하신 상표 출원이 취소되었습니다. 필요 시 새 요청을 생성해 주세요.",
   },
+  withdrawn: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 출원 취하/포기 완료 - {{brandName}}",
+    emailBody:
+      "상표 출원이 취하/포기 처리되었습니다.",
+  },
 };
 
 export function getStatusMetadata(status: string | null | undefined): StatusMetadata {
   if (!status) {
     return {
-      key: "draft",
+      key: "submitted",
       label: "진행 중",
       helpText: "진행 상황을 확인하고 있습니다.",
       tone: "neutral",
