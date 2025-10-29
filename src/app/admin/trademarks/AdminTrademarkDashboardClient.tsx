@@ -17,10 +17,11 @@ import {
 } from "./types";
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
-import { TRADEMARK_STATUS_VALUES } from "@/types/status";
+import { TRADEMARK_STATUS_VALUES, type TrademarkStatus } from "@/types/status";
 import { useApplicationPayments } from "./hooks/useApplicationPayments";
 import { PaymentCard } from "./components/PaymentCard";
 import { getPaymentStageLabel } from "@/types/trademark";
+import { STATUS_METADATA } from "@/lib/status";
 
 const DEFAULT_FILTERS: AdminDashboardFilters = {
   statuses: [],
@@ -741,10 +742,13 @@ function UnifiedTable({
                   />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  고객명 및 이메일
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   상표명
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  상표 유형
+                  이미지
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   상품류
@@ -753,19 +757,49 @@ function UnifiedTable({
                   담당자 이메일
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  제출일
+                  요청일
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   상태
                 </th>
-                <th className="w-32 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  작업
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  결제 상태
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {items.map((item) => {
                 const selected = selectedIds.includes(item.request.id);
+                const formatDate = (dateStr?: string | null) => {
+                  if (!dateStr) return "-";
+                  try {
+                    return new Intl.DateTimeFormat("ko-KR", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    }).format(new Date(dateStr));
+                  } catch {
+                    return dateStr;
+                  }
+                };
+
+                // 결제 상태는 application에서 가져옴
+                const paymentStatus = item.application?.payment?.state;
+                const getPaymentStatusLabel = (status?: string | null) => {
+                  if (!status) return "-";
+                  const labels: Record<string, string> = {
+                    not_requested: "미요청",
+                    quote_sent: "견적 발송",
+                    unpaid: "미납",
+                    partial: "일부 입금",
+                    paid: "입금 완료",
+                    overdue: "연체",
+                    refund_requested: "환불 요청",
+                    refunded: "환불 완료",
+                  };
+                  return labels[status] || status;
+                };
+
                 return (
                   <tr
                     key={item.request.id}
@@ -784,19 +818,26 @@ function UnifiedTable({
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-slate-900">{item.request.brand_name}</div>
-                      {item.request.additional_notes ? (
-                        <div className="text-xs text-slate-500">{item.request.additional_notes.slice(0, 50)}...</div>
-                      ) : null}
+                      <div className="text-sm font-medium text-slate-900">
+                        {item.request.applicant_name || "-"}
+                      </div>
+                      <div className="text-xs text-slate-500">{item.request.applicant_email || "-"}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {item.request.trademark_type === "word"
-                        ? "문자"
-                        : item.request.trademark_type === "logo"
-                        ? "도형"
-                        : item.request.trademark_type === "combined"
-                        ? "결합"
-                        : item.request.trademark_type || "-"}
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-medium text-slate-900">{item.request.brand_name}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.request.trademark_image_url ? (
+                        <img
+                          src={item.request.trademark_image_url}
+                          alt={item.request.brand_name}
+                          className="h-10 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-slate-100 text-xs text-slate-400">
+                          -
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {item.request.product_classes.length > 0
@@ -805,11 +846,11 @@ function UnifiedTable({
                         : "-"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{item.request.representative_email}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(item.request.submitted_at)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(item.request.submitted_at)}</td>
                     <td className="px-4 py-3">
-                      {item.isApproved ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-                          승인됨
+                      {item.application ? (
+                        <span className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                          {STATUS_METADATA[item.application.status as TrademarkStatus]?.label || item.application.status}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
@@ -817,39 +858,15 @@ function UnifiedTable({
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center" onClick={(event) => event.stopPropagation()}>
-                      {item.isApproved ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`${item.request.brand_name} 출원을 승인 해제하시겠습니까?`)) {
-                              onUnapprove(item);
-                            }
-                          }}
-                          className="rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                        >
-                          승인 해제
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`${item.request.brand_name} 신청서를 승인하시겠습니까?`)) {
-                              onApprove(item);
-                            }
-                          }}
-                          className="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
-                        >
-                          승인
-                        </button>
-                      )}
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {getPaymentStatusLabel(paymentStatus)}
                     </td>
                   </tr>
                 );
               })}
               {items.length === 0 && !isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={8}>
+                  <td className="px-4 py-12 text-center" colSpan={9}>
                     <div className="text-sm text-slate-600">신청서가 없습니다.</div>
                     <div className="mt-2 text-xs text-slate-500">
                       사용자가 신청서를 제출하면 이곳에 표시됩니다.
@@ -859,7 +876,7 @@ function UnifiedTable({
               ) : null}
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={8}>
+                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={9}>
                     데이터를 불러오는 중입니다...
                   </td>
                 </tr>
