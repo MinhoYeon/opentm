@@ -17,6 +17,9 @@ import {
 import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
 import { TRADEMARK_STATUS_VALUES } from "@/types/status";
+import { useApplicationPayments } from "./hooks/useApplicationPayments";
+import { PaymentCard } from "./components/PaymentCard";
+import { getPaymentStageLabel } from "@/types/trademark";
 
 const DEFAULT_FILTERS: AdminDashboardFilters = {
   statuses: [],
@@ -1360,6 +1363,10 @@ type DetailDrawerProps = {
 
 function DetailDrawer({ application, open, onClose, statusOptions, capabilities, onUpdated }: DetailDrawerProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const { payments, summary, isLoading: paymentsLoading, refresh: refreshPayments } = useApplicationPayments(
+    application?.id || null
+  );
+
   useEffect(() => {
     if (open) {
       setActiveTab("overview");
@@ -1563,63 +1570,83 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
           ) : null}
 
           {activeTab === "payments" ? (
-            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h4 className="text-sm font-semibold text-slate-900">결제 내역</h4>
-                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600">
-                    <div>
-                      <dt className="font-semibold text-slate-700">금액</dt>
-                      <dd>{formatCurrency(application.payment.amount, application.payment.currency ?? "KRW")}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-slate-700">결제 상태</dt>
-                      <dd>{application.payment.state}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-slate-700">입금 기한</dt>
-                      <dd>{formatDateTime(application.payment.dueAt)}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-slate-700">입금 확인</dt>
-                      <dd>{formatDateTime(application.payment.receivedAt)}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-slate-700">참조 번호</dt>
-                      <dd>{application.payment.reference ?? "-"}</dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-slate-700">입금자명</dt>
-                      <dd>{application.payment.remitterName ?? "-"}</dd>
-                    </div>
-                  </dl>
+            <div className="space-y-6">
+              {paymentsLoading ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                  결제 정보를 불러오는 중...
                 </div>
-                {capabilities.canManagePayments ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <h4 className="text-sm font-semibold text-slate-900">무통장 입금 확인</h4>
-                    <p className="mt-1 text-xs text-slate-600">
-                      입금자명과 금액을 확인하고 일치하는 경우 &quot;입금 확인&quot;을 클릭하세요.
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-3 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-                      onClick={() => onUpdated({ ...application, payment: { ...application.payment, state: "paid" } })}
-                    >
-                      입금 확인 처리
-                    </button>
+              ) : payments.length === 0 ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+                  <p className="text-sm text-slate-600">등록된 결제 정보가 없습니다.</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    출원 단계가 진행되면 결제 정보가 생성됩니다.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* 결제 요약 */}
+                  {summary && (
+                    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                      <h4 className="text-sm font-semibold text-slate-900">결제 요약</h4>
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                        <div>
+                          <dt className="text-slate-600">총 청구 금액</dt>
+                          <dd className="mt-1 text-base font-semibold text-slate-900">
+                            {summary.totalAmount.toLocaleString()}원
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-600">입금 금액</dt>
+                          <dd className="mt-1 text-base font-semibold text-emerald-600">
+                            {summary.totalPaid.toLocaleString()}원
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-600">결제 건수</dt>
+                          <dd className="mt-1 font-medium text-slate-900">{summary.paymentCount}건</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-600">상태</dt>
+                          <dd className="mt-1">
+                            {summary.allPaid ? (
+                              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                완납
+                              </span>
+                            ) : summary.hasOverdue ? (
+                              <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                                연체
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                미납
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
+
+                  {/* 결제 단계별 카드 */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {["filing", "office_action", "registration"].map((stage) => {
+                      const payment = payments.find((p) => p.paymentStage === stage);
+                      if (!payment) return null;
+                      return (
+                        <PaymentCard
+                          key={stage}
+                          payment={payment}
+                          applicationId={application.id}
+                          onUpdate={() => {
+                            refreshPayments();
+                            onUpdated(application);
+                          }}
+                        />
+                      );
+                    })}
                   </div>
-                ) : null}
-              </div>
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h4 className="text-sm font-semibold text-slate-900">결제 관련 메모</h4>
-                  <textarea
-                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                    rows={8}
-                    defaultValue={coerceString(application.metadata["payment_note"]) ?? ""}
-                  />
-                </div>
-              </div>
+                </>
+              )}
             </div>
           ) : null}
 
