@@ -98,87 +98,49 @@ async function upsertAdminSession(session: SupabaseSession): Promise<AdminSessio
 
   const sessionHash = createHash("sha256").update(session.access_token).digest("hex");
   const adminClient = createAdminClient();
-
-  const { data: existing, error: fetchError } = await adminClient
-    .from("admin_sessions")
-    .select("id, user_id, session_hash, is_revoked, mfa_verified_at, last_seen_at")
-    .eq("session_hash", sessionHash)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw new ApiError("관리자 세션을 확인하지 못했습니다.", { status: 500, details: fetchError.message });
-  }
-
   const nowIso = new Date().toISOString();
   const resolvedMfa = resolveUserMfaTimestamp(session.user);
 
-  if (!existing) {
-    const insertPayload: Record<string, unknown> = {
-      user_id: session.user.id,
-      session_hash: sessionHash,
-      last_seen_at: nowIso,
-    };
+  // Use upsert to handle both insert and update atomically
+  const upsertPayload: Record<string, unknown> = {
+    user_id: session.user.id,
+    session_hash: sessionHash,
+    last_seen_at: nowIso,
+  };
 
-    if (resolvedMfa) {
-      insertPayload.mfa_verified_at = resolvedMfa;
-    }
-
-    const { data: inserted, error: insertError } = await adminClient
-      .from("admin_sessions")
-      .insert(insertPayload)
-      .select("id, user_id, session_hash, is_revoked, mfa_verified_at, last_seen_at")
-      .single();
-
-    if (insertError || !inserted) {
-      console.error("Failed to insert admin session:", {
-        error: insertError,
-        payload: insertPayload,
-        userId: session.user.id,
-        hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      });
-      throw new ApiError("관리자 세션을 생성하지 못했습니다.", {
-        status: 500,
-        details: insertError
-          ? `${insertError.message} (code: ${insertError.code || "unknown"})`
-          : "No data returned from insert",
-      });
-    }
-
-    if (inserted.is_revoked) {
-      throw new ApiError("세션이 만료되었습니다.", { status: 401 });
-    }
-
-    return inserted as AdminSessionRow;
+  if (resolvedMfa) {
+    upsertPayload.mfa_verified_at = resolvedMfa;
   }
 
-  if (existing.is_revoked) {
+  const { data: upserted, error: upsertError } = await adminClient
+    .from("admin_sessions")
+    .upsert(upsertPayload, {
+      onConflict: "session_hash",
+      ignoreDuplicates: false,
+    })
+    .select("id, user_id, session_hash, is_revoked, mfa_verified_at, last_seen_at")
+    .single();
+
+  if (upsertError || !upserted) {
+    console.error("Failed to upsert admin session:", {
+      error: upsertError,
+      payload: upsertPayload,
+      userId: session.user.id,
+      hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    throw new ApiError("관리자 세션을 생성/갱신하지 못했습니다.", {
+      status: 500,
+      details: upsertError
+        ? `${upsertError.message} (code: ${upsertError.code || "unknown"})`
+        : "No data returned from upsert",
+    });
+  }
+
+  if (upserted.is_revoked) {
     throw new ApiError("세션이 만료되었습니다.", { status: 401 });
   }
 
-  const updates: Record<string, unknown> = { last_seen_at: nowIso };
-  if (!existing.mfa_verified_at && resolvedMfa) {
-    updates.mfa_verified_at = resolvedMfa;
-  }
-
-  if (Object.keys(updates).length > 0) {
-    const { data: updated, error: updateError } = await adminClient
-      .from("admin_sessions")
-      .update(updates)
-      .eq("id", existing.id)
-      .select("id, user_id, session_hash, is_revoked, mfa_verified_at, last_seen_at")
-      .single();
-
-    if (updateError || !updated) {
-      throw new ApiError("관리자 세션을 갱신하지 못했습니다.", {
-        status: 500,
-        details: updateError?.message,
-      });
-    }
-
-    return updated as AdminSessionRow;
-  }
-
-  return existing as AdminSessionRow;
+  return upserted as AdminSessionRow;
 }
 
 function assertAllowedRole(role: AdminRole, allowedRoles?: AdminRole[]) {
