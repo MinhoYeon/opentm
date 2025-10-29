@@ -81,14 +81,14 @@ function StatusFilterComponent({
             className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
           />
         </label>
-        <div className="flex items-center gap-3">
-          {isBusy ? <span className="text-xs text-indigo-500">불러오는 중...</span> : null}
+        <div className="flex items-center gap-3 shrink-0">
+          {isBusy ? <span className="text-xs text-indigo-500 whitespace-nowrap">불러오는 중...</span> : null}
           {onRefresh ? (
             <button
               type="button"
               onClick={() => onRefresh()}
               disabled={isBusy}
-              className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap"
             >
               새로고침
             </button>
