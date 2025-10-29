@@ -858,12 +858,47 @@ function UnifiedTable({
                     <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <select
                         value={currentStatus}
-                        onChange={(event) => {
+                        onChange={async (event) => {
                           const newStatus = event.target.value;
-                          // TODO: API 호출하여 상태 변경
-                          console.log(`상태 변경: ${item.request.id} -> ${newStatus}`);
+
+                          // application이 없으면 상태 변경 불가
+                          if (!item.application) {
+                            alert("상표 신청이 승인되지 않아 상태를 변경할 수 없습니다.");
+                            event.target.value = currentStatus; // 원래 값으로 복원
+                            return;
+                          }
+
+                          if (!confirm(`상태를 "${STATUS_METADATA[newStatus as TrademarkStatus]?.label}"(으)로 변경하시겠습니까?`)) {
+                            event.target.value = currentStatus; // 원래 값으로 복원
+                            return;
+                          }
+
+                          try {
+                            const response = await fetch(`/api/trademarks/${item.application.id}/status`, {
+                              method: "PATCH",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                status: newStatus,
+                              }),
+                            });
+
+                            if (!response.ok) {
+                              const error = await response.json();
+                              throw new Error(error.error || "상태 변경에 실패했습니다.");
+                            }
+
+                            // 성공 시 페이지 새로고침
+                            window.location.reload();
+                          } catch (error) {
+                            console.error("상태 변경 실패:", error);
+                            alert(error instanceof Error ? error.message : "상태 변경에 실패했습니다.");
+                            event.target.value = currentStatus; // 원래 값으로 복원
+                          }
                         }}
                         className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        disabled={!item.application}
                       >
                         {TRADEMARK_STATUS_VALUES.map((status) => (
                           <option key={status} value={status}>
@@ -876,12 +911,87 @@ function UnifiedTable({
                       {needsPayment ? (
                         <select
                           value={paymentStatus || "not_requested"}
-                          onChange={(event) => {
+                          onChange={async (event) => {
                             const newPaymentStatus = event.target.value;
-                            // TODO: API 호출하여 결제 상태 변경
-                            console.log(`결제 상태 변경: ${item.request.id} -> ${newPaymentStatus}`);
+
+                            // application이 없으면 결제 상태 변경 불가
+                            if (!item.application) {
+                              alert("상표 신청이 승인되지 않아 결제 상태를 변경할 수 없습니다.");
+                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                              return;
+                            }
+
+                            const paymentStatusLabels: Record<string, string> = {
+                              not_requested: "미요청",
+                              quote_sent: "견적 발송",
+                              unpaid: "결제 대기",
+                              partial: "부분 결제",
+                              paid: "결제 완료",
+                              overdue: "연체",
+                              refund_requested: "환불 요청",
+                              refunded: "환불 완료",
+                            };
+
+                            if (!confirm(`결제 상태를 "${paymentStatusLabels[newPaymentStatus]}"(으)로 변경하시겠습니까?`)) {
+                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                              return;
+                            }
+
+                            try {
+                              // 먼저 해당 application의 payment를 조회
+                              const paymentsResponse = await fetch(`/api/admin/trademark-applications/${item.application.id}/payments`);
+
+                              if (!paymentsResponse.ok) {
+                                throw new Error("결제 정보를 조회할 수 없습니다.");
+                              }
+
+                              const payments = await paymentsResponse.json();
+
+                              // 현재 상태에 맞는 payment stage 결정
+                              let paymentStage = "filing";
+                              if (currentStatus === "awaiting_office_action") {
+                                paymentStage = "office_action";
+                              } else if (currentStatus === "registration_decided") {
+                                paymentStage = "registration";
+                              }
+
+                              // 해당 stage의 payment 찾기
+                              const payment = Array.isArray(payments)
+                                ? payments.find((p: any) => p.payment_stage === paymentStage)
+                                : null;
+
+                              if (!payment?.id) {
+                                alert("결제 정보가 없습니다. 먼저 결제를 생성해주세요.");
+                                event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                                return;
+                              }
+
+                              // payment 업데이트
+                              const updateResponse = await fetch(`/api/admin/payments/${payment.id}`, {
+                                method: "PATCH",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                  paymentStatus: newPaymentStatus,
+                                }),
+                              });
+
+                              if (!updateResponse.ok) {
+                                const error = await updateResponse.json();
+                                throw new Error(error.error || "결제 상태 변경에 실패했습니다.");
+                              }
+
+                              // 성공 시 페이지 새로고침
+                              window.location.reload();
+                            } catch (error) {
+                              console.error("결제 상태 변경 실패:", error);
+                              alert(error instanceof Error ? error.message : "결제 상태 변경에 실패했습니다.");
+                              event.target.value = paymentStatus || "not_requested"; // 원래 값으로 복원
+                            }
                           }}
                           className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                          disabled={!item.application}
                         >
                           <option value="not_requested">미요청</option>
                           <option value="quote_sent">견적 발송</option>
