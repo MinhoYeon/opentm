@@ -35,38 +35,6 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "document",
     },
   },
-  awaiting_payment: {
-    key: "awaiting_payment",
-    label: "입금 대기",
-    helpText: "가상계좌 입금이 확인되면 다음 단계로 진행됩니다.",
-    tone: "warning",
-    badge: {
-      backgroundClass: "bg-amber-100 text-amber-700",
-      dotClass: "bg-amber-500",
-    },
-    timeline: {
-      accentColor: "#fbbf24",
-      iconBackground: "#fef3c7",
-      iconColor: "#b45309",
-      icon: "payment",
-    },
-  },
-  payment_received: {
-    key: "payment_received",
-    label: "결제 완료",
-    helpText: "결제가 완료되었습니다. 담당 변리사가 서류를 준비하고 있어요.",
-    tone: "success",
-    badge: {
-      backgroundClass: "bg-emerald-100 text-emerald-700",
-      dotClass: "bg-emerald-500",
-    },
-    timeline: {
-      accentColor: "#34d399",
-      iconBackground: "#d1fae5",
-      iconColor: "#047857",
-      icon: "check",
-    },
-  },
   awaiting_applicant_info: {
     key: "awaiting_applicant_info",
     label: "출원인 정보 대기",
@@ -83,25 +51,9 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "document",
     },
   },
-  applicant_info_completed: {
-    key: "applicant_info_completed",
-    label: "출원인 정보 완료",
-    helpText: "필요한 정보가 모두 제출되었습니다.",
-    tone: "success",
-    badge: {
-      backgroundClass: "bg-emerald-100 text-emerald-700",
-      dotClass: "bg-emerald-500",
-    },
-    timeline: {
-      accentColor: "#34d399",
-      iconBackground: "#d1fae5",
-      iconColor: "#047857",
-      icon: "check",
-    },
-  },
   awaiting_documents: {
     key: "awaiting_documents",
-    label: "자료 보완 요청",
+    label: "자료 보완",
     helpText: "출원에 필요한 자료를 제출해 주세요. 담당자가 업로드 방법을 안내드립니다.",
     tone: "info",
     badge: {
@@ -161,6 +113,38 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       iconBackground: "#dbeafe",
       iconColor: "#1d4ed8",
       icon: "plane",
+    },
+  },
+  awaiting_acceleration: {
+    key: "awaiting_acceleration",
+    label: "우선심사신청 대기",
+    helpText: "우선심사 신청을 위한 준비 중입니다.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-violet-100 text-violet-700",
+      dotClass: "bg-violet-500",
+    },
+    timeline: {
+      accentColor: "#a78bfa",
+      iconBackground: "#ede9fe",
+      iconColor: "#6d28d9",
+      icon: "clipboard",
+    },
+  },
+  preparing_acceleration: {
+    key: "preparing_acceleration",
+    label: "우선심사신청 준비",
+    helpText: "우선심사 신청 서류를 준비하고 있습니다.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-purple-100 text-purple-700",
+      dotClass: "bg-purple-500",
+    },
+    timeline: {
+      accentColor: "#c084fc",
+      iconBackground: "#f3e8ff",
+      iconColor: "#7e22ce",
+      icon: "document",
     },
   },
   under_examination: {
@@ -352,19 +336,6 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
     emailBody:
       "{{brandName}} 상표 출원 신청이 접수되었습니다. 담당 변리사가 검토 후 다음 단계를 안내드립니다.",
   },
-  awaiting_payment: {
-    channels: ["email", "sms"],
-    emailSubject: "[OpenTM] 입금 대기 안내 - {{brandName}}",
-    emailBody:
-      "{{brandName}} 출원 진행을 위해 안내드린 계좌로 입금해 주세요. 입금 확인 즉시 서류 검토를 시작합니다.",
-    smsBody: "[OpenTM] {{brandName}} 출원 입금 확인 필요. 마이페이지에서 가상계좌 정보를 확인하세요.",
-  },
-  payment_received: {
-    channels: ["email"],
-    emailSubject: "[OpenTM] 결제 완료 - {{brandName}}",
-    emailBody:
-      "입금이 확인되었습니다. 담당 변리사가 서류 검토를 시작했습니다. 진행 상황은 마이페이지에서 확인하실 수 있습니다.",
-  },
   awaiting_applicant_info: {
     channels: ["email", "sms"],
     emailSubject: "[OpenTM] 출원인 정보 제출 요청 - {{brandName}}",
@@ -372,12 +343,6 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
       "출원에 필요한 출원인 정보를 제출해 주세요. 마이페이지에서 정보를 입력하실 수 있습니다.",
     smsBody: "[OpenTM] {{brandName}} 출원인 정보 제출이 필요합니다.",
     escalateToOps: true,
-  },
-  applicant_info_completed: {
-    channels: ["email"],
-    emailSubject: "[OpenTM] 출원인 정보 제출 완료 - {{brandName}}",
-    emailBody:
-      "출원인 정보가 제출되었습니다. 담당 변리사가 서류 검토를 진행합니다.",
   },
   awaiting_documents: {
     channels: ["email", "sms"],
@@ -405,6 +370,18 @@ export const STATUS_NOTIFICATION_TEMPLATES: StatusNotificationTemplates = {
     emailSubject: "[OpenTM] 출원 접수 완료 - {{brandName}}",
     emailBody:
       "특허청에 출원이 접수되었습니다. 접수번호 및 예상 심사 일정을 마이페이지에서 확인하실 수 있습니다.",
+  },
+  awaiting_acceleration: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 우선심사신청 대기 - {{brandName}}",
+    emailBody:
+      "우선심사 신청을 위한 준비 중입니다. 추가 서류가 필요한 경우 안내드립니다.",
+  },
+  preparing_acceleration: {
+    channels: ["email"],
+    emailSubject: "[OpenTM] 우선심사신청 준비 중 - {{brandName}}",
+    emailBody:
+      "우선심사 신청 서류를 준비하고 있습니다. 준비가 완료되면 특허청에 제출됩니다.",
   },
   under_examination: {
     channels: ["email"],

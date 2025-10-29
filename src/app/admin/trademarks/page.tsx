@@ -14,6 +14,7 @@ import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplica
 import { requireAdminContext } from "@/lib/api/auth";
 import { createAdminClient } from "@/lib/supabaseAdminClient";
 import { TRADEMARK_STATUSES, isTrademarkStatus, type TrademarkStatus } from "@/lib/trademarks/status";
+import { STATUS_METADATA } from "@/lib/status";
 
 function isPromise<T>(value: unknown): value is Promise<T> {
   return (
@@ -81,25 +82,14 @@ export function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
 }
 
 export function resolveStatusOptions(statuses: readonly string[] = TRADEMARK_STATUSES) {
-  const LABELS: Record<string, string> = {
-    draft: "임시",
-    awaiting_payment: "입금 대기",
-    payment_received: "입금 완료",
-    awaiting_documents: "자료 보완",
-    preparing_filing: "출원 준비",
-    awaiting_client_signature: "서명 대기",
-    filed: "출원 완료",
-    office_action: "보정 진행",
-    awaiting_client_response: "의견서 대기",
-    awaiting_registration_fee: "등록료 납부",
-    rejected: "거절",
-    completed: "등록 완료",
-    cancelled: "취소",
-  };
-  return statuses.map((status) => ({
-    value: status,
-    label: LABELS[status] ?? status,
-  }));
+  return statuses.map((status) => {
+    const metadata = STATUS_METADATA[status as TrademarkStatus];
+    return {
+      value: status,
+      label: metadata?.label ?? status,
+      description: metadata?.helpText,
+    };
+  });
 }
 
 function extractSavedFilters(source: unknown): SavedFilter[] {

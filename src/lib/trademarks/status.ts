@@ -6,15 +6,14 @@ export const TRADEMARK_STATUSES = TRADEMARK_STATUS_VALUES;
 type TransitionMap = Record<TrademarkStatus, TrademarkStatus[]>;
 
 export const TRADEMARK_STATUS_TRANSITIONS: TransitionMap = {
-  submitted: ["awaiting_payment", "cancelled"],
-  awaiting_payment: ["payment_received", "cancelled"],
-  payment_received: ["awaiting_applicant_info", "applicant_info_completed", "preparing_filing", "cancelled"],
-  awaiting_applicant_info: ["applicant_info_completed", "cancelled"],
-  applicant_info_completed: ["preparing_filing", "cancelled"],
+  submitted: ["awaiting_applicant_info", "awaiting_documents", "cancelled"],
+  awaiting_applicant_info: ["awaiting_documents", "preparing_filing", "cancelled"],
   awaiting_documents: ["preparing_filing", "awaiting_client_signature", "cancelled"],
   preparing_filing: ["awaiting_client_signature", "filed", "cancelled"],
   awaiting_client_signature: ["filed", "cancelled"],
-  filed: ["under_examination", "rejected", "withdrawn"],
+  filed: ["awaiting_acceleration", "under_examination", "rejected", "withdrawn"],
+  awaiting_acceleration: ["preparing_acceleration", "under_examination", "withdrawn"],
+  preparing_acceleration: ["under_examination", "withdrawn"],
   under_examination: ["awaiting_office_action", "publication_announced", "registration_decided", "rejected"],
   awaiting_office_action: ["responding_to_office_action", "withdrawn"],
   responding_to_office_action: ["under_examination", "publication_announced", "rejected", "withdrawn"],
@@ -54,19 +53,8 @@ export function resolveInitialStatus(options: {
   paymentAmount?: number | null;
   skipPaymentGate?: boolean;
 }): TrademarkStatus {
-  if (options.skipPaymentGate) {
-    return "awaiting_documents";
-  }
-
-  if (typeof options.paymentAmount === "number" && options.paymentAmount > 0) {
-    return "awaiting_payment";
-  }
-
-  return "awaiting_documents";
-}
-
-export function shouldSetPaymentReceivedAt(status: TrademarkStatus): boolean {
-  return status === "payment_received";
+  // 초기 상태는 항상 submitted로 시작
+  return "submitted";
 }
 
 export function shouldSetFiledAt(status: TrademarkStatus): boolean {
