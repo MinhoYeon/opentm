@@ -27,6 +27,22 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
     badge: DEFAULT_BADGE,
     timeline: DEFAULT_TIMELINE,
   },
+  submitted: {
+    key: "submitted",
+    label: "신청 접수",
+    helpText: "신청서가 접수되었습니다. 관리자 검토 후 다음 단계로 진행됩니다.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-blue-100 text-blue-700",
+      dotClass: "bg-blue-500",
+    },
+    timeline: {
+      accentColor: "#60a5fa",
+      iconBackground: "#dbeafe",
+      iconColor: "#1d4ed8",
+      icon: "document",
+    },
+  },
   awaiting_payment: {
     key: "awaiting_payment",
     label: "입금 대기",
@@ -47,6 +63,38 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
     key: "payment_received",
     label: "결제 완료",
     helpText: "결제가 완료되었습니다. 담당 변리사가 서류를 준비하고 있어요.",
+    tone: "success",
+    badge: {
+      backgroundClass: "bg-emerald-100 text-emerald-700",
+      dotClass: "bg-emerald-500",
+    },
+    timeline: {
+      accentColor: "#34d399",
+      iconBackground: "#d1fae5",
+      iconColor: "#047857",
+      icon: "check",
+    },
+  },
+  awaiting_applicant_info: {
+    key: "awaiting_applicant_info",
+    label: "출원인 정보 대기",
+    helpText: "출원에 필요한 추가 정보를 제출해 주세요.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-sky-100 text-sky-700",
+      dotClass: "bg-sky-500",
+    },
+    timeline: {
+      accentColor: "#38bdf8",
+      iconBackground: "#e0f2fe",
+      iconColor: "#0284c7",
+      icon: "document",
+    },
+  },
+  applicant_info_completed: {
+    key: "applicant_info_completed",
+    label: "출원인 정보 완료",
+    helpText: "필요한 정보가 모두 제출되었습니다.",
     tone: "success",
     badge: {
       backgroundClass: "bg-emerald-100 text-emerald-700",
@@ -123,6 +171,22 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "plane",
     },
   },
+  under_examination: {
+    key: "under_examination",
+    label: "심사 중",
+    helpText: "특허청에서 심사를 진행하고 있습니다.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-indigo-100 text-indigo-700",
+      dotClass: "bg-indigo-500",
+    },
+    timeline: {
+      accentColor: "#818cf8",
+      iconBackground: "#eef2ff",
+      iconColor: "#4338ca",
+      icon: "search",
+    },
+  },
   office_action: {
     key: "office_action",
     label: "심사 진행중",
@@ -137,6 +201,38 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       iconBackground: "#fef3c7",
       iconColor: "#b45309",
       icon: "search",
+    },
+  },
+  awaiting_office_action: {
+    key: "awaiting_office_action",
+    label: "의견제출통지서 대기",
+    helpText: "의견제출통지서를 수령했습니다. 대응 방안을 검토 중입니다.",
+    tone: "warning",
+    badge: {
+      backgroundClass: "bg-orange-100 text-orange-700",
+      dotClass: "bg-orange-500",
+    },
+    timeline: {
+      accentColor: "#fb923c",
+      iconBackground: "#ffedd5",
+      iconColor: "#c2410c",
+      icon: "alert",
+    },
+  },
+  responding_to_office_action: {
+    key: "responding_to_office_action",
+    label: "의견/보정 진행",
+    helpText: "의견서 또는 보정서를 작성하고 있습니다.",
+    tone: "info",
+    badge: {
+      backgroundClass: "bg-blue-100 text-blue-700",
+      dotClass: "bg-blue-500",
+    },
+    timeline: {
+      accentColor: "#60a5fa",
+      iconBackground: "#dbeafe",
+      iconColor: "#1d4ed8",
+      icon: "clipboard",
     },
   },
   awaiting_client_response: {
@@ -155,6 +251,38 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "alert",
     },
   },
+  publication_announced: {
+    key: "publication_announced",
+    label: "출원공고",
+    helpText: "출원공고가 진행되었습니다.",
+    tone: "success",
+    badge: {
+      backgroundClass: "bg-emerald-100 text-emerald-700",
+      dotClass: "bg-emerald-500",
+    },
+    timeline: {
+      accentColor: "#34d399",
+      iconBackground: "#d1fae5",
+      iconColor: "#047857",
+      icon: "document",
+    },
+  },
+  registration_decided: {
+    key: "registration_decided",
+    label: "등록결정",
+    helpText: "등록결정서를 수령했습니다. 등록료 납부 후 등록증이 발급됩니다.",
+    tone: "success",
+    badge: {
+      backgroundClass: "bg-green-100 text-green-700",
+      dotClass: "bg-green-500",
+    },
+    timeline: {
+      accentColor: "#22c55e",
+      iconBackground: "#dcfce7",
+      iconColor: "#15803d",
+      icon: "shield",
+    },
+  },
   awaiting_registration_fee: {
     key: "awaiting_registration_fee",
     label: "등록료 안내",
@@ -171,10 +299,42 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
       icon: "payment",
     },
   },
+  registration_fee_paid: {
+    key: "registration_fee_paid",
+    label: "등록료 완료",
+    helpText: "등록료 납부가 완료되었습니다. 등록증 발급을 기다리고 있습니다.",
+    tone: "success",
+    badge: {
+      backgroundClass: "bg-emerald-100 text-emerald-700",
+      dotClass: "bg-emerald-500",
+    },
+    timeline: {
+      accentColor: "#34d399",
+      iconBackground: "#d1fae5",
+      iconColor: "#047857",
+      icon: "check",
+    },
+  },
   completed: {
     key: "completed",
     label: "등록 완료",
     helpText: "상표 등록이 완료되었습니다.",
+    tone: "success",
+    badge: {
+      backgroundClass: "bg-emerald-100 text-emerald-700",
+      dotClass: "bg-emerald-500",
+    },
+    timeline: {
+      accentColor: "#34d399",
+      iconBackground: "#d1fae5",
+      iconColor: "#047857",
+      icon: "shield",
+    },
+  },
+  registered: {
+    key: "registered",
+    label: "등록 완료",
+    helpText: "상표등록증이 발급되었습니다.",
     tone: "success",
     badge: {
       backgroundClass: "bg-emerald-100 text-emerald-700",
@@ -207,6 +367,22 @@ export const STATUS_METADATA: Record<TrademarkStatus, StatusMetadata> = {
     key: "cancelled",
     label: "취소됨",
     helpText: "요청이 취소되었습니다.",
+    tone: "neutral",
+    badge: {
+      backgroundClass: "bg-slate-100 text-slate-600",
+      dotClass: "bg-slate-400",
+    },
+    timeline: {
+      accentColor: "#cbd5f5",
+      iconBackground: "#f1f5f9",
+      iconColor: "#475569",
+      icon: "ban",
+    },
+  },
+  withdrawn: {
+    key: "withdrawn",
+    label: "취하/포기",
+    helpText: "출원이 취하 또는 포기되었습니다.",
     tone: "neutral",
     badge: {
       backgroundClass: "bg-slate-100 text-slate-600",
