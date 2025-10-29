@@ -7,15 +7,12 @@ import {
   type AdminActivityLog,
   type AdminDashboardFilters,
   type AdminDashboardPagination,
-  type AdminTrademarkApplication,
   type AdminTrademarkRequest,
   type AdminUserSummary,
   type SavedFilter,
   type StatusSummary,
-  type UnifiedTrademarkItem,
   type DashboardStats,
 } from "./types";
-import { normalizeTrademarkApplication } from "./utils/normalizeTrademarkApplication";
 import type { AdminCapabilities } from "@/lib/admin/roles";
 import { TRADEMARK_STATUS_VALUES, type TrademarkStatus } from "@/types/status";
 import { useApplicationPayments } from "./hooks/useApplicationPayments";
@@ -40,7 +37,7 @@ type StatusOption = {
 
 type AdminTrademarkDashboardClientProps = {
   admin: AdminUserSummary;
-  initialUnifiedItems: UnifiedTrademarkItem[];
+  initialTrademarks: AdminTrademarkRequest[];
   initialPagination: AdminDashboardPagination;
   initialStatusSummary: StatusSummary[];
   initialFilters: AdminDashboardFilters;
@@ -657,7 +654,7 @@ function ApplicationsTable({
 }
 
 type UnifiedTableProps = {
-  items: UnifiedTrademarkItem[];
+  items: AdminTrademarkRequest[];
   pagination: AdminDashboardPagination;
   selectedIds: string[];
   onToggleRow: (id: string) => void;
@@ -666,9 +663,9 @@ type UnifiedTableProps = {
   isLoading?: boolean;
   error?: string | null;
   onRefresh: () => void;
-  onApprove: (item: UnifiedTrademarkItem) => void;
-  onUnapprove: (item: UnifiedTrademarkItem) => void;
-  onSelectApplication?: (application: AdminTrademarkApplication) => void;
+  onApprove: (item: AdminTrademarkRequest) => void;
+  onUnapprove: (item: AdminTrademarkRequest) => void;
+  onSelectTrademark?: (trademark: AdminTrademarkRequest) => void;
 };
 
 function UnifiedTable({
@@ -683,9 +680,9 @@ function UnifiedTable({
   onRefresh,
   onApprove,
   onUnapprove,
-  onSelectApplication,
+  onSelectTrademark,
 }: UnifiedTableProps) {
-  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.request.id));
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id));
 
   const formatDateTime = (value?: string | null) => {
     if (!value) return "-";
@@ -708,7 +705,7 @@ function UnifiedTable({
         <div>
           <h2 className="text-lg font-semibold text-slate-900">상표 신청 목록</h2>
           <p className="text-xs text-slate-600">
-            총 {items.length}건 (승인됨: {items.filter(i => i.isApproved).length}, 대기중: {items.filter(i => !i.isApproved).length})
+            총 {items.length}건 (접수중: {items.filter(i => i.status === "submitted").length}, 처리중: {items.filter(i => i.status !== "submitted").length})
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -770,7 +767,7 @@ function UnifiedTable({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {items.map((item) => {
-                const selected = selectedIds.includes(item.request.id);
+                const selected = selectedIds.includes(item.id);
                 const formatDate = (dateStr?: string | null) => {
                   if (!dateStr) return "-";
                   try {
@@ -784,15 +781,15 @@ function UnifiedTable({
                   }
                 };
 
-                // 현재 상태 (request 또는 application의 상태)
-                const currentStatus = item.application?.status || item.request.status;
+                // 현재 상태
+                const currentStatus = item.status;
 
                 // 결제가 필요한 상태인지 확인
                 const paymentRequiredStatuses = ["submitted", "awaiting_acceleration", "awaiting_office_action", "registration_decided"];
                 const needsPayment = paymentRequiredStatuses.includes(currentStatus);
 
-                // 결제 상태는 application에서 가져옴
-                const paymentStatus = item.application?.payment?.state;
+                // 결제 상태
+                const paymentStatus = item.payment?.state;
                 const getPaymentStatusLabel = (status?: string | null) => {
                   if (!status) return "-";
                   const labels: Record<string, string> = {
@@ -810,35 +807,35 @@ function UnifiedTable({
 
                 return (
                   <tr
-                    key={item.request.id}
+                    key={item.id}
                     className={classNames(
                       "cursor-pointer bg-white transition hover:bg-indigo-50",
                       selected ? "bg-indigo-50" : ""
                     )}
-                    onClick={() => item.application && onSelectApplication?.(item.application)}
+                    onClick={() => onSelectTrademark?.(item)}
                   >
                     <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={() => onToggleRow(item.request.id)}
+                        onChange={() => onToggleRow(item.id)}
                         className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm font-medium text-slate-900">
-                        {item.request.applicant_name || "-"}
+                        {item.applicant_name || "-"}
                       </div>
-                      <div className="text-xs text-slate-500">{item.request.applicant_email || "-"}</div>
+                      <div className="text-xs text-slate-500">{item.applicant_email || "-"}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-slate-900">{item.request.brand_name}</div>
+                      <div className="text-sm font-medium text-slate-900">{item.brand_name}</div>
                     </td>
                     <td className="px-4 py-3">
-                      {item.request.trademark_image_url ? (
+                      {item.trademark_image_url ? (
                         <img
-                          src={item.request.trademark_image_url}
-                          alt={item.request.brand_name}
+                          src={item.trademark_image_url}
+                          alt={item.brand_name}
                           className="h-10 w-10 rounded object-cover"
                         />
                       ) : (
@@ -848,13 +845,13 @@ function UnifiedTable({
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {item.request.product_classes.length > 0
-                        ? item.request.product_classes.slice(0, 2).join(", ") +
-                          (item.request.product_classes.length > 2 ? ` 외 ${item.request.product_classes.length - 2}` : "")
+                      {item.product_classes.length > 0
+                        ? item.product_classes.slice(0, 2).join(", ") +
+                          (item.product_classes.length > 2 ? ` 외 ${item.product_classes.length - 2}` : "")
                         : "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{item.request.representative_email}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(item.request.submitted_at)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{item.representative_email}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(item.submitted_at)}</td>
                     <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <select
                         value={currentStatus}
@@ -862,20 +859,13 @@ function UnifiedTable({
                           const newStatus = event.target.value;
                           const originalValue = currentStatus;
 
-                          // application이 없으면 상태 변경 불가
-                          if (!item.application) {
-                            alert("상표 신청이 승인되지 않아 상태를 변경할 수 없습니다.");
-                            event.target.value = originalValue;
-                            return;
-                          }
-
                           if (!confirm(`상태를 "${STATUS_METADATA[newStatus as TrademarkStatus]?.label}"(으)로 변경하시겠습니까?`)) {
                             event.target.value = originalValue;
                             return;
                           }
 
                           try {
-                            const response = await fetch(`/api/trademarks/${item.application.id}/status`, {
+                            const response = await fetch(`/api/trademarks/${item.id}/status`, {
                               method: "PATCH",
                               headers: {
                                 "Content-Type": "application/json",
@@ -899,8 +889,6 @@ function UnifiedTable({
                           }
                         }}
                         className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        disabled={!item.application}
-                        style={{ cursor: item.application ? 'pointer' : 'not-allowed' }}
                       >
                         {TRADEMARK_STATUS_VALUES.map((status) => (
                           <option key={status} value={status}>
@@ -916,13 +904,6 @@ function UnifiedTable({
                           onChange={async (event) => {
                             const newPaymentStatus = event.target.value;
                             const originalValue = paymentStatus || "not_requested";
-
-                            // application이 없으면 결제 상태 변경 불가
-                            if (!item.application) {
-                              alert("상표 신청이 승인되지 않아 결제 상태를 변경할 수 없습니다.");
-                              event.target.value = originalValue;
-                              return;
-                            }
 
                             const paymentStatusLabels: Record<string, string> = {
                               not_requested: "미요청",
@@ -941,8 +922,8 @@ function UnifiedTable({
                             }
 
                             try {
-                              // 먼저 해당 application의 payment를 조회
-                              const paymentsResponse = await fetch(`/api/admin/trademark-applications/${item.application.id}/payments`);
+                              // 먼저 해당 request의 payment를 조회 (request_id 기반)
+                              const paymentsResponse = await fetch(`/api/admin/trademark-requests/${item.id}/payments`);
 
                               if (!paymentsResponse.ok) {
                                 throw new Error("결제 정보를 조회할 수 없습니다.");
@@ -994,8 +975,6 @@ function UnifiedTable({
                             }
                           }}
                           className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          disabled={!item.application}
-                          style={{ cursor: item.application ? 'pointer' : 'not-allowed' }}
                         >
                           <option value="not_requested">미요청</option>
                           <option value="quote_sent">견적 발송</option>
@@ -1837,7 +1816,7 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
 
 export default function AdminTrademarkDashboardClient({
   admin,
-  initialUnifiedItems,
+  initialTrademarks,
   initialPagination,
   initialStatusSummary,
   initialFilters,
@@ -1846,7 +1825,7 @@ export default function AdminTrademarkDashboardClient({
   savedFilters,
   dashboardStats,
 }: AdminTrademarkDashboardClientProps) {
-  const [unifiedItems, setUnifiedItems] = useState<UnifiedTrademarkItem[]>(initialUnifiedItems);
+  const [trademarks, setTrademarks] = useState<AdminTrademarkRequest[]>(initialTrademarks);
   const [pagination, setPagination] = useState<AdminDashboardPagination>(initialPagination);
   const [filters, setFilters] = useState<AdminDashboardFilters>(initialFilters);
   const [statusSummary, setStatusSummary] = useState<StatusSummary[]>(initialStatusSummary);
@@ -1854,12 +1833,12 @@ export default function AdminTrademarkDashboardClient({
   const [error, setError] = useState<string | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeApplication, setActiveApplication] = useState<AdminTrademarkApplication | null>(null);
+  const [activeTrademark, setActiveTrademark] = useState<AdminTrademarkRequest | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [unifiedItems]);
+  }, [trademarks]);
 
   const headerStats = useMemo(
     () => buildHeaderStats(statusSummary, pagination.totalCount),
@@ -1872,16 +1851,16 @@ export default function AdminTrademarkDashboardClient({
 
   const handleToggleAll = useCallback(() => {
     setSelectedIds((prev) => {
-      if (unifiedItems.length === 0) {
+      if (trademarks.length === 0) {
         return [];
       }
-      const allSelected = unifiedItems.every((item) => prev.includes(item.request.id));
-      return allSelected ? [] : unifiedItems.map((item) => item.request.id);
+      const allSelected = trademarks.every((item) => prev.includes(item.id));
+      return allSelected ? [] : trademarks.map((item) => item.id);
     });
-  }, [unifiedItems]);
+  }, [trademarks]);
 
-  const handleSelectApplication = useCallback((application: AdminTrademarkApplication) => {
-    setActiveApplication(application);
+  const handleSelectTrademark = useCallback((trademark: AdminTrademarkRequest) => {
+    setActiveTrademark(trademark);
     setDrawerOpen(true);
   }, []);
 
@@ -1890,13 +1869,13 @@ export default function AdminTrademarkDashboardClient({
     try {
       // 데이터 새로고침 로직 (API 호출 등)
       // 여기서는 일단 초기 데이터를 그대로 사용
-      setUnifiedItems(initialUnifiedItems);
+      setTrademarks(initialTrademarks);
     } catch (err) {
       setError(err instanceof Error ? err.message : "데이터를 불러올 수 없습니다.");
     } finally {
       setIsLoading(false);
     }
-  }, [initialUnifiedItems]);
+  }, [initialTrademarks]);
 
   const updateFilters = useCallback(
     async (nextFilters: AdminDashboardFilters) => {
@@ -1914,8 +1893,8 @@ export default function AdminTrademarkDashboardClient({
   );
 
   const handleUpdated = useCallback(
-    (updated: AdminTrademarkApplication) => {
-      setActiveApplication(updated);
+    (updated: AdminTrademarkRequest) => {
+      setActiveTrademark(updated);
       refresh();
     },
     [refresh]
@@ -1937,11 +1916,9 @@ export default function AdminTrademarkDashboardClient({
   );
 
   const handleUnapprove = useCallback(
-    async (item: UnifiedTrademarkItem) => {
-      if (!item.application) return;
-
+    async (item: AdminTrademarkRequest) => {
       try {
-        const response = await fetch(`/api/admin/trademark-applications/${item.application.id}/unapprove`, {
+        const response = await fetch(`/api/admin/trademark-requests/${item.id}/unapprove`, {
           method: "POST",
         });
 
@@ -1950,7 +1927,7 @@ export default function AdminTrademarkDashboardClient({
           throw new Error(json.error || "승인 해제에 실패했습니다.");
         }
 
-        alert(`${item.request.brand_name} 출원이 승인 해제되었습니다.`);
+        alert(`${item.brand_name} 출원이 승인 해제되었습니다.`);
         refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : "승인 해제 중 오류가 발생했습니다.";
@@ -1961,9 +1938,9 @@ export default function AdminTrademarkDashboardClient({
   );
 
   const handleApprove = useCallback(
-    async (item: UnifiedTrademarkItem) => {
+    async (item: AdminTrademarkRequest) => {
       try {
-        const response = await fetch(`/api/admin/trademark-requests/${item.request.id}/approve`, {
+        const response = await fetch(`/api/admin/trademark-requests/${item.id}/approve`, {
           method: "POST",
         });
 
@@ -1972,7 +1949,7 @@ export default function AdminTrademarkDashboardClient({
           throw new Error(json.error || "승인에 실패했습니다.");
         }
 
-        alert(`${item.request.brand_name} 신청서가 승인되었습니다.`);
+        alert(`${item.brand_name} 신청서가 승인되었습니다.`);
         refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : "승인 중 오류가 발생했습니다.";
@@ -2067,7 +2044,7 @@ export default function AdminTrademarkDashboardClient({
         <div className="flex flex-1 overflow-hidden">
           <section className="flex-1 overflow-y-auto px-6 py-6">
             <UnifiedTable
-              items={unifiedItems}
+              items={trademarks}
               pagination={pagination}
               selectedIds={selectedIds}
               onToggleRow={handleToggleRow}
@@ -2078,7 +2055,7 @@ export default function AdminTrademarkDashboardClient({
               onRefresh={refresh}
               onApprove={handleApprove}
               onUnapprove={handleUnapprove}
-              onSelectApplication={handleSelectApplication}
+              onSelectTrademark={handleSelectTrademark}
             />
           </section>
           <aside className="hidden w-80 border-l border-slate-200 bg-white/80 backdrop-blur xl:block">

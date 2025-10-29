@@ -139,33 +139,64 @@ export type SavedFilter = {
   filters: AdminDashboardFilters;
 };
 
+// Consolidated trademark request type (formerly split between request and application)
 export type AdminTrademarkRequest = {
   id: string;
   user_id: string | null;
+
+  // Basic information
   brand_name: string;
   trademark_type: string | null;
   image_url: string | null;
   image_storage_path: string | null;
   product_classes: string[];
+  goods_description?: string | null;
   representative_email: string;
   additional_notes: string | null;
-  submitted_at: string | null;
+
+  // Applicant information
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  applicant_phone?: string | null;
+
+  // Status and workflow
   status: string;
   status_detail: string | null;
   status_updated_at: string | null;
+
+  // Filing information
+  management_number?: string | null;
+  filing_receipt_number?: string | null;
+  filing_submission_reference?: string | null;
+  filing_submitted_at?: string | null;
+  filed_at?: string | null;
+  filing_office?: string | null;
+
+  // Assignment and organization
+  assigned_to?: string | null;
+  assigned_to_name?: string | null;
+  assigned_to_email?: string | null;
+  tags?: string[];
+  notes?: string | null;
+
+  // Metadata
+  metadata?: Record<string, unknown>;
+
+  // Timestamps
+  submitted_at: string | null;
   created_at?: string | null;
   updated_at?: string | null;
-  // 사용자 정보 (조인된 데이터)
-  applicant_name?: string | null;
-  applicant_email?: string | null;
-  trademark_image_url?: string | null;
-};
 
-// 통합 뷰: trademark_requests와 trademark_applications를 결합한 타입
-export type UnifiedTrademarkItem = {
-  request: AdminTrademarkRequest;
-  application: AdminTrademarkApplication | null;
-  isApproved: boolean;
+  // Computed/joined fields
+  trademark_image_url?: string | null;
+  payment?: AdminPaymentInfo | null;
+  documents?: AdminDocument[];
+  timeline?: AdminTimelineEntry[];
+  deadlines?: {
+    filing?: string | null;
+    response?: string | null;
+    payment?: string | null;
+  };
 };
 
 // 대시보드 위젯 통계
