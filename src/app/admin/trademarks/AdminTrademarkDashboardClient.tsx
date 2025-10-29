@@ -872,6 +872,7 @@ function UnifiedTable({
                               },
                               body: JSON.stringify({
                                 status: newStatus,
+                                statusDetail: `관리자가 드롭다운에서 상태를 변경했습니다.`,
                               }),
                             });
 

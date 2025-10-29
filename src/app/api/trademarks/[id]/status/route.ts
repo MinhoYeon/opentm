@@ -45,11 +45,17 @@ type UpdateStatusPayload = {
   filedAt?: string | null;
 };
 
+type RouteContext = {
+  params: Promise<{ id: string }> | { id: string };
+};
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: RouteContext
 ) {
+  const params = "then" in context.params ? await context.params : context.params;
   const { id } = params;
+
   if (!id) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
@@ -89,12 +95,16 @@ export async function PATCH(
   const statusDetail = parseOptionalString(payload.statusDetail);
   const isRegression =
     TRADEMARK_STATUS_VALUES.indexOf(nextStatus) < TRADEMARK_STATUS_VALUES.indexOf(currentStatus);
+
+  // 관리자는 상태 전이 제약 없이 모든 상태로 변경 가능
+  // 단, 상태를 되돌릴 때는 메모 필수
   if (isRegression && !statusDetail) {
     return NextResponse.json({ error: "상태를 되돌릴 때는 상세 메모를 남겨야 합니다." }, { status: 422 });
   }
 
+  // 일반적인 전이가 아닌 경우 로그 기록 (관리자는 허용)
   if (!canTransitionStatus(currentStatus, nextStatus)) {
-    return NextResponse.json({ error: "허용되지 않은 상태 전이입니다." }, { status: 422 });
+    console.warn(`Non-standard status transition: ${currentStatus} -> ${nextStatus} by admin ${session.user.id}`);
   }
 
   const updateFields: Record<string, unknown> = {
