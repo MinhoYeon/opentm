@@ -139,3 +139,32 @@ export type SavedFilter = {
   filters: AdminDashboardFilters;
 };
 
+export type AdminTrademarkRequest = {
+  id: string;
+  user_id: string | null;
+  brand_name: string;
+  trademark_type: string | null;
+  image_url: string | null;
+  image_storage_path: string | null;
+  product_classes: string[];
+  representative_email: string;
+  additional_notes: string | null;
+  submitted_at: string | null;
+  status: string;
+  status_detail: string | null;
+  status_updated_at: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type RequestsFilters = {
+  status?: string;
+  search?: string;
+};
+
+export type RequestsPagination = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
+
