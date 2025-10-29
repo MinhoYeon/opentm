@@ -155,6 +155,10 @@ export type AdminTrademarkRequest = {
   status_updated_at: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  // 사용자 정보 (조인된 데이터)
+  applicant_name?: string | null;
+  applicant_email?: string | null;
+  trademark_image_url?: string | null;
 };
 
 // 통합 뷰: trademark_requests와 trademark_applications를 결합한 타입
