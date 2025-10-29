@@ -1373,15 +1373,15 @@ function UtilityRail({ admin, selectedCount, capabilities, onBulkAction, activit
 }
 
 type StatusUpdateFormProps = {
-  application: AdminTrademarkApplication;
+  application: AdminTrademarkRequest;
   statusOptions: StatusOption[];
   capabilities: AdminCapabilities;
-  onUpdated: (updated: AdminTrademarkApplication) => void;
+  onUpdated: (updated: AdminTrademarkRequest) => void;
 };
 
 function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated }: StatusUpdateFormProps) {
   const [status, setStatus] = useState(application.status);
-  const [detail, setDetail] = useState(application.statusDetail ?? "");
+  const [detail, setDetail] = useState(application.status_detail ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState(true);
@@ -1394,7 +1394,7 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
 
   useEffect(() => {
     setStatus(application.status);
-    setDetail(application.statusDetail ?? "");
+    setDetail(application.status_detail ?? "");
   }, [application]);
 
   const handleSubmit = useCallback(
@@ -1500,12 +1500,12 @@ function StatusUpdateForm({ application, statusOptions, capabilities, onUpdated 
 }
 
 type DetailDrawerProps = {
-  application: AdminTrademarkApplication | null;
+  application: AdminTrademarkRequest | null;
   open: boolean;
   onClose: () => void;
   statusOptions: StatusOption[];
   capabilities: AdminCapabilities;
-  onUpdated: (updated: AdminTrademarkApplication) => void;
+  onUpdated: (updated: AdminTrademarkRequest) => void;
 };
 
 function DetailDrawer({ application, open, onClose, statusOptions, capabilities, onUpdated }: DetailDrawerProps) {
@@ -1529,8 +1529,8 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
       <div className="h-full w-full max-w-4xl overflow-y-auto bg-white shadow-2xl">
         <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">{application.brandName}</h3>
-            <p className="text-xs text-slate-500">관리번호 {application.managementNumber ?? "미배정"}</p>
+            <h3 className="text-lg font-semibold text-slate-900">{application.brand_name}</h3>
+            <p className="text-xs text-slate-500">관리번호 {application.management_number ?? "미배정"}</p>
           </div>
           <button
             type="button"
@@ -1545,8 +1545,8 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
           <div className="flex flex-wrap gap-2">
             {[
               { id: "overview", label: "개요" },
-              { id: "documents", label: `서류 (${application.documents.length})` },
-              { id: "timeline", label: `타임라인 (${application.timeline.length})` },
+              { id: "documents", label: `서류 (${application.documents?.length || 0})` },
+              { id: "timeline", label: `타임라인 (${application.timeline?.length || 0})` },
               { id: "payments", label: "결제" },
               { id: "notes", label: "노트" },
             ].map((tab) => (
@@ -1576,32 +1576,32 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-xs text-slate-600">
                     <div>
                       <dt className="font-semibold text-slate-700">신청인</dt>
-                      <dd>{application.applicantName ?? "-"}</dd>
+                      <dd>{application.applicant_name ?? "-"}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-700">연락처</dt>
-                      <dd>{application.applicantEmail ?? application.applicantPhone ?? "-"}</dd>
+                      <dd>{application.applicant_email ?? application.applicant_phone ?? "-"}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-700">상표 유형</dt>
-                      <dd>{application.trademarkType ?? "-"}</dd>
+                      <dd>{application.trademark_type ?? "-"}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-700">상품류</dt>
-                      <dd>{application.productClasses.join(", ") || "-"}</dd>
+                      <dd>{application.product_classes.join(", ") || "-"}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-700">마지막 업데이트</dt>
-                      <dd>{formatDateTime(application.lastTouchedAt ?? application.updatedAt)}</dd>
+                      <dd>{formatDateTime(application.updated_at)}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-700">태그</dt>
-                      <dd>{application.tags.join(", ") || "-"}</dd>
+                      <dd>{application.tags?.join(", ") || "-"}</dd>
                     </div>
                   </dl>
-                  {application.goodsDescription ? (
+                  {application.goods_description ? (
                     <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                      {application.goodsDescription}
+                      {application.goods_description}
                     </div>
                   ) : null}
                 </div>
@@ -1622,15 +1622,15 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
                   <ul className="mt-3 space-y-2 text-xs text-slate-600">
                     <li className="flex items-center justify-between">
                       <span>결제 기한</span>
-                      <span>{formatDateTime(application.deadlines.payment)}</span>
+                      <span>{formatDateTime(application.deadlines?.payment)}</span>
                     </li>
                     <li className="flex items-center justify-between">
                       <span>서류 제출</span>
-                      <span>{formatDateTime(application.deadlines.response)}</span>
+                      <span>{formatDateTime(application.deadlines?.response)}</span>
                     </li>
                     <li className="flex items-center justify-between">
                       <span>출원 예정</span>
-                      <span>{formatDateTime(application.deadlines.filing)}</span>
+                      <span>{formatDateTime(application.deadlines?.filing)}</span>
                     </li>
                   </ul>
                 </div>
@@ -1660,7 +1660,7 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
                 </button>
               </div>
               <div className="space-y-3">
-                {application.documents.length === 0 ? (
+                {(!application.documents || application.documents.length === 0) ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-xs text-slate-500">
                     업로드된 서류가 없습니다.
                   </div>
@@ -1697,7 +1697,7 @@ function DetailDrawer({ application, open, onClose, statusOptions, capabilities,
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-slate-900">상태 타임라인</h4>
               <ol className="space-y-3 border-l border-slate-200 pl-4">
-                {application.timeline.length === 0 ? (
+                {(!application.timeline || application.timeline.length === 0) ? (
                   <li className="text-xs text-slate-500">아직 기록된 이벤트가 없습니다.</li>
                 ) : (
                   application.timeline.map((entry) => (
@@ -2071,7 +2071,7 @@ export default function AdminTrademarkDashboardClient({
       </main>
 
       <DetailDrawer
-        application={activeApplication}
+        application={activeTrademark}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         statusOptions={statusOptions}
