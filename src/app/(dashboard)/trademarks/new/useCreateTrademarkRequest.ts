@@ -67,12 +67,9 @@ export function useCreateTrademarkRequest() {
         image_url: input.image?.publicUrl ?? null,
         image_storage_path: input.image?.storagePath ?? null,
         submitted_at: submittedAt,
-        status: "awaiting_payment",
-        status_label: "입금 대기",
-        status_description: "가상계좌 입금을 기다리고 있습니다.",
-        status_badge_class: "bg-amber-100 text-amber-700",
-        status_dot_class: "bg-amber-500",
+        status: "submitted", // awaiting_payment → submitted
         status_updated_at: submittedAt,
+        // management_number는 트리거에서 자동 생성됨 (NULL로 보냄)
       };
 
       try {
@@ -83,13 +80,19 @@ export function useCreateTrademarkRequest() {
           .single();
 
         if (error) {
+          console.error("Trademark request insert error:", error);
           throw error;
+        }
+
+        if (!data) {
+          throw new Error("신청서가 생성되지 않았습니다.");
         }
 
         const normalized = normalizeTrademarkRequest((data ?? {}) as Record<string, unknown>);
         setState({ isSubmitting: false, error: null, result: normalized });
         return normalized;
       } catch (err) {
+        console.error("Failed to create trademark request:", err);
         const message =
           err instanceof Error ? err.message : "상표 출원 요청을 저장하는 중 오류가 발생했습니다.";
         setState({ isSubmitting: false, error: message, result: null });
