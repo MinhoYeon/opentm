@@ -91,6 +91,9 @@ type ListQuery = {
   customerNameSearch?: string | null;
   userId?: string;
   assignedTo?: string | null;
+  dateRangeField?: "created_at" | "updated_at" | "filed_at" | "status_updated_at" | "submitted_at" | "filing_submitted_at";
+  dateFrom?: string | null;
+  dateTo?: string | null;
 };
 
 function parseStatuses(values: string[]): TrademarkStatus[] | undefined {
@@ -134,7 +137,37 @@ function parseListQuery(request: NextRequest, isAdmin: boolean, userId: string):
   const searchUserId = isAdmin ? params.get("userId") ?? undefined : userId;
   const assignedTo = parseOptionalString(params.get("assignedTo"));
 
-  return { limit, page, statuses, managementNumber, search, managementNumberSearch, customerNameSearch, userId: searchUserId, assignedTo };
+  // 날짜 범위 파라미터 파싱
+  const dateFields = ["created_at", "updated_at", "filed_at", "status_updated_at", "submitted_at", "filing_submitted_at"] as const;
+  let dateRangeField: ListQuery["dateRangeField"] = undefined;
+  let dateFrom: string | null = null;
+  let dateTo: string | null = null;
+
+  for (const field of dateFields) {
+    const fromParam = params.get(`${field}From`);
+    const toParam = params.get(`${field}To`);
+    if (fromParam || toParam) {
+      dateRangeField = field;
+      dateFrom = fromParam;
+      dateTo = toParam;
+      break;
+    }
+  }
+
+  return {
+    limit,
+    page,
+    statuses,
+    managementNumber,
+    search,
+    managementNumberSearch,
+    customerNameSearch,
+    userId: searchUserId,
+    assignedTo,
+    dateRangeField,
+    dateFrom,
+    dateTo
+  };
 }
 
 function normalizeBrandName(brandName: string): string {
@@ -201,6 +234,19 @@ export async function GET(request: NextRequest) {
       // 이메일인 경우 assigned_to_email로 검색
       const like = `%${query.assignedTo.replace(/%/g, "").replace(/_/g, "")}%`;
       supabaseQuery = supabaseQuery.ilike("assigned_to_email", like);
+    }
+  }
+
+  // 날짜 범위 필터 적용
+  if (query.dateRangeField) {
+    if (query.dateFrom) {
+      supabaseQuery = supabaseQuery.gte(query.dateRangeField, query.dateFrom);
+    }
+    if (query.dateTo) {
+      // 종료일에 하루를 더해서 해당 날짜를 포함하도록 함
+      const toDate = new Date(query.dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      supabaseQuery = supabaseQuery.lt(query.dateRangeField, toDate.toISOString().split('T')[0]);
     }
   }
 
