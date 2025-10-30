@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import {
@@ -1915,6 +1916,9 @@ export default function AdminTrademarkDashboardClient({
   savedFilters,
   dashboardStats,
 }: AdminTrademarkDashboardClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [trademarks, setTrademarks] = useState<AdminTrademarkRequest[]>(initialTrademarks);
   const [pagination, setPagination] = useState<AdminDashboardPagination>(initialPagination);
   const [filters, setFilters] = useState<AdminDashboardFilters>(initialFilters);
@@ -1969,10 +1973,50 @@ export default function AdminTrademarkDashboardClient({
 
   const updateFilters = useCallback(
     async (nextFilters: AdminDashboardFilters) => {
+      console.log('🔍 [updateFilters DEBUG] Updating filters:', nextFilters);
       setFilters(nextFilters);
-      // 필터 적용 로직
+
+      // URL 파라미터 구성
+      const params = new URLSearchParams();
+
+      if (nextFilters.statuses.length > 0) {
+        params.set('status', nextFilters.statuses.join(','));
+      }
+
+      if (nextFilters.search) {
+        params.set('search', nextFilters.search);
+      }
+
+      if (nextFilters.managementNumberSearch) {
+        params.set('managementNumberSearch', nextFilters.managementNumberSearch);
+      }
+
+      if (nextFilters.customerNameSearch) {
+        params.set('customerNameSearch', nextFilters.customerNameSearch);
+      }
+
+      if (nextFilters.assignedTo) {
+        params.set('assignedTo', nextFilters.assignedTo);
+      }
+
+      if (nextFilters.dateRange?.field) {
+        if (nextFilters.dateRange.from) {
+          params.set(`${nextFilters.dateRange.field}From`, nextFilters.dateRange.from);
+        }
+        if (nextFilters.dateRange.to) {
+          params.set(`${nextFilters.dateRange.field}To`, nextFilters.dateRange.to);
+        }
+      }
+
+      // 페이지를 1로 리셋
+      params.set('page', '1');
+
+      console.log('🔍 [updateFilters DEBUG] New URL params:', params.toString());
+
+      // URL 업데이트 (서버 사이드 렌더링 트리거)
+      router.push(`/admin/trademarks?${params.toString()}`);
     },
-    []
+    [router]
   );
 
   const applyFilters = useCallback(
