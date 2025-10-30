@@ -2,25 +2,21 @@
 
 import { memo } from "react";
 
+import { STATUS_METADATA } from "@/lib/status";
+import { TRADEMARK_STATUS_VALUES } from "@/types/status";
+
 type StatusOption = {
   value: string;
   label: string;
 };
 
+// STATUS_METADATA를 기반으로 옵션 생성
 const STATUS_OPTIONS: StatusOption[] = [
   { value: "all", label: "전체" },
-  { value: "awaiting_payment", label: "입금대기" },
-  { value: "payment_received", label: "결제완료" },
-  { value: "awaiting_documents", label: "자료보완" },
-  { value: "preparing_filing", label: "출원준비" },
-  { value: "awaiting_client_signature", label: "서명대기" },
-  { value: "filed", label: "출원완료" },
-  { value: "office_action", label: "심사 진행중" },
-  { value: "awaiting_client_response", label: "의견서" },
-  { value: "awaiting_registration_fee", label: "등록료" },
-  { value: "completed", label: "등록완료" },
-  { value: "rejected", label: "거절" },
-  { value: "cancelled", label: "취소됨" },
+  ...TRADEMARK_STATUS_VALUES.map((status) => ({
+    value: status,
+    label: STATUS_METADATA[status].label,
+  })),
 ];
 
 type StatusFilterProps = {
@@ -28,6 +24,10 @@ type StatusFilterProps = {
   onChange: (next: string) => void;
   searchTerm: string;
   onSearchTermChange: (next: string) => void;
+  managementNumberSearch?: string;
+  onManagementNumberSearchChange?: (next: string) => void;
+  applicantNameSearch?: string;
+  onApplicantNameSearchChange?: (next: string) => void;
   options?: StatusOption[];
   isBusy?: boolean;
   onRefresh?: () => void | Promise<unknown>;
@@ -38,6 +38,10 @@ function StatusFilterComponent({
   onChange,
   searchTerm,
   onSearchTermChange,
+  managementNumberSearch = "",
+  onManagementNumberSearchChange,
+  applicantNameSearch = "",
+  onApplicantNameSearchChange,
   options = STATUS_OPTIONS,
   isBusy = false,
   onRefresh,
@@ -67,21 +71,43 @@ function StatusFilterComponent({
         })}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex w-full items-center gap-3 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500">
-          <span className="text-slate-500" aria-hidden>
-            🔍
-          </span>
-          <span className="sr-only">상표명 검색</span>
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => onSearchTermChange(event.target.value)}
-            placeholder="상표명 또는 메모를 검색하세요"
-            className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-          />
-        </label>
-        <div className="flex items-center gap-3 shrink-0">
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500">
+            <span className="text-xs text-slate-500 whitespace-nowrap">관리번호</span>
+            <input
+              type="search"
+              value={managementNumberSearch}
+              onChange={(event) => onManagementNumberSearchChange?.(event.target.value)}
+              placeholder="예: TM000123"
+              className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500">
+            <span className="text-xs text-slate-500 whitespace-nowrap">상표명</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => onSearchTermChange(event.target.value)}
+              placeholder="상표명 검색"
+              className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500">
+            <span className="text-xs text-slate-500 whitespace-nowrap">출원인</span>
+            <input
+              type="search"
+              value={applicantNameSearch}
+              onChange={(event) => onApplicantNameSearchChange?.(event.target.value)}
+              placeholder="출원인명 검색"
+              className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            />
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
           {isBusy ? <span className="text-xs text-indigo-500 whitespace-nowrap">불러오는 중...</span> : null}
           {onRefresh ? (
             <button
