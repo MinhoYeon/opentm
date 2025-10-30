@@ -110,6 +110,9 @@ export function useAdminTrademarkApplications({
       setError(null);
       try {
         const params = buildQueryParams(nextFilters, nextPage, pagination.pageSize);
+        console.log('🔍 [DEBUG] Fetching with filters:', nextFilters);
+        console.log('🔍 [DEBUG] Query params:', params.toString());
+
         const response = await fetch(`/api/trademarks?${params.toString()}`, {
           method: "GET",
           headers: {
@@ -117,6 +120,8 @@ export function useAdminTrademarkApplications({
           },
           cache: "no-store",
         });
+
+        console.log('🔍 [DEBUG] Response status:', response.status);
 
         if (!response.ok) {
           const message = await response
@@ -127,6 +132,11 @@ export function useAdminTrademarkApplications({
         }
 
         const json = (await response.json()) as Record<string, unknown>;
+        console.log('🔍 [DEBUG] Response data:', {
+          total: json.total,
+          itemCount: Array.isArray(json.items) ? json.items.length : 0
+        });
+
         const items = Array.isArray(json.items) ? (json.items as Record<string, unknown>[]) : [];
         const normalized = items.map((item) => normalizeTrademarkApplication(item));
 
@@ -148,6 +158,7 @@ export function useAdminTrademarkApplications({
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "데이터를 불러올 수 없습니다.";
+        console.error('❌ [DEBUG] Fetch error:', err);
         setError(message);
         throw err;
       } finally {
