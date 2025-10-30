@@ -100,8 +100,10 @@ export type AdminDashboardFilters = {
   assignedTo?: string | null;
   tags: string[];
   search?: string;
+  managementNumberSearch?: string;
+  customerNameSearch?: string;
   dateRange?: {
-    field: "created_at" | "updated_at" | "filed_at" | "status_updated_at";
+    field: "created_at" | "updated_at" | "filed_at" | "status_updated_at" | "submitted_at" | "filing_submitted_at";
     from?: string | null;
     to?: string | null;
   } | null;

@@ -25,6 +25,8 @@ const DEFAULT_FILTERS: AdminDashboardFilters = {
   paymentStates: [],
   tags: [],
   search: "",
+  managementNumberSearch: "",
+  customerNameSearch: "",
   assignedTo: undefined,
   dateRange: null,
 };
@@ -156,10 +158,13 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
         const statuses = exists
           ? prev.statuses.filter((item) => item !== status)
           : [...prev.statuses, status];
-        return { ...prev, statuses };
+        const newFilters = { ...prev, statuses };
+        // 즉시 필터 적용
+        onApply(newFilters);
+        return newFilters;
       });
     },
-    []
+    [onApply]
   );
 
   const togglePaymentState = useCallback((state: string) => {
@@ -168,9 +173,12 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
       const paymentStates = exists
         ? prev.paymentStates.filter((item) => item !== state)
         : [...prev.paymentStates, state];
-      return { ...prev, paymentStates };
+      const newFilters = { ...prev, paymentStates };
+      // 즉시 필터 적용
+      onApply(newFilters);
+      return newFilters;
     });
-  }, []);
+  }, [onApply]);
 
   const updateDateRange = useCallback(
     (range: AdminDashboardFilters["dateRange"]) => {
@@ -218,7 +226,7 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
       </div>
 
       <div className="space-y-3">
-        <label className="text-xs font-semibold text-slate-700">검색</label>
+        <label className="text-xs font-semibold text-slate-700">통합 검색</label>
         <input
           type="search"
           value={localFilters.search ?? ""}
@@ -226,7 +234,33 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
             setLocalFilters((prev) => ({ ...prev, search: event.target.value }))
           }
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="신청자, 상표명, 관리번호 검색"
+          placeholder="관리번호, 고객명, 이메일, 상표명, 메모"
+        />
+      </div>
+
+      <div className="space-y-3">
+        <label className="text-xs font-semibold text-slate-700">관리번호 검색</label>
+        <input
+          type="search"
+          value={localFilters.managementNumberSearch ?? ""}
+          onChange={(event) =>
+            setLocalFilters((prev) => ({ ...prev, managementNumberSearch: event.target.value }))
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          placeholder="예: TM000123"
+        />
+      </div>
+
+      <div className="space-y-3">
+        <label className="text-xs font-semibold text-slate-700">고객명 검색</label>
+        <input
+          type="search"
+          value={localFilters.customerNameSearch ?? ""}
+          onChange={(event) =>
+            setLocalFilters((prev) => ({ ...prev, customerNameSearch: event.target.value }))
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          placeholder="고객명 입력"
         />
       </div>
 
@@ -337,8 +371,10 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
         >
           <option value="created_at">생성일</option>
           <option value="updated_at">최근 업데이트</option>
+          <option value="submitted_at">제출일</option>
+          <option value="filing_submitted_at">출원 제출일</option>
           <option value="filed_at">출원일</option>
-          <option value="status_updated_at">상태 변경</option>
+          <option value="status_updated_at">상태 변경일</option>
         </select>
         <div className="flex gap-2">
           <input

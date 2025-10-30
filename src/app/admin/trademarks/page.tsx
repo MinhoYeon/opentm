@@ -55,6 +55,8 @@ export function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
     ? record.tags.filter((item): item is string => typeof item === "string")
     : [];
   const search = typeof record.search === "string" ? record.search : undefined;
+  const managementNumberSearch = typeof record.managementNumberSearch === "string" ? record.managementNumberSearch : undefined;
+  const customerNameSearch = typeof record.customerNameSearch === "string" ? record.customerNameSearch : undefined;
   const assignedTo = typeof record.assignedTo === "string" ? record.assignedTo : undefined;
 
   let dateRange: AdminDashboardFilters["dateRange"] = null;
@@ -73,6 +75,8 @@ export function parseSavedFilter(value: unknown): AdminDashboardFilters | null {
     paymentStates,
     tags,
     search,
+    managementNumberSearch,
+    customerNameSearch,
     assignedTo,
     dateRange,
   };
@@ -140,14 +144,35 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
     .filter(isTrademarkStatus);
 
   const search = typeof sp.search === "string" ? sp.search.trim() : undefined;
+  const managementNumberSearch = typeof sp.managementNumberSearch === "string" ? sp.managementNumberSearch.trim() : undefined;
+  const customerNameSearch = typeof sp.customerNameSearch === "string" ? sp.customerNameSearch.trim() : undefined;
   const assignedTo = typeof sp.assignedTo === "string" ? sp.assignedTo.trim() : undefined;
+
+  // 날짜 범위 파라미터 파싱
+  let dateRange: AdminDashboardFilters["dateRange"] = null;
+  const dateFields = ["created_at", "updated_at", "filed_at", "status_updated_at", "submitted_at", "filing_submitted_at"] as const;
+  for (const field of dateFields) {
+    const fromParam = sp[`${field}From`];
+    const toParam = sp[`${field}To`];
+    if (fromParam || toParam) {
+      dateRange = {
+        field,
+        from: typeof fromParam === "string" ? fromParam.trim() : undefined,
+        to: typeof toParam === "string" ? toParam.trim() : undefined,
+      };
+      break; // 첫 번째로 발견된 날짜 범위만 사용
+    }
+  }
+
   const initialFilters: AdminDashboardFilters = {
     statuses,
     paymentStates: [],
     tags: [],
     search,
+    managementNumberSearch,
+    customerNameSearch,
     assignedTo,
-    dateRange: null,
+    dateRange,
   };
 
   // trademark_requests에서 통합된 데이터 로드
@@ -159,11 +184,47 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
 
   if (search) {
     const like = `%${search.replace(/%/g, "").replace(/_/g, "")}%`;
-    trademarksQuery = trademarksQuery.or(`brand_name.ilike.${like},representative_email.ilike.${like},applicant_name.ilike.${like},applicant_email.ilike.${like}`);
+    trademarksQuery = trademarksQuery.or(`brand_name.ilike.${like},representative_email.ilike.${like},applicant_name.ilike.${like},applicant_email.ilike.${like},management_number.ilike.${like},additional_notes.ilike.${like}`);
+  }
+
+  if (managementNumberSearch) {
+    const like = `%${managementNumberSearch.replace(/%/g, "").replace(/_/g, "")}%`;
+    trademarksQuery = trademarksQuery.ilike("management_number", like);
+  }
+
+  if (customerNameSearch) {
+    const like = `%${customerNameSearch.replace(/%/g, "").replace(/_/g, "")}%`;
+    trademarksQuery = trademarksQuery.ilike("applicant_name", like);
+  }
+
+  if (assignedTo) {
+    // UUID 형식인지 확인
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(assignedTo)) {
+      // UUID인 경우 assigned_to로 검색
+      trademarksQuery = trademarksQuery.eq("assigned_to", assignedTo);
+    } else {
+      // 이메일인 경우 assigned_to_email로 검색
+      const like = `%${assignedTo.replace(/%/g, "").replace(/_/g, "")}%`;
+      trademarksQuery = trademarksQuery.ilike("assigned_to_email", like);
+    }
   }
 
   if (statuses.length > 0) {
     trademarksQuery = trademarksQuery.in("status", statuses);
+  }
+
+  // 날짜 범위 필터 적용
+  if (dateRange) {
+    if (dateRange.from) {
+      trademarksQuery = trademarksQuery.gte(dateRange.field, dateRange.from);
+    }
+    if (dateRange.to) {
+      // 종료일에 하루를 더해서 해당 날짜를 포함하도록 함
+      const toDate = new Date(dateRange.to);
+      toDate.setDate(toDate.getDate() + 1);
+      trademarksQuery = trademarksQuery.lt(dateRange.field, toDate.toISOString().split('T')[0]);
+    }
   }
 
   const { data: trademarksRows, count: trademarksCount, error: trademarksError } = await trademarksQuery;
@@ -262,7 +323,7 @@ export default async function AdminTrademarksPage({ searchParams }: PageProps) {
   const statusOptions = resolveStatusOptions();
 
   // 결제 통계 계산
-  let dashboardStats: DashboardStats = {
+  const dashboardStats: DashboardStats = {
     totalRequests: totalCount,
     pendingApproval: trademarks.filter((t) => t.status === "submitted").length,
     approved: trademarks.filter((t) => t.status !== "submitted").length,

@@ -39,6 +39,14 @@ function buildQueryParams(
     params.set("search", filters.search);
   }
 
+  if (filters.managementNumberSearch) {
+    params.set("managementNumberSearch", filters.managementNumberSearch);
+  }
+
+  if (filters.customerNameSearch) {
+    params.set("customerNameSearch", filters.customerNameSearch);
+  }
+
   if (filters.assignedTo) {
     params.set("assignedTo", filters.assignedTo);
   }
