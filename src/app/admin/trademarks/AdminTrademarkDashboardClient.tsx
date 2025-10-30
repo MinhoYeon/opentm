@@ -200,6 +200,13 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
     onReset();
   }, [onReset]);
 
+  const handleSearchKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleApply();
+    }
+  }, [handleApply]);
+
   const handleSavedFilterSelect = useCallback(
     (filterId: string) => {
       setSelectedSavedFilter(filterId);
@@ -233,8 +240,9 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
           onChange={(event) =>
             setLocalFilters((prev) => ({ ...prev, search: event.target.value }))
           }
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="관리번호, 고객명, 이메일, 상표명, 메모"
+          placeholder="관리번호, 고객명, 이메일, 상표명, 메모 (Enter로 검색)"
         />
       </div>
 
@@ -246,8 +254,9 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
           onChange={(event) =>
             setLocalFilters((prev) => ({ ...prev, managementNumberSearch: event.target.value }))
           }
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="예: TM000123"
+          placeholder="예: TM000123 (Enter로 검색)"
         />
       </div>
 
@@ -259,8 +268,9 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
           onChange={(event) =>
             setLocalFilters((prev) => ({ ...prev, customerNameSearch: event.target.value }))
           }
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="고객명 입력"
+          placeholder="고객명 입력 (Enter로 검색)"
         />
       </div>
 
@@ -330,8 +340,9 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
               assignedTo: event.target.value ? event.target.value : undefined,
             }))
           }
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="담당자 이메일 또는 ID"
+          placeholder="담당자 이메일 또는 ID (Enter로 검색)"
         />
       </div>
 
@@ -347,8 +358,9 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
               .filter(Boolean);
             setLocalFilters((prev) => ({ ...prev, tags: tokens }));
           }}
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-          placeholder="VIP, 우선심사 등"
+          placeholder="VIP, 우선심사 등 (Enter로 검색)"
         />
       </div>
 
