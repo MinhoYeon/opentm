@@ -7,6 +7,10 @@ import type { UploadedImage } from "./components/TrademarkImageUploader";
 import { TrademarkImageUploader } from "./components/TrademarkImageUploader";
 import { useCreateTrademarkRequest } from "./useCreateTrademarkRequest";
 import type { Applicant } from "@/components/applicants/useApplicantSelection";
+import {
+  BUSINESS_CATEGORIES,
+  getRecommendedClasses,
+} from "@/data/productClassRecommendations";
 
 const TRADEMARK_TYPES = [
   { value: "word", label: "워드 상표" },
@@ -14,20 +18,7 @@ const TRADEMARK_TYPES = [
   { value: "combined", label: "복합 상표" },
 ] as const;
 
-const PRODUCT_CLASS_GROUPS = [
-  {
-    label: "식품 & 음료",
-    options: ["제30류(커피·디저트)", "제32류(음료)", "제43류(식당 서비스)"],
-  },
-  {
-    label: "패션 & 라이프스타일",
-    options: ["제25류(의류)", "제18류(가방)", "제35류(소매·도소매)"],
-  },
-  {
-    label: "IT & SaaS",
-    options: ["제09류(소프트웨어)", "제42류(기술 서비스)", "제45류(지식재산 자문)"],
-  },
-];
+// 사업분야별 상품류 데이터는 BUSINESS_CATEGORIES에서 가져옴
 
 type NewTrademarkClientProps = {
   userId: string;
@@ -83,6 +74,18 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
   const isFormValid = useMemo(() => {
     return Boolean(form.brandName.trim() && form.trademarkType && form.representativeEmail.trim());
   }, [form.brandName, form.trademarkType, form.representativeEmail]);
+
+  // 선택된 상품류에 기반한 추천 상품류 계산
+  const recommendedClasses = useMemo(() => {
+    const selectedNumbers = form.productClasses
+      .map(cls => {
+        const match = cls.match(/제(\d+)류/);
+        return match ? parseInt(match[1]) : null;
+      })
+      .filter((num): num is number => num !== null);
+
+    return getRecommendedClasses(selectedNumbers);
+  }, [form.productClasses]);
 
   const toggleClass = (productClass: string) => {
     setForm((prev) => {
@@ -204,22 +207,24 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">상품류 선택</h2>
         <p className="text-sm text-slate-600">
-          출원하고자 하는 상품 또는 서비스의 클래스를 선택해 주세요. 여러 클래스를 함께 선택할 수 있습니다.
+          출원하고자 하는 상품 또는 서비스의 클래스를 선택해 주세요. 사업분야에 맞는 상품류를 선택할 수 있습니다.
         </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {PRODUCT_CLASS_GROUPS.map((group) => (
-            <fieldset key={group.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <legend className="text-sm font-semibold text-slate-800">{group.label}</legend>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {BUSINESS_CATEGORIES.slice(0, 6).map((category) => (
+            <fieldset key={category.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <legend className="text-sm font-semibold text-slate-800">{category.label}</legend>
+              <p className="text-xs text-slate-500 mb-2">{category.description}</p>
               <div className="mt-3 space-y-2">
-                {group.options.map((option) => {
-                  const checked = form.productClasses.includes(option);
+                {category.primaryClasses.map((productClass) => {
+                  const optionValue = `${productClass.label}(${productClass.description})`;
+                  const checked = form.productClasses.includes(optionValue);
                   return (
-                    <label key={option} className="flex items-center justify-between gap-2 text-sm text-slate-700">
-                      <span>{option}</span>
+                    <label key={productClass.classNumber} className="flex items-center justify-between gap-2 text-sm text-slate-700">
+                      <span className="text-xs">{productClass.label}</span>
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleClass(option)}
+                        onChange={() => toggleClass(optionValue)}
                         className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
                     </label>
@@ -229,6 +234,46 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
             </fieldset>
           ))}
         </div>
+
+        {/* 추천 상품류 섹션 */}
+        {recommendedClasses.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-indigo-900 mb-2">함께 선택하면 좋은 상품류</h3>
+                <p className="text-xs text-slate-700 mb-3">
+                  선택하신 사업분야와 관련하여 함께 등록을 고려해보시면 좋은 상품류입니다.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {recommendedClasses.map((productClass) => {
+                    const optionValue = `${productClass.label}(${productClass.description})`;
+                    const isAlreadySelected = form.productClasses.includes(optionValue);
+
+                    if (isAlreadySelected) return null;
+
+                    return (
+                      <button
+                        key={productClass.classNumber}
+                        type="button"
+                        onClick={() => toggleClass(optionValue)}
+                        className="inline-flex items-center gap-2 rounded-full border border-indigo-300 bg-white px-3 py-1.5 text-xs text-indigo-700 transition hover:bg-indigo-100"
+                      >
+                        <span>+</span>
+                        <span>{productClass.label}</span>
+                        <span className="text-slate-600">({productClass.description})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
