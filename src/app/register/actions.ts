@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { Buffer } from "node:buffer";
 
-import { createAdminClient } from "@/lib/supabaseAdminClient";
+import { createServerClient } from "@/lib/supabaseServerClient";
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 const TRADEMARK_IMAGE_BUCKET = "trademark-images";
@@ -130,8 +130,20 @@ export async function submitTrademarkRequest(
     };
   }
 
+  // Use user's session instead of admin client
+  const supabase = createServerClient("mutable");
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    console.error('Authentication error:', authError);
+    return {
+      success: false,
+      message: "인증에 실패했습니다. 다시 로그인해 주세요.",
+      errors: ["인증 오류가 발생했습니다."],
+    };
+  }
+
   const requestId = randomUUID();
-  const admin = createAdminClient();
   let imageUrl: string | null = null;
   let imagePath: string | null = null;
 
@@ -152,29 +164,41 @@ export async function submitTrademarkRequest(
       const extension = deriveExtension(input.image, mimeType);
       const safeName = sanitizeFileName(input.image.fileName || "trademark");
       const fileName = `${safeName || "trademark"}${extension}`;
-      imagePath = `${requestId}/${Date.now()}-${fileName}`;
+      imagePath = `${user.id}/${requestId}/${Date.now()}-${fileName}`;
 
-      const { error: uploadError } = await admin
+      const { error: uploadError } = await supabase
         .storage
         .from(TRADEMARK_IMAGE_BUCKET)
         .upload(imagePath, buffer, { contentType: mimeType, upsert: false });
       if (uploadError) {
         throw uploadError;
       }
-      const { data: publicUrlData } = admin
+      const { data: publicUrlData } = supabase
         .storage
         .from(TRADEMARK_IMAGE_BUCKET)
         .getPublicUrl(imagePath);
       imageUrl = publicUrlData.publicUrl;
     } catch (error) {
+      console.error('Failed to upload trademark image:', error);
       const message =
         error instanceof Error
           ? error.message
-          : "이미지 업로드 중 오류가 발생했습니다.";
+          : (error as any)?.message || "이미지 업로드 중 오류가 발생했습니다.";
+      const details = (error as any)?.details;
+      const hint = (error as any)?.hint;
+      const code = (error as any)?.code;
+
+      const fullMessage = [
+        message,
+        details ? `상세: ${details}` : null,
+        hint ? `힌트: ${hint}` : null,
+        code ? `코드: ${code}` : null,
+      ].filter(Boolean).join(' ');
+
       return {
         success: false,
-        message,
-        errors: [message],
+        message: fullMessage,
+        errors: [fullMessage],
       };
     }
   }
@@ -183,11 +207,11 @@ export async function submitTrademarkRequest(
 
   try {
     // trademark_requests에 저장 (관리자가 수동으로 승인할 때까지 대기)
-    const { error: insertError } = await admin
+    const { error: insertError } = await supabase
       .from("trademark_requests")
       .insert({
       id: requestId,
-      user_id: input.userId ?? null,
+      user_id: user.id,
       brand_name: input.brandName.trim(),
       trademark_type: input.trademarkType,
       image_url: imageUrl,
@@ -206,12 +230,26 @@ export async function submitTrademarkRequest(
       throw insertError;
     }
   } catch (error) {
+    console.error('Failed to insert trademark request:', error);
     const message =
-      error instanceof Error ? error.message : "출원 요청 저장 중 오류가 발생했습니다.";
+      error instanceof Error
+        ? error.message
+        : (error as any)?.message || "출원 요청 저장 중 오류가 발생했습니다.";
+    const details = (error as any)?.details;
+    const hint = (error as any)?.hint;
+    const code = (error as any)?.code;
+
+    const fullMessage = [
+      message,
+      details ? `상세: ${details}` : null,
+      hint ? `힌트: ${hint}` : null,
+      code ? `코드: ${code}` : null,
+    ].filter(Boolean).join(' ');
+
     return {
       success: false,
-      message,
-      errors: [message],
+      message: fullMessage,
+      errors: [fullMessage],
     };
   }
 
@@ -219,7 +257,7 @@ export async function submitTrademarkRequest(
   const functionName = process.env.SUPABASE_NOTIFICATION_FUNCTION;
   if (functionName) {
     try {
-      await admin.functions.invoke(functionName, {
+      await supabase.functions.invoke(functionName, {
         body: {
           requestId,
           brandName: input.brandName,
