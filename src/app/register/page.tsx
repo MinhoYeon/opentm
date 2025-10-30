@@ -1,10 +1,15 @@
 ﻿"use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 
 import { submitTrademarkRequest, type TrademarkType } from "./actions";
+import {
+  BUSINESS_CATEGORIES,
+  getRecommendedClasses,
+  type ProductClass
+} from "@/data/productClassRecommendations";
 
 type StoredImage = {
   dataUrl: string;
@@ -22,20 +27,7 @@ interface TrademarkApplication {
   agreeToTerms: boolean;
 }
 
-const productClassGroups = [
-  {
-    label: "식품 & 음료",
-    options: ["제30류(커피·디저트)", "제32류(음료)", "제43류(식당 서비스)"],
-  },
-  {
-    label: "패션 & 라이프스타일",
-    options: ["제25류(의류)", "제18류(가방)", "제35류(소매·도소매)"],
-  },
-  {
-    label: "IT & SaaS",
-    options: ["제09류(소프트웨어)", "제42류(기술 서비스)", "제45류(지식재산 자문)"],
-  },
-];
+// 사업분야별 상품류 데이터는 BUSINESS_CATEGORIES에서 가져옴
 
 const storageKey = "register-form";
 
@@ -81,6 +73,18 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState<TrademarkApplication>(() => getInitialState());
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 선택된 상품류에 기반한 추천 상품류 계산
+  const recommendedClasses = useMemo(() => {
+    const selectedNumbers = formData.productClasses
+      .map(cls => {
+        const match = cls.match(/제(\d+)류/);
+        return match ? parseInt(match[1]) : null;
+      })
+      .filter((num): num is number => num !== null);
+
+    return getRecommendedClasses(selectedNumbers);
+  }, [formData.productClasses]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -285,17 +289,19 @@ export default function RegisterPage() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-100">상품류 선택</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  복수 선택이 가능합니다. 주요 상품/서비스류를 모두 선택해 주세요.
+                  복수 선택이 가능합니다. 사업분야에 맞는 상품/서비스류를 선택해 주세요.
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {productClassGroups.map((group) => (
-                  <fieldset key={group.label} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
-                    <legend className="text-sm font-semibold text-slate-100">{group.label}</legend>
-                    {group.options.map((option) => {
-                      const checked = formData.productClasses.includes(option);
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {BUSINESS_CATEGORIES.slice(0, 6).map((category) => (
+                  <fieldset key={category.id} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+                    <legend className="text-sm font-semibold text-slate-100">{category.label}</legend>
+                    <p className="text-xs text-slate-400 mb-2">{category.description}</p>
+                    {category.primaryClasses.map((productClass) => {
+                      const optionValue = `${productClass.label}(${productClass.description})`;
+                      const checked = formData.productClasses.includes(optionValue);
                       return (
-                        <label key={option} className="flex cursor-pointer items-center gap-3 text-sm text-slate-200">
+                        <label key={productClass.classNumber} className="flex cursor-pointer items-center gap-3 text-sm text-slate-200">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border border-white/20 bg-slate-900 text-pink-400 focus:ring-pink-400"
@@ -305,18 +311,63 @@ export default function RegisterPage() {
                               setFormData((data) => ({
                                 ...data,
                                 productClasses: isChecked
-                                  ? [...data.productClasses, option]
-                                  : data.productClasses.filter((item) => item !== option),
+                                  ? [...data.productClasses, optionValue]
+                                  : data.productClasses.filter((item) => item !== optionValue),
                               }));
                             }}
                           />
-                          <span>{option}</span>
+                          <span className="text-xs">{productClass.label}</span>
                         </label>
                       );
                     })}
                   </fieldset>
                 ))}
               </div>
+
+              {/* 추천 상품류 섹션 */}
+              {recommendedClasses.length > 0 && (
+                <div className="mt-6 rounded-xl border border-pink-400/30 bg-pink-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <svg className="h-5 w-5 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-pink-200 mb-2">함께 선택하면 좋은 상품류</h3>
+                      <p className="text-xs text-slate-300 mb-3">
+                        선택하신 사업분야와 관련하여 함께 등록을 고려해보시면 좋은 상품류입니다.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {recommendedClasses.map((productClass) => {
+                          const optionValue = `${productClass.label}(${productClass.description})`;
+                          const isAlreadySelected = formData.productClasses.includes(optionValue);
+
+                          if (isAlreadySelected) return null;
+
+                          return (
+                            <button
+                              key={productClass.classNumber}
+                              type="button"
+                              onClick={() => {
+                                setFormData((data) => ({
+                                  ...data,
+                                  productClasses: [...data.productClasses, optionValue],
+                                }));
+                              }}
+                              className="inline-flex items-center gap-2 rounded-full border border-pink-300/50 bg-white/10 px-3 py-1.5 text-xs text-pink-100 transition hover:bg-white/20 hover:border-pink-300"
+                            >
+                              <span>+</span>
+                              <span>{productClass.label}</span>
+                              <span className="text-pink-200/70">({productClass.description})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* 담당자 이메일 섹션 */}
