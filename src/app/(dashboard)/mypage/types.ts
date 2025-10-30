@@ -7,6 +7,7 @@ export type StatusTransition = {
 
 export type TrademarkRequest = {
   id: string;
+  managementNumber?: string | null;
   brandName: string;
   status: string;
   statusLabel?: string | null;

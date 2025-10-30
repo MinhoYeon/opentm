@@ -80,6 +80,12 @@ export function normalizeTrademarkRequest(record: Record<string, unknown>): Trad
 
   return {
     id: String(record.id ?? ""),
+    managementNumber:
+      typeof record.management_number === "string"
+        ? record.management_number
+        : typeof record.managementNumber === "string"
+          ? (record.managementNumber as string)
+          : null,
     brandName:
       typeof record.brand_name === "string"
         ? record.brand_name
