@@ -13,6 +13,8 @@ type UseTrademarkRequestsOptions = {
   userId: string;
   statusFilter?: string;
   searchTerm?: string;
+  managementNumberSearch?: string;
+  applicantNameSearch?: string;
 };
 
 type StatusUpdateResult = PostgrestSingleResponse<Record<string, unknown>>;
@@ -22,6 +24,8 @@ export function useTrademarkRequests({
   userId,
   statusFilter = "all",
   searchTerm = "",
+  managementNumberSearch = "",
+  applicantNameSearch = "",
 }: UseTrademarkRequestsOptions) {
   const supabase = useMemo(() => createBrowserClient(), []);
   const [requests, setRequests] = useState<TrademarkRequest[]>(initialRequests);
@@ -42,7 +46,16 @@ export function useTrademarkRequests({
     try {
       let query = supabase
         .from("trademark_requests")
-        .select("*")
+        .select(`
+          *,
+          trademark_request_applicants(
+            applicant_id,
+            applicants(
+              name_korean,
+              display_name
+            )
+          )
+        `)
         .eq("user_id", userId)
         .order("submitted_at", { ascending: false });
 
@@ -50,10 +63,25 @@ export function useTrademarkRequests({
         query = query.eq("status", statusFilter);
       }
 
-      const trimmedSearch = searchTerm.trim();
-      if (trimmedSearch) {
-        const escaped = trimmedSearch.replace(/[%_]/g, "\\$&");
+      // 상표명 검색
+      const trimmedBrandName = searchTerm.trim();
+      if (trimmedBrandName) {
+        const escaped = trimmedBrandName.replace(/[%_]/g, "\\$&");
         query = query.ilike("brand_name", `%${escaped}%`);
+      }
+
+      // 관리번호 검색
+      const trimmedManagementNumber = managementNumberSearch.trim();
+      if (trimmedManagementNumber) {
+        const escaped = trimmedManagementNumber.replace(/[%_]/g, "\\$&");
+        query = query.ilike("management_number", `%${escaped}%`);
+      }
+
+      // 출원인명 검색 - applicant_name 필드로 검색
+      const trimmedApplicantName = applicantNameSearch.trim();
+      if (trimmedApplicantName) {
+        const escaped = trimmedApplicantName.replace(/[%_]/g, "\\$&");
+        query = query.ilike("applicant_name", `%${escaped}%`);
       }
 
       const { data, error: queryError } = await query;
@@ -62,9 +90,31 @@ export function useTrademarkRequests({
         throw queryError;
       }
 
-      const normalized = (data ?? []).map((row) =>
-        normalizeTrademarkRequest(row as Record<string, unknown>)
-      );
+      const normalized = (data ?? []).map((row) => {
+        const rowData = row as Record<string, unknown>;
+        // Extract applicant names from joined data
+        let applicantName: string | null = rowData.applicant_name as string | null;
+        if (Array.isArray(rowData.trademark_request_applicants) && rowData.trademark_request_applicants.length > 0) {
+          const applicantNames = rowData.trademark_request_applicants
+            .map((applicantItem) => {
+              const applicantRecord = applicantItem as Record<string, unknown>;
+              if (applicantRecord && typeof applicantRecord.applicants === "object" && applicantRecord.applicants !== null) {
+                const applicantData = applicantRecord.applicants as Record<string, unknown>;
+                return (
+                  (typeof applicantData.name_korean === "string" ? applicantData.name_korean : null) ||
+                  (typeof applicantData.display_name === "string" ? applicantData.display_name : null)
+                );
+              }
+              return null;
+            })
+            .filter((name): name is string => name !== null);
+
+          if (applicantNames.length > 0) {
+            applicantName = applicantNames.join(", ");
+          }
+        }
+        return normalizeTrademarkRequest({ ...rowData, applicant_name: applicantName });
+      });
       setRequests(normalized);
       previousRef.current = normalized;
       return normalized;
@@ -75,7 +125,7 @@ export function useTrademarkRequests({
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, userId, statusFilter, searchTerm]);
+  }, [supabase, userId, statusFilter, searchTerm, managementNumberSearch, applicantNameSearch]);
 
   const refresh = useCallback(async () => {
     return fetchRequests();
@@ -84,7 +134,11 @@ export function useTrademarkRequests({
   useEffect(() => {
     if (!initializedRef.current) {
       initializedRef.current = true;
-      const isDefaultFilter = statusFilter === "all" && !searchTerm.trim();
+      const isDefaultFilter =
+        statusFilter === "all" &&
+        !searchTerm.trim() &&
+        !managementNumberSearch.trim() &&
+        !applicantNameSearch.trim();
       if (isDefaultFilter) {
         return;
       }
@@ -93,7 +147,7 @@ export function useTrademarkRequests({
     fetchRequests().catch((err) => {
       console.error("Failed to fetch trademark requests", err);
     });
-  }, [fetchRequests, searchTerm, statusFilter]);
+  }, [fetchRequests, searchTerm, statusFilter, managementNumberSearch, applicantNameSearch]);
 
   const updateStatus = useCallback(
     async (requestId: string, nextStatus: string) => {

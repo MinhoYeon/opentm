@@ -46,13 +46,19 @@ export default function MyPageClient({
   const [activeTab, setActiveTab] = useState<TabType>("requests");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [managementNumberSearch, setManagementNumberSearch] = useState("");
+  const [applicantNameSearch, setApplicantNameSearch] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm, 350);
+  const debouncedManagementNumber = useDebouncedValue(managementNumberSearch, 350);
+  const debouncedApplicantName = useDebouncedValue(applicantNameSearch, 350);
 
   const { requests, refresh, updateStatus, isMutating, isLoading, error } = useTrademarkRequests({
     initialRequests: submissions,
     userId: user.id,
     statusFilter,
     searchTerm: debouncedSearch,
+    managementNumberSearch: debouncedManagementNumber,
+    applicantNameSearch: debouncedApplicantName,
   });
 
   const handleRefresh = useCallback(async () => {
@@ -146,6 +152,10 @@ export default function MyPageClient({
             onChange={setStatusFilter}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
+            managementNumberSearch={managementNumberSearch}
+            onManagementNumberSearchChange={setManagementNumberSearch}
+            applicantNameSearch={applicantNameSearch}
+            onApplicantNameSearchChange={setApplicantNameSearch}
             isBusy={isLoading || isMutating}
             onRefresh={handleRefresh}
           />
