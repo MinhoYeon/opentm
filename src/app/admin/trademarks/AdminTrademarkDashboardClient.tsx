@@ -740,6 +740,9 @@ function UnifiedTable({
                   />
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  관리번호
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   고객명 및 이메일
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -762,6 +765,9 @@ function UnifiedTable({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   결제 상태
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  작업
                 </th>
               </tr>
             </thead>
@@ -821,6 +827,9 @@ function UnifiedTable({
                         onChange={() => onToggleRow(item.id)}
                         className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {item.management_number || "미배정"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm font-medium text-slate-900">
@@ -990,12 +999,43 @@ function UnifiedTable({
                         <span className="text-sm text-slate-400">-</span>
                       )}
                     </td>
+
+                    {/* 작업 (Delete) */}
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`"${item.brand_name}" 상표 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+                            return;
+                          }
+
+                          try {
+                            const response = await fetch(`/api/admin/trademark-requests/${item.id}`, {
+                              method: "DELETE",
+                            });
+
+                            if (!response.ok) {
+                              const data = await response.json().catch(() => ({}));
+                              throw new Error(data.error || "삭제에 실패했습니다.");
+                            }
+
+                            alert("삭제되었습니다.");
+                            window.location.reload();
+                          } catch (error) {
+                            alert(error instanceof Error ? error.message : "삭제 중 오류가 발생했습니다.");
+                          }
+                        }}
+                        className="rounded border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                      >
+                        삭제
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {items.length === 0 && !isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={9}>
+                  <td className="px-4 py-12 text-center" colSpan={10}>
                     <div className="text-sm text-slate-600">신청서가 없습니다.</div>
                     <div className="mt-2 text-xs text-slate-500">
                       사용자가 신청서를 제출하면 이곳에 표시됩니다.
@@ -1005,7 +1045,7 @@ function UnifiedTable({
               ) : null}
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={9}>
+                  <td className="px-4 py-12 text-center text-sm text-slate-500" colSpan={10}>
                     데이터를 불러오는 중입니다...
                   </td>
                 </tr>

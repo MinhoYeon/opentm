@@ -161,12 +161,10 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
       : typeof record.status_detail === "string"
         ? (record.status_detail as string)
         : null;
-  const referenceCode =
-    typeof record.reference_code === "string"
-      ? record.reference_code
-      : typeof record.id === "string"
-        ? (record.id as string)
-        : null;
+  const managementNumber =
+    typeof record.management_number === "string"
+      ? record.management_number
+      : null;
   const transitionsValue =
     record.status_transitions ?? (record as Record<string, unknown>).statusTransitions;
   const transitions: StatusTransition[] = Array.isArray(transitionsValue)
@@ -279,7 +277,7 @@ export default async function RequestDetail({ params }: { params: Promise<Reques
               <dl className="space-y-3 text-sm">
                 <div className="flex gap-2">
                   <dt className="w-32 shrink-0 text-slate-500">관리번호</dt>
-                  <dd className="text-slate-800">{referenceCode}</dd>
+                  <dd className="text-slate-800">{managementNumber || "미배정"}</dd>
                 </div>
                 <div className="flex gap-2">
                   <dt className="w-32 shrink-0 text-slate-500">상표명</dt>

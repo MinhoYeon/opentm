@@ -118,7 +118,7 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
           <dl className="grid gap-3 text-sm text-slate-600">
             <div className="flex gap-2">
               <dt className="w-24 shrink-0 text-slate-500">관리번호</dt>
-              <dd className="text-slate-800">{request.id}</dd>
+              <dd className="text-slate-800">{request.managementNumber || "미배정"}</dd>
             </div>
             <div className="flex gap-2">
               <dt className="w-24 shrink-0 text-slate-500">상표명</dt>
