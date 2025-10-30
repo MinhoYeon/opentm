@@ -191,6 +191,7 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
   );
 
   const handleApply = useCallback(() => {
+    console.log('🔍 [FilterSidebar DEBUG] Applying filters:', localFilters);
     onApply(localFilters);
   }, [localFilters, onApply]);
 

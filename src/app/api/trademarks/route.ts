@@ -187,6 +187,8 @@ export async function GET(request: NextRequest) {
   const admin = Boolean(adminContext);
   const query = parseListQuery(request, admin, session.user.id);
 
+  console.log('🔍 [API DEBUG] Parsed query:', JSON.stringify(query, null, 2));
+
   let supabaseQuery = adminClient
     .from("trademark_requests")
     .select("*", { count: "exact" })
@@ -253,8 +255,20 @@ export async function GET(request: NextRequest) {
   const { data, error, count } = await supabaseQuery;
 
   if (error) {
+    console.error('❌ [API DEBUG] Supabase error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  console.log('✅ [API DEBUG] Query result:', {
+    count,
+    dataLength: data?.length,
+    filters: {
+      search: query.search,
+      managementNumberSearch: query.managementNumberSearch,
+      customerNameSearch: query.customerNameSearch,
+      assignedTo: query.assignedTo
+    }
+  });
 
   return NextResponse.json({
     items: data ?? [],
