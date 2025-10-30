@@ -16,7 +16,7 @@ DECLARE
   today_date TEXT;
   last_sequence INT;
   new_sequence TEXT;
-  management_number TEXT;
+  new_management_number TEXT;
   lock_key BIGINT;
 BEGIN
   -- Get today's date in YYMMDD format
@@ -31,25 +31,26 @@ BEGIN
   PERFORM pg_advisory_xact_lock(lock_key);
 
   -- Find the last sequence number for today
+  -- Use explicit table name to avoid ambiguity
   SELECT COALESCE(
     MAX(
       CAST(
-        SUBSTRING(management_number FROM 8 FOR 3) AS INT
+        SUBSTRING(tr.management_number FROM 8 FOR 3) AS INT
       )
     ),
     0
   )
   INTO last_sequence
-  FROM trademark_requests
-  WHERE management_number LIKE 'T' || today_date || '%';
+  FROM trademark_requests tr
+  WHERE tr.management_number LIKE 'T' || today_date || '%';
 
   -- Increment and format with zero-padding
   new_sequence := LPAD((last_sequence + 1)::TEXT, 3, '0');
 
   -- Construct the management number
-  management_number := 'T' || today_date || new_sequence;
+  new_management_number := 'T' || today_date || new_sequence;
 
-  RETURN management_number;
+  RETURN new_management_number;
 
   -- Advisory lock is automatically released at transaction end
 END;
