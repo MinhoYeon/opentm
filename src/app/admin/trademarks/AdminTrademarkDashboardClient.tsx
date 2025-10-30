@@ -1930,6 +1930,18 @@ export default function AdminTrademarkDashboardClient({
   const [activeTrademark, setActiveTrademark] = useState<AdminTrademarkRequest | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // 서버에서 새로운 데이터가 오면 state 업데이트
+  useEffect(() => {
+    console.log('🔍 [useEffect DEBUG] Initial data changed, updating state:', {
+      newCount: initialTrademarks.length,
+      currentCount: trademarks.length
+    });
+    setTrademarks(initialTrademarks);
+    setPagination(initialPagination);
+    setFilters(initialFilters);
+    setStatusSummary(initialStatusSummary);
+  }, [initialTrademarks, initialPagination, initialFilters, initialStatusSummary]);
+
   useEffect(() => {
     setSelectedIds([]);
   }, [trademarks]);
