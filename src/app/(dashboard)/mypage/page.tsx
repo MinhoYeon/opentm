@@ -128,12 +128,13 @@ export default async function MyPage({ searchParams }: PageProps) {
   const displayName = resolveDisplayName(data.user);
 
   const processSteps = [
-    "입금대기(가상계좌)",
+    "신청접수(입금대기)",
     "결제완료",
-    "출원인 정보 입력완료",
+    "출원인정보입력대기",
     "출원완료",
-    "심사 진행중",
-    "등록료 납부대기",
+    "심사중(약1년2개월)",
+    "출원공고",
+    "등록료대기",
     "등록완료",
   ];
 
