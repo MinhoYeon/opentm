@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
   if (query.search) {
     const like = `%${query.search.replace(/%/g, "").replace(/_/g, "")}%`;
     supabaseQuery = supabaseQuery.or(
-      `brand_name.ilike.${like},management_number.ilike.${like}`
+      `brand_name.ilike.${like},representative_email.ilike.${like},applicant_name.ilike.${like},applicant_email.ilike.${like},management_number.ilike.${like},additional_notes.ilike.${like}`
     );
   }
 
