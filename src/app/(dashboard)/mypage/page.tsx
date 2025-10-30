@@ -120,6 +120,15 @@ export default async function MyPage({ searchParams }: PageProps) {
       applicantName = applicantNames.length > 0 ? applicantNames.join(", ") : null;
     }
 
+    // Debug: Log image_url for troubleshooting
+    if (row.image_url) {
+      console.log("[MyPage] Trademark with image:", {
+        id: row.id,
+        brand_name: row.brand_name,
+        image_url: row.image_url,
+      });
+    }
+
     return normalizeTrademarkRequest({ ...row, applicant_name: applicantName });
   });
 

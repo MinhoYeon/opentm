@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 import { getStatusMetadata } from "@/lib/status";
@@ -89,6 +90,7 @@ function buildActions(request: TrademarkRequest): CtaAction[] {
 export function SubmissionCard({ request, isMutating = false, onStatusChange }: SubmissionCardProps) {
   const status = resolveStatus(request);
   const actions = buildActions(request);
+  const [imageError, setImageError] = useState(false);
 
   const handleStatusChange = async (nextStatus: string) => {
     try {
@@ -96,6 +98,12 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
     } catch (err) {
       console.error("Failed to update trademark request status", err);
     }
+  };
+
+  const handleImageError = () => {
+    console.error("Failed to load image:", request.imageUrl);
+    console.error("Request ID:", request.id);
+    setImageError(true);
   };
 
   return (
@@ -146,14 +154,19 @@ export function SubmissionCard({ request, isMutating = false, onStatusChange }: 
 
         {/* 우측 컬럼 (20%) */}
         <div className="flex-[2]">
-          {request.imageUrl ? (
+          {request.imageUrl && !imageError ? (
             <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={request.imageUrl} alt="상표 이미지" className="w-full h-auto object-contain" />
+              <img
+                src={request.imageUrl}
+                alt="상표 이미지"
+                className="w-full h-auto object-contain"
+                onError={handleImageError}
+              />
             </div>
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-              이미지 없음
+              {imageError ? "이미지 로드 실패" : "이미지 없음"}
             </div>
           )}
         </div>
