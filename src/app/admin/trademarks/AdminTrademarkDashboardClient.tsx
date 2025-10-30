@@ -159,8 +159,8 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
           ? prev.statuses.filter((item) => item !== status)
           : [...prev.statuses, status];
         const newFilters = { ...prev, statuses };
-        // 즉시 필터 적용
-        onApply(newFilters);
+        // 다음 렌더링 사이클에서 필터 적용
+        setTimeout(() => onApply(newFilters), 0);
         return newFilters;
       });
     },
@@ -174,8 +174,8 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
         ? prev.paymentStates.filter((item) => item !== state)
         : [...prev.paymentStates, state];
       const newFilters = { ...prev, paymentStates };
-      // 즉시 필터 적용
-      onApply(newFilters);
+      // 다음 렌더링 사이클에서 필터 적용
+      setTimeout(() => onApply(newFilters), 0);
       return newFilters;
     });
   }, [onApply]);
