@@ -69,6 +69,19 @@ type UpdateBody = {
   isFavorite?: unknown;
   metadata?: unknown;
   markAsUsed?: unknown;
+  // New fields
+  applicantType?: unknown;
+  nameKorean?: unknown;
+  nameEnglish?: unknown;
+  nationality?: unknown;
+  residentRegistrationNumber?: unknown;
+  corporationRegistrationNumber?: unknown;
+  businessRegistrationNumber?: unknown;
+  mobilePhone?: unknown;
+  postalCode?: unknown;
+  deliveryPostalCode?: unknown;
+  deliveryAddress?: unknown;
+  patentCustomerNumber?: unknown;
 };
 
 function parseUpdateBody(body: UpdateBody): Partial<ApplicantPayload> & { markAsUsed?: boolean } {
@@ -106,6 +119,47 @@ function parseUpdateBody(body: UpdateBody): Partial<ApplicantPayload> & { markAs
   }
   if (typeof body.markAsUsed === "boolean") {
     payload.markAsUsed = body.markAsUsed;
+  }
+
+  // New fields
+  if ("applicantType" in body) {
+    payload.applicantType = typeof body.applicantType === "string" ? (body.applicantType as "domestic_individual" | "domestic_corporation") : null;
+  }
+  if ("nameKorean" in body) {
+    payload.nameKorean = typeof body.nameKorean === "string" ? body.nameKorean : null;
+  }
+  if ("nameEnglish" in body) {
+    payload.nameEnglish = typeof body.nameEnglish === "string" ? body.nameEnglish : null;
+  }
+  if ("nationality" in body) {
+    payload.nationality = typeof body.nationality === "string" ? body.nationality : null;
+  }
+  if ("residentRegistrationNumber" in body) {
+    payload.residentRegistrationNumber = typeof body.residentRegistrationNumber === "string" ? body.residentRegistrationNumber : null;
+  }
+  if ("corporationRegistrationNumber" in body) {
+    payload.corporationRegistrationNumber = typeof body.corporationRegistrationNumber === "string" ? body.corporationRegistrationNumber : null;
+  }
+  if ("businessRegistrationNumber" in body) {
+    payload.businessRegistrationNumber = typeof body.businessRegistrationNumber === "string" ? body.businessRegistrationNumber : null;
+  }
+  if ("mobilePhone" in body) {
+    payload.mobilePhone = typeof body.mobilePhone === "string" ? body.mobilePhone : null;
+    if (payload.mobilePhone && /[^0-9\s+\-.]/.test(payload.mobilePhone)) {
+      throw new Error("휴대폰번호는 숫자와 -, ., 공백만 사용할 수 있습니다.");
+    }
+  }
+  if ("postalCode" in body) {
+    payload.postalCode = typeof body.postalCode === "string" ? body.postalCode : null;
+  }
+  if ("deliveryPostalCode" in body) {
+    payload.deliveryPostalCode = typeof body.deliveryPostalCode === "string" ? body.deliveryPostalCode : null;
+  }
+  if ("deliveryAddress" in body) {
+    payload.deliveryAddress = typeof body.deliveryAddress === "string" ? body.deliveryAddress : null;
+  }
+  if ("patentCustomerNumber" in body) {
+    payload.patentCustomerNumber = typeof body.patentCustomerNumber === "string" ? body.patentCustomerNumber : null;
   }
 
   if (!Object.keys(payload).length) {
