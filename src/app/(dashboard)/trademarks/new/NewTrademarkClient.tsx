@@ -581,8 +581,8 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
           </div>
         )}
 
-        {/* AI 추천 상품 섹션 */}
-        {aiRecommendations.length > 0 && (
+        {/* AI 추천 상품 섹션 - 임시 비활성화 */}
+        {false && aiRecommendations.length > 0 && (
           <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
