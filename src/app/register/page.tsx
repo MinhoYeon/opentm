@@ -8,6 +8,7 @@ import { submitTrademarkRequest, type TrademarkType } from "./actions";
 import {
   BUSINESS_CATEGORIES,
   getRecommendedClasses,
+  PRODUCT_CLASSES,
   type ProductClass
 } from "@/data/productClassRecommendations";
 
@@ -73,6 +74,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState<TrademarkApplication>(() => getInitialState());
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAllClasses, setShowAllClasses] = useState(false);
 
   // 선택된 상품류에 기반한 추천 상품류 계산
   const recommendedClasses = useMemo(() => {
@@ -285,26 +287,68 @@ export default function RegisterPage() {
             </section>
 
             {/* 상품류 선택 섹션 */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-slate-100">상품류 선택</h2>
                 <p className="mt-1 text-sm text-slate-400">
                   복수 선택이 가능합니다. 사업분야에 맞는 상품/서비스류를 선택해 주세요.
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {BUSINESS_CATEGORIES.slice(0, 6).map((category) => (
-                  <fieldset key={category.id} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+
+              {/* 선택된 상품류 표시 박스 */}
+              {formData.productClasses.length > 0 && (
+                <div className="rounded-xl border border-pink-400/50 bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-pink-200">
+                      선택된 상품류 ({formData.productClasses.length}개)
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setFormData((data) => ({ ...data, productClasses: [] }))}
+                      className="text-xs text-pink-300 hover:text-pink-100 transition"
+                    >
+                      전체 해제
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.productClasses.map((cls, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center gap-2 rounded-lg border border-pink-300/50 bg-slate-900/60 px-3 py-1.5 text-xs text-pink-100"
+                      >
+                        <span>{cls}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((data) => ({
+                              ...data,
+                              productClasses: data.productClasses.filter((item) => item !== cls),
+                            }));
+                          }}
+                          className="text-pink-300 hover:text-pink-100 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 주요 사업분야별 상품류 */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {BUSINESS_CATEGORIES.map((category) => (
+                  <fieldset key={category.id} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
                     <legend className="text-sm font-semibold text-slate-100">{category.label}</legend>
-                    <p className="text-xs text-slate-400 mb-2">{category.description}</p>
+                    <p className="text-[10px] text-slate-400 mb-2">{category.description}</p>
                     {category.primaryClasses.map((productClass) => {
-                      const optionValue = `${productClass.label}(${productClass.description})`;
+                      const optionValue = `${productClass.label} (${productClass.description})`;
                       const checked = formData.productClasses.includes(optionValue);
                       return (
-                        <label key={productClass.classNumber} className="flex cursor-pointer items-center gap-3 text-sm text-slate-200">
+                        <label key={productClass.classNumber} className="flex cursor-pointer items-start gap-2 text-xs text-slate-200 hover:text-white transition">
                           <input
                             type="checkbox"
-                            className="h-4 w-4 rounded border border-white/20 bg-slate-900 text-pink-400 focus:ring-pink-400"
+                            className="mt-0.5 h-4 w-4 rounded border border-white/20 bg-slate-900 text-pink-400 focus:ring-pink-400"
                             checked={checked}
                             onChange={(event) => {
                               const isChecked = event.target.checked;
@@ -316,7 +360,9 @@ export default function RegisterPage() {
                               }));
                             }}
                           />
-                          <span className="text-xs">{productClass.label}</span>
+                          <span className="leading-tight">
+                            {productClass.label} <span className="text-slate-400">({productClass.description})</span>
+                          </span>
                         </label>
                       );
                     })}
@@ -324,9 +370,68 @@ export default function RegisterPage() {
                 ))}
               </div>
 
+              {/* 전체 분야 드롭다운 */}
+              <div className="rounded-xl border border-white/10 bg-white/5">
+                <button
+                  type="button"
+                  onClick={() => setShowAllClasses(!showAllClasses)}
+                  className="flex w-full items-center justify-between p-4 text-left transition hover:bg-white/5"
+                >
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-100">전체 분야</h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      1류~45류 모든 상품류를 확인하고 선택할 수 있습니다
+                    </p>
+                  </div>
+                  <svg
+                    className={`h-5 w-5 text-slate-400 transition-transform ${showAllClasses ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showAllClasses && (
+                  <div className="border-t border-white/10 p-4">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {Object.values(PRODUCT_CLASSES).map((productClass) => {
+                        const optionValue = `${productClass.label} (${productClass.description})`;
+                        const checked = formData.productClasses.includes(optionValue);
+                        return (
+                          <label
+                            key={productClass.classNumber}
+                            className="flex cursor-pointer items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white transition"
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-4 w-4 rounded border border-white/20 bg-slate-900 text-pink-400 focus:ring-pink-400"
+                              checked={checked}
+                              onChange={(event) => {
+                                const isChecked = event.target.checked;
+                                setFormData((data) => ({
+                                  ...data,
+                                  productClasses: isChecked
+                                    ? [...data.productClasses, optionValue]
+                                    : data.productClasses.filter((item) => item !== optionValue),
+                                }));
+                              }}
+                            />
+                            <span className="leading-tight">
+                              {productClass.label} <span className="text-slate-400">({productClass.description})</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* 추천 상품류 섹션 */}
               {recommendedClasses.length > 0 && (
-                <div className="mt-6 rounded-xl border border-pink-400/30 bg-pink-500/10 p-4">
+                <div className="rounded-xl border border-pink-400/30 bg-pink-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-0.5">
                       <svg className="h-5 w-5 text-pink-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -340,7 +445,7 @@ export default function RegisterPage() {
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {recommendedClasses.map((productClass) => {
-                          const optionValue = `${productClass.label}(${productClass.description})`;
+                          const optionValue = `${productClass.label} (${productClass.description})`;
                           const isAlreadySelected = formData.productClasses.includes(optionValue);
 
                           if (isAlreadySelected) return null;

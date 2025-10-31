@@ -10,6 +10,7 @@ import type { Applicant } from "@/components/applicants/useApplicantSelection";
 import {
   BUSINESS_CATEGORIES,
   getRecommendedClasses,
+  PRODUCT_CLASSES,
 } from "@/data/productClassRecommendations";
 
 const TRADEMARK_TYPES = [
@@ -51,6 +52,7 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [successLink, setSuccessLink] = useState<string | null>(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
+  const [showAllClasses, setShowAllClasses] = useState(false);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
   const { isSubmitting, error, submit, reset } = useCreateTrademarkRequest();
@@ -204,29 +206,68 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
         />
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">상품류 선택</h2>
         <p className="text-sm text-slate-600">
           출원하고자 하는 상품 또는 서비스의 클래스를 선택해 주세요. 사업분야에 맞는 상품류를 선택할 수 있습니다.
         </p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {BUSINESS_CATEGORIES.slice(0, 6).map((category) => (
-            <fieldset key={category.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+
+        {/* 선택된 상품류 표시 박스 */}
+        {form.productClasses.length > 0 && (
+          <div className="rounded-2xl border border-indigo-300 bg-gradient-to-r from-indigo-50 to-purple-50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-indigo-900">
+                선택된 상품류 ({form.productClasses.length}개)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setForm((prev) => ({ ...prev, productClasses: [] }))}
+                className="text-xs text-indigo-600 hover:text-indigo-800 transition"
+              >
+                전체 해제
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {form.productClasses.map((cls, index) => (
+                <div
+                  key={index}
+                  className="inline-flex items-center gap-2 rounded-lg border border-indigo-300 bg-white px-3 py-1.5 text-xs text-indigo-900"
+                >
+                  <span>{cls}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleClass(cls)}
+                    className="text-indigo-600 hover:text-indigo-800 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 주요 사업분야별 상품류 */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {BUSINESS_CATEGORIES.map((category) => (
+            <fieldset key={category.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
               <legend className="text-sm font-semibold text-slate-800">{category.label}</legend>
-              <p className="text-xs text-slate-500 mb-2">{category.description}</p>
+              <p className="text-[10px] text-slate-500 mb-2">{category.description}</p>
               <div className="mt-3 space-y-2">
                 {category.primaryClasses.map((productClass) => {
-                  const optionValue = `${productClass.label}(${productClass.description})`;
+                  const optionValue = `${productClass.label} (${productClass.description})`;
                   const checked = form.productClasses.includes(optionValue);
                   return (
-                    <label key={productClass.classNumber} className="flex items-center justify-between gap-2 text-sm text-slate-700">
-                      <span className="text-xs">{productClass.label}</span>
+                    <label key={productClass.classNumber} className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer hover:text-slate-900 transition">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleClass(optionValue)}
-                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                       />
+                      <span className="leading-tight">
+                        {productClass.label} <span className="text-slate-500">({productClass.description})</span>
+                      </span>
                     </label>
                   );
                 })}
@@ -235,9 +276,60 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
           ))}
         </div>
 
+        {/* 전체 분야 드롭다운 */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setShowAllClasses(!showAllClasses)}
+            className="flex w-full items-center justify-between p-4 text-left transition hover:bg-slate-50"
+          >
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800">전체 분야</h3>
+              <p className="text-xs text-slate-600 mt-1">
+                1류~45류 모든 상품류를 확인하고 선택할 수 있습니다
+              </p>
+            </div>
+            <svg
+              className={`h-5 w-5 text-slate-400 transition-transform ${showAllClasses ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showAllClasses && (
+            <div className="border-t border-slate-200 p-4">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Object.values(PRODUCT_CLASSES).map((productClass) => {
+                  const optionValue = `${productClass.label} (${productClass.description})`;
+                  const checked = form.productClasses.includes(optionValue);
+                  return (
+                    <label
+                      key={productClass.classNumber}
+                      className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700 cursor-pointer hover:bg-slate-100 hover:text-slate-900 transition"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleClass(optionValue)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="leading-tight">
+                        {productClass.label} <span className="text-slate-500">({productClass.description})</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 추천 상품류 섹션 */}
         {recommendedClasses.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -251,7 +343,7 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {recommendedClasses.map((productClass) => {
-                    const optionValue = `${productClass.label}(${productClass.description})`;
+                    const optionValue = `${productClass.label} (${productClass.description})`;
                     const isAlreadySelected = form.productClasses.includes(optionValue);
 
                     if (isAlreadySelected) return null;
