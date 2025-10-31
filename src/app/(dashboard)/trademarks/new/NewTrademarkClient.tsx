@@ -46,6 +46,14 @@ const initialFormState = (userEmail?: string | null): FormState => ({
   selectedApplicantIds: [],
 });
 
+interface SearchResult {
+  products: any[];
+  generics: any[];
+  hierarchy: any;
+  totalCount: number;
+  genericsCount: number;
+}
+
 export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => initialFormState(userEmail));
@@ -55,6 +63,9 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
   const [showAllClasses, setShowAllClasses] = useState(false);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const { isSubmitting, error, submit, reset } = useCreateTrademarkRequest();
 
   // Fetch applicants when modal opens
@@ -72,6 +83,50 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
         .finally(() => setIsLoadingApplicants(false));
     }
   }, [showApplicantModal, applicants.length]);
+
+  // 상품 검색 기능 (디바운스 적용)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch(
+          `/api/products/search?q=${encodeURIComponent(searchQuery.trim())}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data);
+        }
+      } catch (error) {
+        console.error("Search failed:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms 디바운스
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // 검색 결과에서 상품류 빠르게 선택
+  const addClassFromSearch = (classNumber: number, description: string) => {
+    const productClass = PRODUCT_CLASSES[classNumber];
+    if (!productClass) return;
+
+    const optionValue = `${productClass.label} (${description})`;
+    if (!form.productClasses.includes(optionValue)) {
+      setForm((prev) => ({
+        ...prev,
+        productClasses: [...prev.productClasses, optionValue],
+      }));
+    }
+    // 검색 초기화
+    setSearchQuery("");
+    setSearchResults(null);
+  };
 
   const isFormValid = useMemo(() => {
     return Boolean(form.brandName.trim() && form.trademarkType && form.representativeEmail.trim());
@@ -211,6 +266,103 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
         <p className="text-sm text-slate-600">
           출원하고자 하는 상품 또는 서비스의 클래스를 선택해 주세요. 사업분야에 맞는 상품류를 선택할 수 있습니다.
         </p>
+
+        {/* 상품 검색 박스 */}
+        <div className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="상품명으로 검색 (예: 커피, 신발, 소프트웨어)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
+              </div>
+            )}
+            {searchQuery && !isSearching && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults(null);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* 검색 결과 */}
+          {searchResults && searchResults.totalCount > 0 && (
+            <div className="mt-2 max-h-96 overflow-y-auto rounded-xl border border-slate-300 bg-white p-4 shadow-lg">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-indigo-900">
+                  검색 결과: {searchResults.totalCount}개 상품
+                  {searchResults.genericsCount > 0 && ` (${searchResults.genericsCount}개 카테고리)`}
+                </h3>
+                <span className="text-xs text-slate-500">
+                  클릭하여 상품류 선택
+                </span>
+              </div>
+              <div className="space-y-2">
+                {searchResults.generics.slice(0, 10).map((generic: any) => (
+                  <button
+                    key={generic.순번}
+                    type="button"
+                    onClick={() => addClassFromSearch(generic.상품류, generic.국문명칭)}
+                    className="group w-full rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-indigo-400 hover:bg-indigo-50"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-indigo-600">
+                            제{generic.상품류}류
+                          </span>
+                          <span className="font-medium text-slate-900">
+                            {generic.국문명칭}
+                          </span>
+                          {generic._score && (
+                            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+                              인기
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-600">
+                          {generic.영문명칭}
+                        </p>
+                        {generic.childrenCount > 0 && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            관련 상품 {generic.childrenCount}개 포함
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-indigo-600 opacity-0 transition group-hover:opacity-100">
+                        +
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {searchResults.totalCount > 10 && (
+                <p className="mt-3 text-center text-xs text-slate-500">
+                  더 많은 결과가 있습니다. 검색어를 더 구체적으로 입력해보세요.
+                </p>
+              )}
+            </div>
+          )}
+
+          {searchResults && searchResults.totalCount === 0 && (
+            <div className="mt-2 rounded-xl border border-slate-300 bg-white p-4 text-center">
+              <p className="text-sm text-slate-600">
+                검색 결과가 없습니다. 다른 키워드로 검색해보세요.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* 선택된 상품류 표시 박스 */}
         {form.productClasses.length > 0 && (
