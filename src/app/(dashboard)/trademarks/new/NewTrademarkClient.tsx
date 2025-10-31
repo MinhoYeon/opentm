@@ -54,6 +54,18 @@ interface SearchResult {
   genericsCount: number;
 }
 
+interface RecommendedProduct {
+  순번: number;
+  국문명칭: string;
+  상품류: number;
+  유사군코드: string;
+  영문명칭: string;
+  _score?: number;
+  childrenCount: number;
+  reason: string;
+  relevance: number;
+}
+
 export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProps) {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() => initialFormState(userEmail));
@@ -66,6 +78,8 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<RecommendedProduct[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const { isSubmitting, error, submit, reset } = useCreateTrademarkRequest();
 
   // Fetch applicants when modal opens
@@ -126,6 +140,54 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
     // 검색 초기화
     setSearchQuery("");
     setSearchResults(null);
+  };
+
+  // AI 추천 기능 (상품류 선택 시)
+  useEffect(() => {
+    const selectedNumbers = form.productClasses
+      .map((cls) => {
+        const match = cls.match(/제(\d+)류/);
+        return match ? parseInt(match[1]) : null;
+      })
+      .filter((n): n is number => n !== null);
+
+    if (selectedNumbers.length === 0) {
+      setAiRecommendations([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsLoadingRecommendations(true);
+      try {
+        const response = await fetch(
+          `/api/products/recommend?classes=${selectedNumbers.join(",")}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAiRecommendations(data.recommendations || []);
+        }
+      } catch (error) {
+        console.error("Failed to load recommendations:", error);
+      } finally {
+        setIsLoadingRecommendations(false);
+      }
+    }, 800); // 800ms 디바운스
+
+    return () => clearTimeout(timeoutId);
+  }, [form.productClasses]);
+
+  // 추천에서 상품류 빠르게 선택
+  const addClassFromRecommendation = (recommendation: RecommendedProduct) => {
+    const productClass = PRODUCT_CLASSES[recommendation.상품류];
+    if (!productClass) return;
+
+    const optionValue = `${productClass.label} (${recommendation.국문명칭})`;
+    if (!form.productClasses.includes(optionValue)) {
+      setForm((prev) => ({
+        ...prev,
+        productClasses: [...prev.productClasses, optionValue],
+      }));
+    }
   };
 
   const isFormValid = useMemo(() => {
@@ -510,6 +572,74 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
                         <span>+</span>
                         <span>{productClass.label}</span>
                         <span className="text-slate-600">({productClass.description})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI 추천 상품 섹션 */}
+        {aiRecommendations.length > 0 && (
+          <div className="rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-sm font-semibold text-purple-900">AI 맞춤 추천</h3>
+                  {isLoadingRecommendations && (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent"></div>
+                  )}
+                </div>
+                <p className="text-xs text-slate-700 mb-3">
+                  선택하신 상품을 분석하여 관련성 높은 상품류를 추천해드립니다.
+                </p>
+                <div className="space-y-2">
+                  {aiRecommendations.slice(0, 8).map((recommendation) => {
+                    const productClass = PRODUCT_CLASSES[recommendation.상품류];
+                    const optionValue = `${productClass?.label || `제${recommendation.상품류}류`} (${recommendation.국문명칭})`;
+                    const isAlreadySelected = form.productClasses.includes(optionValue);
+
+                    if (isAlreadySelected) return null;
+
+                    return (
+                      <button
+                        key={recommendation.순번}
+                        type="button"
+                        onClick={() => addClassFromRecommendation(recommendation)}
+                        className="group w-full rounded-lg border border-purple-200 bg-white p-3 text-left transition hover:bg-purple-50 hover:border-purple-300"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-purple-600 text-sm">
+                                제{recommendation.상품류}류
+                              </span>
+                              <span className="font-medium text-slate-900 text-sm">
+                                {recommendation.국문명칭}
+                              </span>
+                              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700">
+                                {recommendation.relevance}% 관련
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 mb-1">
+                              {recommendation.영문명칭}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {recommendation.reason}
+                              {recommendation.childrenCount > 0 && ` · ${recommendation.childrenCount}개 상품 포함`}
+                            </p>
+                          </div>
+                          <span className="text-purple-600 opacity-0 transition group-hover:opacity-100">
+                            +
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
