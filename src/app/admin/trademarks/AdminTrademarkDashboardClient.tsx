@@ -2122,7 +2122,8 @@ export default function AdminTrademarkDashboardClient({
       </aside>
       <main className="flex min-h-screen flex-1 flex-col">
         <header className="border-b border-slate-200 bg-white py-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-6
+          ">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">상표 신청 관리</h1>
               <p className="mt-1 text-sm text-slate-600">모든 상표등록 신청서를 확인하고 승인/해제할 수 있습니다.</p>
