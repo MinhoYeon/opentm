@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminContext } from "@/lib/api/auth";
-import * as XLSX from "xlsx";
-import * as fs from "fs";
-import * as path from "path";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 export interface Product {
   순번: number;
@@ -30,18 +29,15 @@ export async function GET(request: Request) {
 
     const classNumbers = classNumbersParam.split(",").map(Number);
 
-    // 엑셀 파일 경로
-    const excelPath = path.join(process.cwd(), "data", "특허청 고시상품명칭 12판(2025.10.).xlsx");
+    // Dynamic import xlsx
+    const XLSX = await import("xlsx");
 
-    if (!fs.existsSync(excelPath)) {
-      return NextResponse.json(
-        { error: "상품 데이터 파일을 찾을 수 없습니다." },
-        { status: 500 }
-      );
-    }
+    // 엑셀 파일 경로
+    const excelPath = join(process.cwd(), "data", "특허청 고시상품명칭 12판(2025.10.).xlsx");
 
     // 엑셀 파일 읽기
-    const workbook = XLSX.readFile(excelPath);
+    const fileBuffer = await readFile(excelPath);
+    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
     const sheetName = "지정상품 고시목록(2025.10 기준)";
     const worksheet = workbook.Sheets[sheetName];
 
@@ -57,12 +53,12 @@ export async function GET(request: Request) {
 
     // 데이터 필터링 및 타입 변환
     const products: Product[] = rawData
-      .map((row: any) => ({
-        순번: row["순번"] || 0,
-        국문명칭: row["지정상품(국문)"] || "",
-        상품류: row["NICE분류"] || 0,
-        유사군코드: row["유사군코드"] || "",
-        영문명칭: row["지정상품(영문)"] || "",
+      .map((row: Record<string, unknown>) => ({
+        순번: (row["순번"] as number) || 0,
+        국문명칭: (row["지정상품(국문)"] as string) || "",
+        상품류: (row["NICE분류"] as number) || 0,
+        유사군코드: (row["유사군코드"] as string) || "",
+        영문명칭: (row["지정상품(영문)"] as string) || "",
       }))
       .filter((product) => {
         // 선택된 상품류에 속하는지 확인
