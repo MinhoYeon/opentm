@@ -12,6 +12,7 @@ import type {
   UserDashboardStats,
 } from "./types";
 import type { ApplicantDTO } from "@/server/db/applicants";
+import type { ApplicantFormInput } from "@/components/applicants/useApplicantSelection";
 import { StatusFilter } from "./components/StatusFilter";
 import { TrademarkRequestList } from "./components/TrademarkRequestList";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
@@ -75,9 +76,22 @@ export default function MyPageClient({
     }
   }, [refresh]);
 
-  const handleEditApplicant = useCallback((id: string) => {
-    router.push(`/mypage/applicants/${id}`);
-  }, [router]);
+  const handleEditApplicant = useCallback(async (id: string, input: ApplicantFormInput) => {
+    const response = await fetch(`/api/applicants/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "출원인 정보를 수정하지 못했습니다.");
+    }
+
+    const updated = await response.json();
+    // Update the applicant in the list
+    setApplicants(prev => prev.map(app => app.id === id ? updated : app));
+  }, []);
 
   const handleDeleteApplicant = useCallback(async (id: string) => {
     const applicant = applicants.find(app => app.id === id);
