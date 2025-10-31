@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { BUSINESS_CATEGORIES, PRODUCT_CLASSES } from "@/data/productClassRecommendations";
-import * as XLSX from "xlsx";
 
 interface Product {
   순번: number;
@@ -95,46 +94,54 @@ export default function ProductSuggestionsClient() {
   };
 
   // 엑셀 다운로드
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
     if (selectedProducts.length === 0) {
       alert("선택된 상품이 없습니다.");
       return;
     }
 
-    // 상품류별로 정렬
-    const sortedProducts = [...selectedProducts].sort((a, b) => {
-      if (a.상품류 !== b.상품류) {
-        return a.상품류 - b.상품류;
-      }
-      return a.순번 - b.순번;
-    });
+    try {
+      // Dynamic import for xlsx
+      const XLSX = await import("xlsx");
 
-    // 엑셀 데이터 준비
-    const excelData = sortedProducts.map((product) => ({
-      상품류: `제${product.상품류}류`,
-      "명칭(국문)": product.국문명칭,
-      "명칭(영문)": product.영문명칭,
-      유사군코드: product.유사군코드,
-    }));
+      // 상품류별로 정렬
+      const sortedProducts = [...selectedProducts].sort((a, b) => {
+        if (a.상품류 !== b.상품류) {
+          return a.상품류 - b.상품류;
+        }
+        return a.순번 - b.순번;
+      });
 
-    // 워크시트 생성
-    const ws = XLSX.utils.json_to_sheet(excelData);
+      // 엑셀 데이터 준비
+      const excelData = sortedProducts.map((product) => ({
+        상품류: `제${product.상품류}류`,
+        "명칭(국문)": product.국문명칭,
+        "명칭(영문)": product.영문명칭,
+        유사군코드: product.유사군코드,
+      }));
 
-    // 컬럼 너비 설정
-    ws["!cols"] = [
-      { wch: 10 },  // 상품류
-      { wch: 30 },  // 명칭(국문)
-      { wch: 30 },  // 명칭(영문)
-      { wch: 15 },  // 유사군코드
-    ];
+      // 워크시트 생성
+      const ws = XLSX.utils.json_to_sheet(excelData);
 
-    // 워크북 생성
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "선택된 상품");
+      // 컬럼 너비 설정
+      ws["!cols"] = [
+        { wch: 10 },  // 상품류
+        { wch: 30 },  // 명칭(국문)
+        { wch: 30 },  // 명칭(영문)
+        { wch: 15 },  // 유사군코드
+      ];
 
-    // 파일 다운로드
-    const today = new Date().toISOString().split("T")[0];
-    XLSX.writeFile(wb, `지정상품_${today}.xlsx`);
+      // 워크북 생성
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "선택된 상품");
+
+      // 파일 다운로드
+      const today = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(wb, `지정상품_${today}.xlsx`);
+    } catch (error) {
+      console.error("엑셀 다운로드 실패:", error);
+      alert("엑셀 파일 다운로드에 실패했습니다.");
+    }
   };
 
   return (
