@@ -86,6 +86,16 @@ export default function RegisterPage() {
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
+  // 사용자 이메일을 담당자 이메일 기본값으로 설정
+  useEffect(() => {
+    if (user?.email && !formData.representativeEmail) {
+      setFormData((data) => ({
+        ...data,
+        representativeEmail: user.email || "",
+      }));
+    }
+  }, [user?.email, formData.representativeEmail]);
+
   // 상품 검색 기능 (디바운스 적용)
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -631,7 +641,7 @@ export default function RegisterPage() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-100">담당자 이메일</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  상표 등록 관련 안내를 받으실 이메일 주소를 입력해 주세요.
+                  상표 등록 관련 안내를 받으실 이메일 주소입니다. 기본값으로 회원가입 시 사용한 이메일이 자동 입력되며, 필요시 수정하실 수 있습니다.
                 </p>
               </div>
               <input
