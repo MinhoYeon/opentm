@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type {
   ApplicantSummary,
@@ -43,13 +44,16 @@ export default function MyPageClient({
   submissions,
   pagination,
   processSteps,
-  applicants,
+  applicants: initialApplicants,
 }: MyPageClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("requests");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [managementNumberSearch, setManagementNumberSearch] = useState("");
   const [applicantNameSearch, setApplicantNameSearch] = useState("");
+  const [applicants, setApplicants] = useState<ApplicantDTO[]>(initialApplicants);
+  const [isDeleting, setIsDeleting] = useState(false);
   const debouncedSearch = useDebouncedValue(searchTerm, 350);
   const debouncedManagementNumber = useDebouncedValue(managementNumberSearch, 350);
   const debouncedApplicantName = useDebouncedValue(applicantNameSearch, 350);
@@ -70,6 +74,39 @@ export default function MyPageClient({
       console.error("Failed to refresh trademark requests", err);
     }
   }, [refresh]);
+
+  const handleEditApplicant = useCallback((id: string) => {
+    router.push(`/mypage/applicants/${id}`);
+  }, [router]);
+
+  const handleDeleteApplicant = useCallback(async (id: string) => {
+    const applicant = applicants.find(app => app.id === id);
+    if (!applicant) return;
+
+    const confirmMessage = `"${applicant.nameKorean || applicant.name}" 출원인을 삭제하시겠습니까?`;
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/applicants/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "출원인을 삭제하지 못했습니다.");
+      }
+
+      // Remove the deleted applicant from the list
+      setApplicants(prev => prev.filter(app => app.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "출원인을 삭제하지 못했습니다.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [applicants]);
 
   const computedTotal = Math.max(pagination.totalCount, submissions.length, requests.length);
   const totalPages = Math.max(Math.ceil(computedTotal / pagination.pageSize), 1);
@@ -213,9 +250,15 @@ export default function MyPageClient({
             </Link>
           </div>
           {applicants.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4">
               {applicants.map((app) => (
-                <MyPageApplicantCard key={app.id} applicant={app} />
+                <MyPageApplicantCard
+                  key={app.id}
+                  applicant={app}
+                  onEdit={handleEditApplicant}
+                  onDelete={handleDeleteApplicant}
+                  disabled={isDeleting}
+                />
               ))}
             </div>
           ) : (

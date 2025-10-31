@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import type { ApplicantDTO } from "@/server/db/applicants";
 
 type MyPageApplicantCardProps = {
   applicant: ApplicantDTO;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  disabled?: boolean;
 };
 
 function formatLastUsed(lastUsedAt: string | null) {
@@ -33,7 +35,7 @@ function formatLastUsed(lastUsedAt: string | null) {
   }
 }
 
-export function MyPageApplicantCard({ applicant }: MyPageApplicantCardProps) {
+export function MyPageApplicantCard({ applicant, onEdit, onDelete, disabled }: MyPageApplicantCardProps) {
   const isIndividual = applicant.applicantType === "domestic_individual";
   const isCorporation = applicant.applicantType === "domestic_corporation";
 
@@ -48,83 +50,88 @@ export function MyPageApplicantCard({ applicant }: MyPageApplicantCardProps) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm transition hover:border-indigo-300">
       <div className="space-y-4">
-        {/* 첫번째 행: 성명/명칭 (큰 bold) | 상세보기 버튼 */}
+        {/* 첫번째 행: 성명/명칭 (큰 bold) | 편집/삭제 버튼 */}
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200">
           <h3 className="text-xl font-bold text-slate-900">
             {applicant.nameKorean || applicant.name || "-"}
           </h3>
-          <Link
-            href={`/mypage/applicants/${applicant.id}`}
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            상세보기
-          </Link>
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => onEdit(applicant.id)}
+              className="text-indigo-600 hover:underline disabled:opacity-50"
+              disabled={disabled}
+            >
+              편집
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(applicant.id)}
+              className="text-rose-500 hover:underline disabled:opacity-50"
+              disabled={disabled}
+            >
+              삭제
+            </button>
+          </div>
         </div>
 
-        {/* 두번째 행: 2컬럼 그리드 */}
-        <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-          {/* 왼쪽 컬럼 */}
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">출원인 구분</span>
-              <span className="text-slate-900">{getApplicantTypeLabel()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(국문)</span>
-              <span className="text-slate-900">{applicant.nameKorean || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">{nameLabel}(영문)</span>
-              <span className="text-slate-900">{applicant.nameEnglish || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">국적</span>
-              <span className="text-slate-900">{applicant.nationality || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">특허고객번호</span>
-              <span className="text-slate-900">
-                {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
-              </span>
-            </div>
+        {/* 두번째 행: 1컬럼 레이아웃 */}
+        <div className="space-y-2 text-sm">
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">출원인 구분</span>
+            <span className="text-slate-900">{getApplicantTypeLabel()}</span>
           </div>
-
-          {/* 오른쪽 컬럼 */}
-          <div className="space-y-2">
-            {isIndividual && (
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">{nameLabel}(국문)</span>
+            <span className="text-slate-900">{applicant.nameKorean || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">{nameLabel}(영문)</span>
+            <span className="text-slate-900">{applicant.nameEnglish || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">국적</span>
+            <span className="text-slate-900">{applicant.nationality || "-"}</span>
+          </div>
+          {isIndividual && (
+            <div className="flex gap-2">
+              <span className="w-36 shrink-0 font-medium text-slate-600">주민등록번호</span>
+              <span className="text-slate-900">{applicant.residentRegistrationNumberMasked || "-"}</span>
+            </div>
+          )}
+          {isCorporation && (
+            <>
               <div className="flex gap-2">
-                <span className="w-28 shrink-0 font-medium text-slate-600">주민등록번호</span>
-                <span className="text-slate-900">{applicant.residentRegistrationNumberMasked || "-"}</span>
+                <span className="w-36 shrink-0 font-medium text-slate-600">법인등록번호</span>
+                <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked || "-"}</span>
               </div>
-            )}
-            {isCorporation && (
-              <>
-                <div className="flex gap-2">
-                  <span className="w-28 shrink-0 font-medium text-slate-600">법인등록번호</span>
-                  <span className="text-slate-900">{applicant.corporationRegistrationNumberMasked || "-"}</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="w-28 shrink-0 font-medium text-slate-600">사업자등록번호</span>
-                  <span className="text-slate-900">{applicant.businessRegistrationNumberMasked || "-"}</span>
-                </div>
-              </>
-            )}
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">전화번호</span>
-              <span className="text-slate-900">{applicant.phoneMasked || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">휴대폰번호</span>
-              <span className="text-slate-900">{applicant.mobilePhoneMasked || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-slate-600">이메일</span>
-              <span className="text-slate-900">{applicant.email || "-"}</span>
-            </div>
+              <div className="flex gap-2">
+                <span className="w-36 shrink-0 font-medium text-slate-600">사업자등록번호</span>
+                <span className="text-slate-900">{applicant.businessRegistrationNumberMasked || "-"}</span>
+              </div>
+            </>
+          )}
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">전화번호</span>
+            <span className="text-slate-900">{applicant.phoneMasked || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">휴대폰번호</span>
+            <span className="text-slate-900">{applicant.mobilePhoneMasked || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">이메일</span>
+            <span className="text-slate-900">{applicant.email || "-"}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 font-medium text-slate-600">특허고객번호</span>
+            <span className="text-slate-900">
+              {applicant.patentCustomerNumber || <span className="text-slate-400">미입력</span>}
+            </span>
           </div>
         </div>
 
-        {/* 세번째 행: 수직 레이아웃 */}
+        {/* 세번째 행: 주소 정보 */}
         <div className="space-y-2 pt-3 border-t border-slate-200 text-sm">
           <div className="flex gap-2">
             <span className="w-36 shrink-0 font-medium text-slate-600">우편번호(주민등록상)</span>
