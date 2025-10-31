@@ -93,17 +93,14 @@ export default function ProductSuggestionsClient() {
     }
   };
 
-  // 엑셀 다운로드
-  const downloadExcel = async () => {
+  // CSV 다운로드 (Excel에서 열 수 있음)
+  const downloadCSV = () => {
     if (selectedProducts.length === 0) {
       alert("선택된 상품이 없습니다.");
       return;
     }
 
     try {
-      // Dynamic import for xlsx
-      const XLSX = await import("xlsx");
-
       // 상품류별로 정렬
       const sortedProducts = [...selectedProducts].sort((a, b) => {
         if (a.상품류 !== b.상품류) {
@@ -112,35 +109,40 @@ export default function ProductSuggestionsClient() {
         return a.순번 - b.순번;
       });
 
-      // 엑셀 데이터 준비
-      const excelData = sortedProducts.map((product) => ({
-        상품류: `제${product.상품류}류`,
-        "명칭(국문)": product.국문명칭,
-        "명칭(영문)": product.영문명칭,
-        유사군코드: product.유사군코드,
-      }));
+      // CSV 헤더
+      const headers = ["상품류", "명칭(국문)", "명칭(영문)", "유사군코드"];
 
-      // 워크시트 생성
-      const ws = XLSX.utils.json_to_sheet(excelData);
+      // CSV 데이터 행
+      const rows = sortedProducts.map((product) => [
+        `제${product.상품류}류`,
+        product.국문명칭,
+        product.영문명칭,
+        product.유사군코드,
+      ]);
 
-      // 컬럼 너비 설정
-      ws["!cols"] = [
-        { wch: 10 },  // 상품류
-        { wch: 30 },  // 명칭(국문)
-        { wch: 30 },  // 명칭(영문)
-        { wch: 15 },  // 유사군코드
-      ];
+      // CSV 문자열 생성 (UTF-8 BOM 포함하여 Excel에서 한글이 깨지지 않도록)
+      const csvContent = [
+        "\uFEFF", // UTF-8 BOM
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(",")),
+      ].join("\n");
 
-      // 워크북 생성
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "선택된 상품");
-
-      // 파일 다운로드
+      // Blob 생성 및 다운로드
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
       const today = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(wb, `지정상품_${today}.xlsx`);
+
+      link.setAttribute("href", url);
+      link.setAttribute("download", `지정상품_${today}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("엑셀 다운로드 실패:", error);
-      alert("엑셀 파일 다운로드에 실패했습니다.");
+      console.error("CSV 다운로드 실패:", error);
+      alert("CSV 파일 다운로드에 실패했습니다.");
     }
   };
 
@@ -376,10 +378,10 @@ export default function ProductSuggestionsClient() {
                   선택 초기화
                 </button>
                 <button
-                  onClick={downloadExcel}
+                  onClick={downloadCSV}
                   className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
                 >
-                  📥 엑셀 다운로드
+                  📥 CSV 다운로드
                 </button>
               </div>
             </div>

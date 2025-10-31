@@ -29,55 +29,32 @@ export async function GET(request: Request) {
 
     const classNumbers = classNumbersParam.split(",").map(Number);
 
-    // Dynamic import xlsx
-    const XLSX = await import("xlsx");
+    // JSON 파일 경로
+    const jsonPath = join(process.cwd(), "data", "products.json");
 
-    // 엑셀 파일 경로
-    const excelPath = join(process.cwd(), "data", "특허청 고시상품명칭 12판(2025.10.).xlsx");
+    // JSON 파일 읽기
+    const fileContent = await readFile(jsonPath, "utf-8");
+    const allProducts: Product[] = JSON.parse(fileContent);
 
-    // 엑셀 파일 읽기
-    const fileBuffer = await readFile(excelPath);
-    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
-    const sheetName = "지정상품 고시목록(2025.10 기준)";
-    const worksheet = workbook.Sheets[sheetName];
+    // 데이터 필터링
+    const products = allProducts.filter((product) => {
+      // 선택된 상품류에 속하는지 확인
+      if (!classNumbers.includes(product.상품류)) {
+        return false;
+      }
 
-    if (!worksheet) {
-      return NextResponse.json(
-        { error: "상품 데이터 시트를 찾을 수 없습니다." },
-        { status: 500 }
-      );
-    }
+      // 검색어가 있으면 필터링
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          product.국문명칭.toLowerCase().includes(query) ||
+          product.영문명칭.toLowerCase().includes(query) ||
+          product.유사군코드.toLowerCase().includes(query)
+        );
+      }
 
-    // 시트를 JSON으로 변환
-    const rawData: unknown[] = XLSX.utils.sheet_to_json(worksheet);
-
-    // 데이터 필터링 및 타입 변환
-    const products: Product[] = rawData
-      .map((row: Record<string, unknown>) => ({
-        순번: (row["순번"] as number) || 0,
-        국문명칭: (row["지정상품(국문)"] as string) || "",
-        상품류: (row["NICE분류"] as number) || 0,
-        유사군코드: (row["유사군코드"] as string) || "",
-        영문명칭: (row["지정상품(영문)"] as string) || "",
-      }))
-      .filter((product) => {
-        // 선택된 상품류에 속하는지 확인
-        if (!classNumbers.includes(product.상품류)) {
-          return false;
-        }
-
-        // 검색어가 있으면 필터링
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          return (
-            product.국문명칭.toLowerCase().includes(query) ||
-            product.영문명칭.toLowerCase().includes(query) ||
-            product.유사군코드.toLowerCase().includes(query)
-          );
-        }
-
-        return true;
-      });
+      return true;
+    });
 
     // 상품류별로 그룹화
     const productsByClass: Record<number, Product[]> = {};
