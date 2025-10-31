@@ -139,12 +139,13 @@ type FilterSidebarProps = {
   admin: AdminUserSummary;
   filters: AdminDashboardFilters;
   statusOptions: StatusOption[];
+  statusSummary: StatusSummary[];
   onApply: (filters: AdminDashboardFilters) => void;
   onReset: () => void;
   savedFilters?: SavedFilter[];
 };
 
-function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedFilters }: FilterSidebarProps) {
+function FilterSidebar({ admin, filters, statusOptions, statusSummary, onApply, onReset, savedFilters }: FilterSidebarProps) {
   const [localFilters, setLocalFilters] = useState<AdminDashboardFilters>(filters);
   const [selectedSavedFilter, setSelectedSavedFilter] = useState<string | null>(null);
 
@@ -281,6 +282,7 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
         <div className="flex flex-wrap gap-2">
           {statusOptions.map((option) => {
             const active = localFilters.statuses.includes(option.value);
+            const count = statusSummary.find(s => s.status === option.value)?.count ?? 0;
             return (
               <button
                 key={option.value}
@@ -293,7 +295,7 @@ function FilterSidebar({ admin, filters, statusOptions, onApply, onReset, savedF
                     : "border-slate-300 text-slate-600 hover:border-indigo-300 hover:text-indigo-500"
                 )}
               >
-                {option.label}
+                {option.label}({count})
               </button>
             );
           })}
@@ -2112,6 +2114,7 @@ export default function AdminTrademarkDashboardClient({
           admin={admin}
           filters={filters}
           statusOptions={statusOptions}
+          statusSummary={statusSummary}
           onApply={applyFilters}
           onReset={() => updateFilters({ ...DEFAULT_FILTERS })}
           savedFilters={savedFilters}
@@ -2142,53 +2145,6 @@ export default function AdminTrademarkDashboardClient({
                   수동 신청 등록
                 </button>
               ) : null}
-            </div>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {headerStats.map((stat) => (
-              <div key={stat.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-xs text-slate-500">{stat.label}</div>
-                <div className="mt-1 flex items-end justify-between">
-                  <div className="text-2xl font-semibold text-slate-900">{stat.value.toLocaleString()}</div>
-                  <span className={classNames("rounded-full px-3 py-1 text-[11px] font-semibold", stat.accentClass)}>
-                    {stat.description}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 결제 통계 위젯 */}
-          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="text-xs text-slate-500">총 청구 금액</div>
-              <div className="mt-1 text-xl font-semibold text-slate-900">
-                {formatCurrency(dashboardStats.payments.totalAmount)}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
-              <div className="text-xs text-emerald-600">입금 완료</div>
-              <div className="mt-1 text-xl font-semibold text-emerald-700">
-                {formatCurrency(dashboardStats.payments.totalPaid)}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
-              <div className="text-xs text-amber-600">미수금</div>
-              <div className="mt-1 text-xl font-semibold text-amber-700">
-                {formatCurrency(dashboardStats.payments.totalUnpaid)}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 shadow-sm">
-              <div className="text-xs text-rose-600">연체</div>
-              <div className="mt-1 text-xl font-semibold text-rose-700">
-                {dashboardStats.payments.overdueCount}건
-              </div>
-            </div>
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 shadow-sm">
-              <div className="text-xs text-indigo-600">환불 요청</div>
-              <div className="mt-1 text-xl font-semibold text-indigo-700">
-                {dashboardStats.payments.refundRequestedCount}건
-              </div>
             </div>
           </div>
         </header>
