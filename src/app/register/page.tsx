@@ -170,7 +170,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-12 text-slate-100">
-      <div className="mx-auto max-w-3xl space-y-8">
+      <div className="mx-auto space-y-8">
         <header className="space-y-3 text-center">
           <p className="text-sm font-medium uppercase tracking-[0.3em] text-pink-300/80">JINJUNG TRADEMARK LAB</p>
           <h1 className="text-3xl font-semibold sm:text-4xl">상표 등록 신청</h1>
