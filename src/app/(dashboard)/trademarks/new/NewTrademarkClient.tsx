@@ -570,6 +570,9 @@ export function NewTrademarkClient({ userId, userEmail }: NewTrademarkClientProp
 
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">담당자 연락처</h2>
+        <p className="text-sm text-slate-600">
+          상표 등록 관련 안내를 받으실 이메일 주소입니다. 기본값으로 회원가입 시 사용한 이메일이 자동 입력되며, 필요시 수정하실 수 있습니다.
+        </p>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4">
             <label className="space-y-2 text-sm font-medium text-slate-700">
