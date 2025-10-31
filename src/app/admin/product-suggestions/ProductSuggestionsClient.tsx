@@ -327,29 +327,31 @@ export default function ProductSuggestionsClient() {
           )}
         </section>
 
-        {/* 상품 테이블 */}
+        {/* 2단 레이아웃: 상품 선택 + 선택된 상품 */}
         {selectedClasses.length > 0 && (
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
-                2단계: 지정상품 선택
-              </h2>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="상품 검색..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-                <button
-                  onClick={toggleAllProducts}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  {selectedProducts.length === products.length ? "전체 해제" : "전체 선택"}
-                </button>
+          <div className="grid gap-6 lg:grid-cols-[60%_40%]">
+            {/* 왼쪽: 상품 선택 영역 */}
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  2단계: 지정상품 선택
+                </h2>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="상품 검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                  <button
+                    onClick={toggleAllProducts}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    {selectedProducts.length === products.length ? "전체 해제" : "전체 선택"}
+                  </button>
+                </div>
               </div>
-            </div>
 
             {isLoading && (
               <div className="py-12 text-center">
@@ -479,9 +481,9 @@ export default function ProductSuggestionsClient() {
 
                           {/* 하위 상품 목록 */}
                           {isExpanded && group.children.length > 0 && (
-                            <div className="border-t border-slate-200 bg-white">
+                            <div className="max-h-[400px] overflow-y-auto border-t border-slate-200 bg-white">
                               <table className="w-full text-sm">
-                                <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
+                                <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
                                   <tr>
                                     <th className="px-4 py-2 text-left" style={{ width: "40px" }}></th>
                                     <th className="px-4 py-2 text-left">명칭(국문)</th>
@@ -527,33 +529,35 @@ export default function ProductSuggestionsClient() {
                 </div>
               </div>
             )}
-          </section>
-        )}
+            </section>
 
-        {/* 선택된 상품 리스트 */}
-        {selectedProducts.length > 0 && (
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">
-                3단계: 선택된 상품 ({selectedProducts.length}개)
-              </h2>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSelectedProducts([])}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  선택 초기화
-                </button>
-                <button
-                  onClick={downloadCSV}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
-                >
-                  📥 CSV 다운로드
-                </button>
-              </div>
-            </div>
+            {/* 오른쪽: 선택된 상품 영역 (sticky) */}
+            {selectedProducts.length > 0 && (
+              <section className="sticky top-6 flex max-h-[calc(100vh-3rem)] flex-col self-start overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                {/* 헤더 (고정) */}
+                <div className="flex items-center justify-between border-b border-slate-200 p-6 pb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    선택된 상품 ({selectedProducts.length}개)
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedProducts([])}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      초기화
+                    </button>
+                    <button
+                      onClick={downloadCSV}
+                      className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700"
+                    >
+                      📥 CSV
+                    </button>
+                  </div>
+                </div>
 
-            <div className="space-y-4">
+                {/* 상품 리스트 (스크롤) */}
+                <div className="flex-1 overflow-y-auto p-6 pt-4">
+                  <div className="space-y-4">
               {Object.keys(selectedProductsByClass)
                 .map(Number)
                 .sort((a, b) => a - b)
@@ -597,8 +601,11 @@ export default function ProductSuggestionsClient() {
                     </div>
                   );
                 })}
-            </div>
-          </section>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
         )}
       </div>
     </div>
