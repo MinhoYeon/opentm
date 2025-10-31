@@ -10,10 +10,12 @@ import type {
   TrademarkRequest,
   UserDashboardStats,
 } from "./types";
+import type { ApplicantDTO } from "@/server/db/applicants";
 import { StatusFilter } from "./components/StatusFilter";
 import { TrademarkRequestList } from "./components/TrademarkRequestList";
 import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useTrademarkRequests } from "./hooks/useTrademarkRequests";
+import { MyPageApplicantCard } from "@/components/mypage/MyPageApplicantCard";
 
 type TabType = "requests" | "applicants" | "profile";
 
@@ -23,7 +25,7 @@ type MyPageClientProps = {
   pagination: PaginationInfo;
   processSteps: string[];
   applicant: ApplicantSummary | null;
-  applicants: Array<{ id: string; name: string; email: string }>;
+  applicants: ApplicantDTO[];
   stats: UserDashboardStats;
 };
 
@@ -211,17 +213,9 @@ export default function MyPageClient({
             </Link>
           </div>
           {applicants.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {applicants.map((app) => (
-                <Link
-                  key={app.id}
-                  href={`/mypage/applicants/${app.id}`}
-                  className="text-center group rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-400"
-                >
-                  <p className="font-medium text-slate-900 transition group-hover:text-indigo-600">
-                    {app.name}
-                  </p>
-                </Link>
+                <MyPageApplicantCard key={app.id} applicant={app} />
               ))}
             </div>
           ) : (

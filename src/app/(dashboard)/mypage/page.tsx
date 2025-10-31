@@ -139,17 +139,12 @@ export default async function MyPage({ searchParams }: PageProps) {
   ];
 
   // Fetch all applicants for the user
-  let applicants: Array<{ id: string; name: string; email: string }> = [];
+  let applicants = [];
   try {
-    const allApplicants = await listApplicants(supabase, data.user.id, {
+    applicants = await listApplicants(supabase, data.user.id, {
       limit: 50,
       sort: "recent",
     });
-    applicants = allApplicants.map((app) => ({
-      id: app.id,
-      name: app.nameKorean || app.name || "-",
-      email: app.email,
-    }));
   } catch {
     applicants = [];
   }
