@@ -9,15 +9,28 @@ interface Product {
   상품류: number;
   유사군코드: string;
   영문명칭: string;
+  _score?: number;
+}
+
+interface GenericProduct extends Product {
+  childrenCount: number;
+}
+
+interface Hierarchy {
+  generic: GenericProduct | null;
+  children: Product[];
 }
 
 export default function ProductSuggestionsClient() {
   const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [generics, setGenerics] = useState<GenericProduct[]>([]);
+  const [hierarchy, setHierarchy] = useState<Record<string, Hierarchy>>({});
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // 상품류별로 그룹화된 선택된 상품
   const selectedProductsByClass = useMemo(() => {
@@ -44,6 +57,8 @@ export default function ProductSuggestionsClient() {
   useEffect(() => {
     if (selectedClasses.length === 0) {
       setProducts([]);
+      setGenerics([]);
+      setHierarchy({});
       return;
     }
 
@@ -62,6 +77,8 @@ export default function ProductSuggestionsClient() {
       })
       .then((data) => {
         setProducts(data.products || []);
+        setGenerics(data.generics || []);
+        setHierarchy(data.hierarchy || {});
       })
       .catch((err) => {
         console.error("Failed to load products:", err);
@@ -71,6 +88,52 @@ export default function ProductSuggestionsClient() {
         setIsLoading(false);
       });
   }, [selectedClasses, searchQuery]);
+
+  // 그룹 펼치기/접기
+  const toggleGroup = (code: string) => {
+    setExpandedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(code)) {
+        newSet.delete(code);
+      } else {
+        newSet.add(code);
+      }
+      return newSet;
+    });
+  };
+
+  // 모든 그룹 펼치기/접기
+  const toggleAllGroups = () => {
+    if (expandedGroups.size === Object.keys(hierarchy).length) {
+      setExpandedGroups(new Set());
+    } else {
+      setExpandedGroups(new Set(Object.keys(hierarchy)));
+    }
+  };
+
+  // 상위 개념과 하위 상품 전체 선택
+  const toggleGenericWithChildren = (generic: GenericProduct) => {
+    const group = hierarchy[generic.유사군코드];
+    if (!group) return;
+
+    const allItems = [generic, ...group.children];
+    const allSelected = allItems.every((item) =>
+      selectedProducts.some((p) => p.순번 === item.순번)
+    );
+
+    if (allSelected) {
+      // 전체 해제
+      setSelectedProducts((prev) =>
+        prev.filter((p) => !allItems.some((item) => item.순번 === p.순번))
+      );
+    } else {
+      // 전체 선택
+      const toAdd = allItems.filter(
+        (item) => !selectedProducts.some((p) => p.순번 === item.순번)
+      );
+      setSelectedProducts((prev) => [...prev, ...toAdd]);
+    }
+  };
 
   // 상품 선택/해제
   const toggleProduct = (product: Product) => {
@@ -308,55 +371,159 @@ export default function ProductSuggestionsClient() {
             )}
 
             {!isLoading && !error && products.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-700">
-                    <tr>
-                      <th className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.length === products.length}
-                          onChange={toggleAllProducts}
-                          className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                      </th>
-                      <th className="px-4 py-3">상품류</th>
-                      <th className="px-4 py-3">명칭(국문)</th>
-                      <th className="px-4 py-3">명칭(영문)</th>
-                      <th className="px-4 py-3">유사군코드</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {products.map((product) => {
-                      const isSelected = selectedProducts.some((p) => p.순번 === product.순번);
+              <div className="space-y-4">
+                {/* 컨트롤 버튼 */}
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={toggleAllGroups}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                    >
+                      {expandedGroups.size === Object.keys(hierarchy).length
+                        ? "모두 접기"
+                        : "모두 펼치기"}
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      상위 개념 {generics.length}개 · 전체 {products.length}개
+                    </span>
+                  </div>
+                  <button
+                    onClick={toggleAllProducts}
+                    className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                  >
+                    {selectedProducts.length === products.length ? "전체 해제" : "전체 선택"}
+                  </button>
+                </div>
+
+                {/* 계층 구조 리스트 */}
+                <div className="space-y-2">
+                  {Object.entries(hierarchy)
+                    .sort(([, a], [, b]) => {
+                      // 상품류로 먼저 정렬
+                      if (a.generic && b.generic) {
+                        return a.generic.상품류 - b.generic.상품류;
+                      }
+                      return 0;
+                    })
+                    .map(([code, group]) => {
+                      if (!group.generic) return null;
+
+                      const isExpanded = expandedGroups.has(code);
+                      const allItems = [group.generic, ...group.children];
+                      const selectedCount = allItems.filter((item) =>
+                        selectedProducts.some((p) => p.순번 === item.순번)
+                      ).length;
+                      const allSelected = selectedCount === allItems.length;
+                      const someSelected = selectedCount > 0 && !allSelected;
+
                       return (
-                        <tr
-                          key={product.순번}
-                          className={`transition hover:bg-slate-50 ${
-                            isSelected ? "bg-indigo-50" : ""
-                          }`}
+                        <div
+                          key={code}
+                          className="overflow-hidden rounded-lg border border-slate-200 bg-white"
                         >
-                          <td className="px-4 py-3">
+                          {/* 상위 개념 행 */}
+                          <div
+                            className={`flex items-center gap-3 p-3 transition ${
+                              allSelected ? "bg-indigo-50" : "bg-slate-50 hover:bg-slate-100"
+                            }`}
+                          >
+                            {/* 체크박스 (상위 개념 + 하위 전체 선택) */}
                             <input
                               type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleProduct(product)}
+                              checked={allSelected}
+                              ref={(el) => {
+                                if (el) el.indeterminate = someSelected;
+                              }}
+                              onChange={() => toggleGenericWithChildren(group.generic!)}
                               className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                              title={`${group.generic.국문명칭} 및 하위 상품 ${group.children.length}개 전체 선택`}
                             />
-                          </td>
-                          <td className="px-4 py-3 font-medium text-slate-900">
-                            제{product.상품류}류
-                          </td>
-                          <td className="px-4 py-3 text-slate-700">{product.국문명칭}</td>
-                          <td className="px-4 py-3 text-slate-600">{product.영문명칭}</td>
-                          <td className="px-4 py-3 text-slate-600">{product.유사군코드}</td>
-                        </tr>
+
+                            {/* 펼치기/접기 버튼 */}
+                            <button
+                              onClick={() => toggleGroup(code)}
+                              className="flex flex-1 items-center gap-3 text-left"
+                            >
+                              <span className="text-slate-400">
+                                {isExpanded ? "▼" : "▶"}
+                              </span>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-slate-900">
+                                    {group.generic.국문명칭}
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    ({group.generic.영문명칭})
+                                  </span>
+                                  {group.generic._score && (
+                                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                      점수 {group.generic._score}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1 flex items-center gap-3 text-xs text-slate-600">
+                                  <span>제{group.generic.상품류}류</span>
+                                  <span>유사군: {code}</span>
+                                  <span className="font-medium text-indigo-600">
+                                    하위 상품 {group.children.length}개
+                                  </span>
+                                  {selectedCount > 0 && (
+                                    <span className="font-medium text-emerald-600">
+                                      선택됨 {selectedCount}개
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+
+                          {/* 하위 상품 목록 */}
+                          {isExpanded && group.children.length > 0 && (
+                            <div className="border-t border-slate-200 bg-white">
+                              <table className="w-full text-sm">
+                                <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-600">
+                                  <tr>
+                                    <th className="px-4 py-2 text-left" style={{ width: "40px" }}></th>
+                                    <th className="px-4 py-2 text-left">명칭(국문)</th>
+                                    <th className="px-4 py-2 text-left">명칭(영문)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {group.children.map((child) => {
+                                    const isChildSelected = selectedProducts.some(
+                                      (p) => p.순번 === child.순번
+                                    );
+                                    return (
+                                      <tr
+                                        key={child.순번}
+                                        className={`transition hover:bg-slate-50 ${
+                                          isChildSelected ? "bg-indigo-50" : ""
+                                        }`}
+                                      >
+                                        <td className="px-4 py-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={isChildSelected}
+                                            onChange={() => toggleProduct(child)}
+                                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                          />
+                                        </td>
+                                        <td className="px-4 py-2 text-slate-800">
+                                          {child.국문명칭}
+                                        </td>
+                                        <td className="px-4 py-2 text-slate-600">
+                                          {child.영문명칭}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-                <div className="mt-4 text-center text-sm text-slate-600">
-                  총 {products.length}개 상품
                 </div>
               </div>
             )}

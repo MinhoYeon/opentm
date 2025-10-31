@@ -9,6 +9,11 @@ export interface Product {
   상품류: number;
   유사군코드: string;
   영문명칭: string;
+  _score?: number; // 상위 개념 점수
+}
+
+export interface GenericProduct extends Product {
+  childrenCount: number;
 }
 
 export async function GET(request: Request) {
@@ -31,10 +36,15 @@ export async function GET(request: Request) {
 
     // JSON 파일 경로
     const jsonPath = join(process.cwd(), "data", "products.json");
+    const genericJsonPath = join(process.cwd(), "data", "generic-products.json");
 
     // JSON 파일 읽기
     const fileContent = await readFile(jsonPath, "utf-8");
     const allProducts: Product[] = JSON.parse(fileContent);
+
+    // 상위 개념 데이터 읽기
+    const genericFileContent = await readFile(genericJsonPath, "utf-8");
+    const genericData = JSON.parse(genericFileContent);
 
     // 데이터 필터링
     const products = allProducts.filter((product) => {
@@ -56,6 +66,18 @@ export async function GET(request: Request) {
       return true;
     });
 
+    // 선택된 상품류의 상위 개념 추출
+    const generics: GenericProduct[] = [];
+    classNumbers.forEach((classNum) => {
+      const classGenerics = genericData.byClass[classNum];
+      if (classGenerics) {
+        generics.push(...classGenerics);
+      }
+    });
+
+    // 상위 개념의 순번 집합 생성
+    const genericIds = new Set(generics.map(g => g.순번));
+
     // 상품류별로 그룹화
     const productsByClass: Record<number, Product[]> = {};
     products.forEach((product) => {
@@ -65,10 +87,33 @@ export async function GET(request: Request) {
       productsByClass[product.상품류].push(product);
     });
 
+    // 유사군코드별 계층 구조 생성
+    const hierarchy: Record<string, { generic: GenericProduct | null; children: Product[] }> = {};
+
+    generics.forEach((generic) => {
+      const code = generic.유사군코드;
+      if (!hierarchy[code]) {
+        hierarchy[code] = { generic, children: [] };
+      }
+    });
+
+    // 하위 상품 매핑 (상위 개념이 아닌 상품들)
+    products.forEach((product) => {
+      if (!genericIds.has(product.순번)) {
+        const code = product.유사군코드;
+        if (hierarchy[code]) {
+          hierarchy[code].children.push(product);
+        }
+      }
+    });
+
     return NextResponse.json({
       products,
       productsByClass,
+      generics,
+      hierarchy,
       totalCount: products.length,
+      genericsCount: generics.length,
     });
   } catch (error) {
     console.error("Failed to load products:", error);
