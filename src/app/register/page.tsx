@@ -697,8 +697,8 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* AI 추천 상품 섹션 */}
-              {aiRecommendations.length > 0 && (
+              {/* AI 추천 상품 섹션 - 임시 비활성화 */}
+              {false && aiRecommendations.length > 0 && (
                 <div className="rounded-xl border border-purple-400/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-0.5">
