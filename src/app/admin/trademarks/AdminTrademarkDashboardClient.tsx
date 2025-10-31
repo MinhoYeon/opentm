@@ -2126,6 +2126,12 @@ export default function AdminTrademarkDashboardClient({
             </div>
             <div className="flex items-center gap-3">
               <Link
+                href="/admin/product-suggestions"
+                className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-600 shadow-sm transition hover:bg-emerald-100"
+              >
+                🏷️ 상품 제안
+              </Link>
+              <Link
                 href="/admin/stats"
                 className="rounded-full border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100"
               >
